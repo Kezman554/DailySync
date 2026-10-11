@@ -257,6 +257,39 @@
             android:text="@string/alfred_host_help"
             android:textAppearance="?attr/textAppearanceBodySmall" />
 
+        <LinearLayout
+            android:id="@+id/row_dashboard_host"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:orientation="vertical"
+            android:paddingVertical="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/dashboard_host_label"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <TextView
+                android:id="@+id/tv_dashboard_host"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                tools:text="192.168.1.100:8500" />
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/dashboard_host_help"
+            android:textAppearance="?attr/textAppearanceBodySmall" />
+
         <!-- Alarm sounds & volume -->
         <TextView
             android:layout_width="wrap_content"

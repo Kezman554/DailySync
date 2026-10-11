@@ -22,7 +22,9 @@ import com.personalmorningalarm.data.model.AlarmSound
 import com.personalmorningalarm.data.model.AlarmSounds
 import com.personalmorningalarm.data.model.ContentType
 import com.personalmorningalarm.data.remote.AlfredSettings
+import com.personalmorningalarm.data.remote.DashboardSettings
 import com.personalmorningalarm.databinding.DialogAlfredHostBinding
+import com.personalmorningalarm.databinding.DialogDashboardHostBinding
 import com.personalmorningalarm.databinding.DialogDurationSliderBinding
 import com.personalmorningalarm.databinding.FragmentSettingsBinding
 import com.personalmorningalarm.util.BatteryOptimisationHelper
@@ -46,6 +48,7 @@ class SettingsFragment : Fragment() {
     private lateinit var pinManager: PinManager
     private lateinit var themeManager: ThemeManager
     private lateinit var alfredSettings: AlfredSettings
+    private lateinit var dashboardSettings: DashboardSettings
     private val preview = SoundPreviewPlayer()
 
     /** Cached so the Stage 2 picker dialog opens on the current saved value. */
@@ -70,6 +73,7 @@ class SettingsFragment : Fragment() {
         pinManager = PinManager(requireContext())
         themeManager = ThemeManager(requireContext())
         alfredSettings = AlfredSettings(requireContext())
+        dashboardSettings = DashboardSettings(requireContext())
 
         // Theme: per-button onClick (not the group listener) so setting the initial
         // checked state below doesn't loop. Changing it recreates the activity, so the
@@ -195,6 +199,8 @@ class SettingsFragment : Fragment() {
 
         binding.rowAlfredHost.setOnClickListener { showAlfredHostDialog() }
         renderAlfredHost()
+        binding.rowDashboardHost.setOnClickListener { showDashboardHostDialog() }
+        renderDashboardHost()
 
         // onClick (not the group's checked-change) so programmatic updates don't loop.
         binding.rbStretch5.setOnClickListener { viewModel.setStretchDuration(5) }
@@ -365,6 +371,37 @@ class SettingsFragment : Fragment() {
                 }
                 alfredSettings.setHost(typed)
                 renderAlfredHost()
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
+
+    /** Shows the saved dashboard address (or the default, which is what we'd use). */
+    private fun renderDashboardHost() {
+        binding.tvDashboardHost.text = dashboardSettings.getHost()
+    }
+
+    /** The dashboard's twin of [showAlfredHostDialog] — same inline validation, own setting. */
+    private fun showDashboardHostDialog() {
+        val dialogBinding = DialogDashboardHostBinding.inflate(layoutInflater)
+        dialogBinding.etDashboardHost.setText(dashboardSettings.getHost())
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(R.string.dashboard_host_dialog_title)
+            .setView(dialogBinding.root)
+            .setPositiveButton(R.string.save, null)
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val typed = dialogBinding.etDashboardHost.text?.toString().orEmpty()
+                if (!DashboardSettings.isValid(typed)) {
+                    dialogBinding.tilDashboardHost.error = getString(R.string.dashboard_host_invalid)
+                    return@setOnClickListener
+                }
+                dashboardSettings.setHost(typed)
+                renderDashboardHost()
                 dialog.dismiss()
             }
         }

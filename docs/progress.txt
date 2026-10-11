@@ -1330,3 +1330,51 @@
     empty data directory, NFC tags and alarm history gone, the same loss as
     2026-07-16. res/values/strings.xml app_name was already "DailySync", so the
     launcher and every user-facing surface already read correctly
+
+2026-10-11  Kitchen Sign-in tile (dashboard /api/presence)
+  - New live tile: opens/closes the kitchen wall's presence session on the
+    Alfred Dashboard (port 8500). PIN entry -> POST /api/presence/open; state
+    read via GET /api/presence on every visit (onStart), showing who and a m:ss
+    countdown, re-read at local expiry; Sign out -> POST /api/presence/close.
+    Keepalive is deliberately unused (the wall's job). The tile unlocks nothing
+    inside DailySync
+  - Own address setting: DashboardSettings mirrors AlfredSettings (default
+    192.168.1.100:8500, key dashboard_host). The host:port rules moved into
+    HostAddress so both settings validate/normalise identically; AlfredSettings'
+    public API is unchanged
+  - LIVE OR NOTHING: PresenceRepository has no cache and no queue — unlike
+    Chalkboard/Inbox/ShoppingSync. A queued sign-in flushing on reconnect would
+    open the personal board on the wall hours later. Unreachable = the attempt
+    fails, says so, and is gone. Sign-out likewise
+  - PIN never kept: passed straight into the request; not in prefs, VM state or
+    logs (PresencePinRequest.toString redacts); field cleared after every
+    attempt and saveEnabled=false so it stays out of saved instance state
+  - Each refusal has its own message: 401 wrong PIN (inline + snackbar), 429
+    locked out with Retry-After seconds, 503 sign-in not set up on the Pi
+  - BUG FOUND ON DEVICE, FIXED: DashboardClient has retryOnConnectionFailure
+    OFF (never resend a PIN), which made a pooled keep-alive connection that
+    uvicorn had already closed (~5s idle) fail the next GET outright — the tile
+    said "dashboard unreachable" with the Pi up (the expiry re-read, or reopening
+    after 30s). OkHttp only deep-checks pooled connections before non-GETs, so
+    sign-in/out never showed it. Fix: ConnectionPool(0, ...) — a fresh
+    connection per call. Reproduced before, verified gone after
+  - Verified on the A32 against the live Pi, GET /api/presence as truth: wrong
+    PIN -> message, status closed; right PIN -> tile "nick, 4:29" vs status
+    268.7s; sign-out -> closed; session opened by curl -> tile showed it (0:48 vs
+    47.1s); expiry -> tile closed when reshown; dashboard address pointed at a
+    dead port -> sign-in failed with message, and after restoring the address
+    the Pi log shows only a GET from the phone, no POST; 6 wrong PINs -> 429 and
+    "try again in 58 s". Settings dialog rejects port 99999 inline
+  - DIAGNOSIS NOTE: the first real-PIN attempts 401'd because the Pi's
+    PRESENCE_PIN had been saved with the <> placeholder brackets still around
+    it. Found without printing the PIN (docker exec + yes/no checks: "not all
+    digits"). Fixed on the Pi in docker/.env + compose up -d dashboard
+  - Unit tests 274 green (was 251): DashboardSettingsTest, PresenceRepositoryTest
+    (every status code, unreachable kept nothing, never cached, PIN redacted),
+    PresenceViewModelTest (wrong/right PIN, sign-out, unreachable sign-in AND
+    sign-out never replayed, unknown-not-remembered, PIN not in state),
+    DashboardWireFormatTest (exact bytes {"pin":"0123"} via real Retrofit/Gson)
+  - NOT YET VERIFIED: the in-place re-read at expiry on the fixed build (the
+    reshow path is verified, and the idle-GET repro that broke it now passes).
+    Kitchen-side gate (canEnterSurface in AlfredHomeHub) is still unbuilt, so the
+    personal board is not yet actually locked by this session

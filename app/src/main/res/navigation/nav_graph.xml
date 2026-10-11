@@ -23,7 +23,17 @@
         <action
             android:id="@+id/action_tiles_to_inbox"
             app:destination="@id/inboxFragment" />
+        <action
+            android:id="@+id/action_tiles_to_presence"
+            app:destination="@id/presenceFragment" />
     </fragment>
+
+    <!-- Kitchen sign-in tile: opens/closes the dashboard's presence session. -->
+    <fragment
+        android:id="@+id/presenceFragment"
+        android:name="com.personalmorningalarm.ui.PresenceFragment"
+        android:label="@string/presence_title"
+        tools:layout="@layout/fragment_presence" />
 
     <!-- Inbox tile: the vault's 0-inbox/ captures (read-only) + a compose box. -->
     <fragment
