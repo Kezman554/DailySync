@@ -59,6 +59,24 @@ class AlfredRendererTest {
     }
 
     @Test
+    fun `a five-period day renders every heading in day order, Anytime last`() {
+        val groups = DailySchedule.group(
+            listOf(
+                ScheduleTaskDto("Read", null),
+                ScheduleTaskDto("Cubs", "eve"),
+                ScheduleTaskDto("Standup", "pm"),
+                ScheduleTaskDto("Gym", "am"),
+                ScheduleTaskDto("Run", "early")
+            )
+        )
+
+        assertEquals(
+            "Early\n• Run\n\nMorning\n• Gym\n\nAfternoon\n• Standup\n\nEvening\n• Cubs\n\nAnytime\n• Read",
+            ScheduleRenderer.format(context, groups).toString()
+        )
+    }
+
+    @Test
     fun `schedule task markup is rendered, never shown raw`() {
         val groups = DailySchedule.group(listOf(ScheduleTaskDto("**Gym** with [[people/sam|Sam]]", "am")))
 
@@ -95,7 +113,8 @@ class AlfredRendererTest {
 
         val text = ScheduleRenderer.format(context, agenda, Color.RED).toString()
 
-        assertEquals("Morning\n▌ 07:30  Early shift\n• Weigh-in", text)
+        // 07:30 is before 09:00, so it heads its own Early group above the Morning item.
+        assertEquals("Early\n▌ 07:30  Early shift\n\nMorning\n• Weigh-in", text)
     }
 
     @Test

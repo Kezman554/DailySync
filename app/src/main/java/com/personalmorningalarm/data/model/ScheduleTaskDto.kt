@@ -12,8 +12,13 @@ data class ScheduleTaskDto(
     val period: String?
 )
 
-/** The parts of the day Alfred groups tasks into, in the order they're shown. */
+/**
+ * The parts of the day Alfred groups tasks into, in the order they're shown —
+ * chronological, with Anytime last. Exactly the five values vault-api emits; see
+ * docs/schedule-period-contract.md in AlfredHomeHub. Never add one ahead of the API.
+ */
 enum class SchedulePeriod(val apiValue: String?) {
+    EARLY("early"),
     MORNING("am"),
     AFTERNOON("pm"),
     EVENING("eve"),

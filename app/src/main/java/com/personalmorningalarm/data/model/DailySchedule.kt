@@ -8,7 +8,7 @@ data class ScheduleGroup(
 
 /**
  * Turns Alfred's flat task array into the grouped form the screen renders:
- * Morning, Afternoon, Evening, then ungrouped. Empty groups are dropped so the
+ * Early, Morning, Afternoon, Evening, then ungrouped. Empty groups are dropped so the
  * screen never shows a heading with nothing under it.
  */
 object DailySchedule {

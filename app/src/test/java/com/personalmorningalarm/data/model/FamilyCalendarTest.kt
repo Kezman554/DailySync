@@ -158,16 +158,43 @@ class FamilyCalendarTest {
         )
 
         assertEquals(
-            listOf(SchedulePeriod.MORNING, SchedulePeriod.AFTERNOON, SchedulePeriod.EVENING, SchedulePeriod.UNGROUPED),
+            listOf(SchedulePeriod.EARLY, SchedulePeriod.AFTERNOON, SchedulePeriod.EVENING, SchedulePeriod.UNGROUPED),
             agenda.groups.map { it.period }
         )
+    }
+
+    @Test
+    fun `period boundaries match the API - 09 00, noon and 17 00`() {
+        val cases = mapOf(
+            LocalTime.of(0, 0) to SchedulePeriod.EARLY,
+            LocalTime.of(8, 59) to SchedulePeriod.EARLY,
+            LocalTime.of(9, 0) to SchedulePeriod.MORNING,
+            LocalTime.of(11, 59) to SchedulePeriod.MORNING,
+            LocalTime.of(12, 0) to SchedulePeriod.AFTERNOON,
+            LocalTime.of(16, 59) to SchedulePeriod.AFTERNOON,
+            LocalTime.of(17, 0) to SchedulePeriod.EVENING,
+            LocalTime.of(23, 59) to SchedulePeriod.EVENING
+        )
+        cases.forEach { (time, period) -> assertEquals("at $time", period, FamilyCalendar.periodOf(time)) }
+    }
+
+    @Test
+    fun `a 17 30 event sits with the vault's Evening items, as on the wall`() {
+        val agenda = FamilyCalendar.agenda(
+            listOf(task("Cubs", "eve")),
+            listOf(event("Swimming", LocalTime.of(17, 30)))
+        )
+
+        val evening = agenda.groups.single()
+        assertEquals(SchedulePeriod.EVENING, evening.period)
+        assertEquals(listOf("Swimming", "Cubs"), evening.entries.map { it.text })
     }
 
     @Test
     fun `timed events in one period sort by start time`() {
         val agenda = FamilyCalendar.agenda(
             emptyList(),
-            listOf(event("Later", LocalTime.of(11, 0)), event("Earlier", LocalTime.of(7, 30)))
+            listOf(event("Later", LocalTime.of(11, 0)), event("Earlier", LocalTime.of(9, 30)))
         )
 
         assertEquals(
@@ -181,7 +208,7 @@ class FamilyCalendarTest {
         // The vault's blocks carry no clock time, so the timed events lead.
         val agenda = FamilyCalendar.agenda(
             listOf(task("Weigh-in", "am"), task("Sweep verdict", "am")),
-            listOf(event("Early shift", LocalTime.of(7, 30)))
+            listOf(event("Early shift", LocalTime.of(9, 30)))
         )
 
         val morning = agenda.groups.single { it.period == SchedulePeriod.MORNING }

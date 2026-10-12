@@ -88,7 +88,7 @@ object FamilyCalendar {
     /**
      * Merges a day's vault schedule blocks with that day's family-calendar events.
      *
-     * Vault blocks carry a period ("am"/"pm"/none), never a clock time, so a timed
+     * Vault blocks carry a period ("early"/"am"/"pm"/"eve"/none), never a clock time, so a timed
      * event is placed in the period its start time falls in and sorts by time
      * against the other events there; the untimed vault blocks keep Alfred's order
      * beneath them. All-day events belong to no period and come back separately as
@@ -115,8 +115,14 @@ object FamilyCalendar {
         return DayAgenda(allDay = events.filter { it.allDay }, groups = groups)
     }
 
-    /** Which part of the day a timed event belongs under. */
-    private fun periodOf(time: LocalTime): SchedulePeriod = when {
+    /**
+     * Which part of the day a timed event belongs under. The boundaries are the
+     * ones the plan writer and vault-api use (AlfredHomeHub
+     * docs/schedule-period-contract.md), so a 17:30 event sits beside the vault's
+     * Evening items — and in the same group the kitchen wall puts it in.
+     */
+    internal fun periodOf(time: LocalTime): SchedulePeriod = when {
+        time < MORNING_FROM -> SchedulePeriod.EARLY
         time < LocalTime.NOON -> SchedulePeriod.MORNING
         time < EVENING_FROM -> SchedulePeriod.AFTERNOON
         else -> SchedulePeriod.EVENING
@@ -175,8 +181,11 @@ object FamilyCalendar {
         }
     }
 
-    /** Evening starts here; before noon is morning, between the two is afternoon. */
-    private val EVENING_FROM: LocalTime = LocalTime.of(18, 0)
+    /** Before this is Early. */
+    private val MORNING_FROM: LocalTime = LocalTime.of(9, 0)
+
+    /** Evening starts here — 17:00, the API's boundary, not ours to move. */
+    private val EVENING_FROM: LocalTime = LocalTime.of(17, 0)
 
     /** Longer than this and the range is malformed, not a real event. */
     private const val MAX_EVENT_DAYS = 60L

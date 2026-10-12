@@ -16,12 +16,14 @@ class DailyScheduleTest {
                 task("Dinner", "eve"),
                 task("Gym", "am"),
                 task("Standup", "pm"),
-                task("Read", null)
+                task("Read", null),
+                task("Run", "early")
             )
         )
 
         assertEquals(
             listOf(
+                SchedulePeriod.EARLY,
                 SchedulePeriod.MORNING,
                 SchedulePeriod.AFTERNOON,
                 SchedulePeriod.EVENING,
@@ -50,6 +52,24 @@ class DailyScheduleTest {
 
         assertEquals(1, groups.size)
         assertEquals(SchedulePeriod.MORNING, groups.single().period)
+    }
+
+    @Test
+    fun `early items get their own group ahead of Morning`() {
+        val groups = DailySchedule.group(listOf(task("Gym", "am"), task("Run", "early")))
+
+        assertEquals(listOf(SchedulePeriod.EARLY, SchedulePeriod.MORNING), groups.map { it.period })
+        assertEquals(listOf("Run"), groups.first().tasks)
+    }
+
+    @Test
+    fun `only the periods in use appear, still in day order`() {
+        val groups = DailySchedule.group(listOf(task("Read", null), task("Cubs", "eve"), task("Run", "early")))
+
+        assertEquals(
+            listOf(SchedulePeriod.EARLY, SchedulePeriod.EVENING, SchedulePeriod.UNGROUPED),
+            groups.map { it.period }
+        )
     }
 
     @Test

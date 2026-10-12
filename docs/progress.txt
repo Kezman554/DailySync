@@ -1378,3 +1378,27 @@
     reshow path is verified, and the idle-GET repro that broke it now passes).
     Kitchen-side gate (canEnterSurface in AlfredHomeHub) is still unbuilt, so the
     personal board is not yet actually locked by this session
+
+2026-10-12  Schedule periods: Early group, 17:00 evening, per the API contract
+  - Contract: AlfredHomeHub docs/schedule-period-contract.md (vault-api 0.7.0):
+    period is "early" | "am" | "pm" | "eve" | null; evening from 17:00
+  - SchedulePeriod gains EARLY("early"), first in the enum, so "early" vault
+    items get an Early group before Morning instead of falling into Anytime.
+    Order stays Early, Morning, Afternoon, Evening, Anytime (Anytime last as before)
+  - Calendar boundary: FamilyCalendar.periodOf() was the ONLY live copy of the
+    18:00 figure (EVENING_FROM). Now <09:00 Early, <12:00 Morning, <17:00
+    Afternoon, else Evening, the same as the wall dashboard's PERIOD_BOUNDARIES. The only
+    other "18:00" was the 2026-07-23 entry in this log (history, left as written)
+  - Empty headers: already handled, no change needed. Every surface (week pager,
+    alarm wake page, Today's schedule section) builds groups from the enum and
+    drops empty ones, and shows one line for an empty day (week_day_empty /
+    schedule_empty). Today's schedule section is no longer reachable from any tile
+  - Verified on the A32 at real size against a local mock Alfred (adb reverse,
+    alfred_host temporarily pointed at it, then prefs + cache restored
+    byte-identical): five-period day; 16:45 event under Afternoon, 17:30 under
+    Evening; the real two-period 13th (Early + Evening); empty day -> "No plan
+    for this day". Then rechecked against live Alfred: today's real "early" walk
+    is now under Early. Wake page not triggered on device (same agenda/renderer
+    path as the pager, covered by unit tests)
+  - Unit tests 279 green: boundary table at 08:59/09:00/11:59/12:00/16:59/17:00,
+    17:30 event beside "eve" items, Early ordering, five-period render

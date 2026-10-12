@@ -102,6 +102,7 @@ object ScheduleRenderer {
 
     @StringRes
     fun periodHeading(period: SchedulePeriod): Int = when (period) {
+        SchedulePeriod.EARLY -> R.string.schedule_period_early
         SchedulePeriod.MORNING -> R.string.schedule_period_morning
         SchedulePeriod.AFTERNOON -> R.string.schedule_period_afternoon
         SchedulePeriod.EVENING -> R.string.schedule_period_evening
