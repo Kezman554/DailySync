@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Error-fill button background (nuclear Submit): the error colour, surface 2
+     when disabled, like the accent-fill buttons. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/colorSurface2" android:state_enabled="false" />
+    <item android:color="?attr/colorError" />
+</selector>

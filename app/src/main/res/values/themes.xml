@@ -679,10 +679,12 @@
         <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
     </style>
 
-    <!-- Filled button in the error colour with a black label (nuclear Submit) -->
+    <!-- Filled button in the error colour (nuclear Submit). The label is
+         colorOnError: white on the light-mode red, black on the dark-mode red -->
     <style name="Widget.DailySync.Button.Error" parent="Widget.DailySync.Button">
-        <item name="backgroundTint">?attr/colorError</item>
-        <item name="android:textColor">?attr/colorOnAccentFill</item>
+        <item name="backgroundTint">@color/button_error_bg</item>
+        <item name="android:textColor">@color/button_on_error</item>
+        <item name="iconTint">@color/button_on_error</item>
     </style>
 
     <!-- Nuclear dismissal challenge cards -->

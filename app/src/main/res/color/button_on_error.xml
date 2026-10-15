@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Label on an error-fill button: colorOnError, which is white on the light-mode
+     red (5.6:1; black there is 3.8:1) and black on the dark-mode red (7.5:1). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/colorOnSurfaceVariant" android:state_enabled="false" />
+    <item android:color="?attr/colorOnError" />
+</selector>

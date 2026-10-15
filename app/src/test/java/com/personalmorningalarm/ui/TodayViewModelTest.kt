@@ -142,7 +142,7 @@ class TodayViewModelTest : ViewModelTestSupport() {
 
     /** A ViewModel that has finished its initial load. */
     private fun loadedViewModel(): TodayViewModel {
-        val vm = TodayViewModel(alfred, sync)
+        val vm = track(TodayViewModel(alfred, sync))
         keepSubscribed(vm.state)
         awaitValue(vm.state) { !it.loading && it.schedule != null }
         return vm

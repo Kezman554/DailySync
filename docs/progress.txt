@@ -1649,3 +1649,38 @@
     sha256 checked) since the kitchen PIN isn't known here. Airplane mode: menu
     "Saved copy" + "Needs Alfred" tile ignores taps; an add to the test list
     queued with "Waiting to sync", synced on reconnect. Unit tests 295 green
+
+2026-10-15  Phase 11 follow-ups: red-fill contrast, deterministic VM tests, keyboard
+  - Contrast: Widget.DailySync.Button.Error (nuclear Submit) labelled with
+    colorOnAccentFill (black) - 3.77:1 on the light red C42F1C. Now colorOnError
+    via color/button_on_error (white light 5.57:1, black dark on FF6B5E 7.52:1),
+    plus color/button_error_bg so a solved/disabled Submit greys out like the
+    accent buttons (it stayed red before). Measured pairings: accent fill + black
+    7.53 both modes (white would be 2.79); disabled surface 2 + secondary 4.52
+    both; keypad surface + text 19.24 light / 16.44 dark
+  - Flaky SettingsViewModelTest, root cause: ViewModels were never cleared, so
+    when collectors were cancelled WhileSubscribed launched its 5 s stop timer on
+    the real single-thread Main exactly as baseTearDown called resetMain ->
+    "Dispatchers.Main is used concurrently with setting it" (baseline: 1 fail in
+    10 runs). ViewModelTestSupport now: Main = UnconfinedTestDispatcher on a
+    TestCoroutineScheduler (virtual time, no real Main thread); Room in-memory DB
+    with inline query/transaction executors (writes and their flow emissions done
+    before the call returns); track() registers VMs and teardown cancels their
+    scopes before resetMain; settledValue() checks immediately with no polling
+    (Settings + Home tests). Presence/Today keep awaitValue's wall-clock bound -
+    their repositories still hop to the real Dispatchers.IO. No retries, no longer
+    timeouts. Result: 20 consecutive runs of the class, 20 passes
+  - Keyboard: MainActivity had no windowSoftInputMode, so the window panned and
+    pushed titles off the top. adjustResize: the screens' title / weighted list /
+    docked input bar layouts now shrink above the keyboard - title and back arrow
+    stay, the list scrolls, the bar sits on the keyboard. One change covers the
+    shopping list, To-Do and Inbox alike
+  - Verified on the A32, light and dark: typed into all three with the keyboard
+    up (Alfred Tech list scrolled under a fixed title); nuclear Submit via the
+    15 s dev countdown - white label in light, black in dark, grey once solved.
+    The nuclear screen logs a failure to alarm_events, so the database files
+    (db, -wal, -shm) were backed up with the app stopped and restored after,
+    sha256-identical, along with prefs and alfred_cache; 06:30 alarm confirmed
+    rescheduled in dumpsys alarm after the force-stop; torch off. Theme left on
+    Light - it had been switched from Dark on the phone between sessions.
+    Unit tests 295 green

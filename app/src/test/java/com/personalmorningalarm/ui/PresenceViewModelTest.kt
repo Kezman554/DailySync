@@ -83,7 +83,7 @@ class PresenceViewModelTest : ViewModelTestSupport() {
     private val eventScope = CoroutineScope(Dispatchers.Default + Job())
 
     private fun viewModel(): PresenceViewModel {
-        val vm = PresenceViewModel(PresenceRepository(settings) { dashboard })
+        val vm = track(PresenceViewModel(PresenceRepository(settings) { dashboard }))
         eventScope.launch { vm.events.collect { events += it } }
         return vm
     }

@@ -25,35 +25,35 @@ class HomeViewModelTest : ViewModelTestSupport() {
     @Test
     fun `config flow emits the saved config`() {
         runBlocking { repo.saveConfig(AlarmConfig(alarmTime = 390, isEnabled = true)) }
-        val vm = HomeViewModel(repo)
+        val vm = track(HomeViewModel(repo))
         keepSubscribed(vm.config)
 
-        val config = awaitValue(vm.config) { it?.alarmTime == 390 }
+        val config = settledValue(vm.config) { it?.alarmTime == 390 }
         assertTrue(config!!.isEnabled)
     }
 
     @Test
     fun `setAlarmTime on an empty database creates a disabled default config`() {
-        val vm = HomeViewModel(repo)
+        val vm = track(HomeViewModel(repo))
         keepSubscribed(vm.config)
 
         vm.setAlarmTime(7 * 60) // 07:00
-        val config = awaitValue(vm.config) { it?.alarmTime == 7 * 60 }
+        val config = settledValue(vm.config) { it?.alarmTime == 7 * 60 }
         // Starts disabled so setting a time doesn't imply the alarm is armed.
         assertFalse(config!!.isEnabled)
     }
 
     @Test
     fun `edits update the single config row in place`() {
-        val vm = HomeViewModel(repo)
+        val vm = track(HomeViewModel(repo))
         keepSubscribed(vm.config)
 
         vm.setAlarmTime(400)
-        awaitValue(vm.config) { it?.alarmTime == 400 }
+        settledValue(vm.config) { it?.alarmTime == 400 }
         vm.setEnabled(true)
-        awaitValue(vm.config) { it?.isEnabled == true }
+        settledValue(vm.config) { it?.isEnabled == true }
         vm.setMorningGoal(MorningGoal.PROJECT)
-        val config = awaitValue(vm.config) { it?.morningGoal == MorningGoal.PROJECT }
+        val config = settledValue(vm.config) { it?.morningGoal == MorningGoal.PROJECT }
 
         assertEquals(400, config!!.alarmTime)
         assertTrue(config.isEnabled)
@@ -68,10 +68,10 @@ class HomeViewModelTest : ViewModelTestSupport() {
             repo.recordEvent(AlarmEvent(date = today.toString(), stage1Success = true, stage2Success = true))
             repo.recordEvent(AlarmEvent(date = today.minusDays(1).toString(), stage1Success = true, stage2Success = true))
         }
-        val vm = HomeViewModel(repo)
+        val vm = track(HomeViewModel(repo))
         keepSubscribed(vm.stats)
 
-        val stats = awaitValue(vm.stats) { it.currentStreak == 2 }
+        val stats = settledValue(vm.stats) { it.currentStreak == 2 }
         assertEquals(2, stats.successDays)
         assertEquals(2, stats.attemptedDays)
     }
@@ -81,12 +81,12 @@ class HomeViewModelTest : ViewModelTestSupport() {
         runBlocking {
             repo.saveContentToggles(ContentType.entries.map { ContentToggle(contentType = it, isEnabled = true) })
         }
-        val vm = HomeViewModel(repo)
+        val vm = track(HomeViewModel(repo))
         keepSubscribed(vm.contentToggles)
-        awaitValue(vm.contentToggles) { it.size == ContentType.entries.size }
+        settledValue(vm.contentToggles) { it.size == ContentType.entries.size }
 
         vm.setContentEnabled(ContentType.STRETCH, false)
-        val toggles = awaitValue(vm.contentToggles) { list ->
+        val toggles = settledValue(vm.contentToggles) { list ->
             list.any { it.contentType == ContentType.STRETCH && !it.isEnabled }
         }
         assertEquals(
