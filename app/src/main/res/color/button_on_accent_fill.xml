@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Label and icon on a filled button: black on the accent fill. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/colorOnSurfaceVariant" android:state_enabled="false" />
+    <item android:color="?attr/colorOnAccentFill" />
+</selector>

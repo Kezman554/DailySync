@@ -14,6 +14,7 @@ import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.color.MaterialColors
 import com.personalmorningalarm.R
 import com.personalmorningalarm.challenge.MathChallenge
 import com.personalmorningalarm.challenge.NfcChallenge
@@ -197,7 +198,7 @@ class NuclearDismissalActivity : AppCompatActivity() {
     /** Marks a status indicator done and checks whether the gauntlet is finished. */
     private fun markDone(status: TextView) {
         status.text = getString(R.string.status_done)
-        status.setTextColor(COLOR_DONE)
+        status.setTextColor(MaterialColors.getColor(status, R.attr.colorPositive))
         maybeFinish()
     }
 
@@ -315,7 +316,6 @@ class NuclearDismissalActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "PMA"
         private const val SHAKE_DURATION_MS = 30_000L
-        private const val COLOR_DONE = 0xFF4CAF50.toInt()
 
         private const val READER_FLAGS =
             NfcAdapter.FLAG_READER_NFC_A or

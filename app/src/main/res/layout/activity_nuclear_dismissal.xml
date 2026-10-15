@@ -5,7 +5,6 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF000000"
     android:fillViewport="true">
 
     <LinearLayout
@@ -21,7 +20,7 @@
             android:gravity="center"
             android:text="@string/nuclear_title"
             android:textAppearance="?attr/textAppearanceHeadlineMedium"
-            android:textColor="#FFFF1744"
+            android:textColor="?attr/colorError"
             android:textStyle="bold" />
 
         <TextView
@@ -32,7 +31,7 @@
             android:gravity="center"
             android:text="@string/nuclear_instruction"
             android:textAppearance="?attr/textAppearanceTitleSmall"
-            android:textColor="@android:color/white" />
+            android:textColor="?attr/colorOnSurface" />
 
         <!-- 1. Shake -->
         <LinearLayout style="@style/NuclearCard">
@@ -79,7 +78,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:textColor="@android:color/white"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="28sp"
                 tools:text="37 + 58 = ?" />
 
@@ -127,7 +126,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="@string/nfc_tap_hint"
-                android:textColor="#FFBBBBBB" />
+                android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
         <!-- 4. Typing -->
@@ -151,7 +150,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="@string/nuclear_phrase"
-                android:textColor="@android:color/white"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="20sp"
                 android:textStyle="italic" />
 

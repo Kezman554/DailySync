@@ -65,7 +65,6 @@ class WeekDayAdapter : RecyclerView.Adapter<WeekDayAdapter.DayViewHolder>() {
             binding.tvDayBody.text = if (agenda.isEmpty) {
                 context.getString(R.string.week_day_empty)
             } else {
-                // Follows the theme here, unlike the alarm's white-on-blue panel.
                 val calendarColor = MaterialColors.getColor(
                     binding.root,
                     com.google.android.material.R.attr.colorPrimary

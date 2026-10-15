@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Theme colour roles Material 3 has no slot for. The rest map onto M3 roles:
+  accent on ground or card = colorPrimary, text secondary = colorOnSurfaceVariant,
+  border = colorOutline, error and nuclear = colorError.
+-->
+<resources>
+    <!-- Icon badges, tracks, hairlines, selected pills on cards -->
+    <attr name="colorSurface2" format="color" />
+    <!-- Button and switch fill; differs from colorPrimary in light mode -->
+    <attr name="colorAccentFill" format="color" />
+    <!-- Label on colorAccentFill: black in both modes -->
+    <attr name="colorOnAccentFill" format="color" />
+    <!-- Done, armed, ticks -->
+    <attr name="colorPositive" format="color" />
+    <attr name="colorOnPositive" format="color" />
+</resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The screen ground: the ground colour with a radial cyan glow anchored at the
+  top-right corner. The window background for every screen (themes.xml).
+
+  A vector stretches its viewport to the screen, so a 100x190 viewport with a
+  circular gradient of radius 190 at (100, 0) becomes an ellipse reaching 1.9x the
+  screen width across and the full height down; the last stop (0.9) fades it out
+  before the bottom. Matches the design canvas's
+  radial-gradient(190% 100% at 100% 0%).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="190dp"
+    android:viewportWidth="100"
+    android:viewportHeight="190">
+    <path
+        android:fillColor="@color/ground"
+        android:pathData="M0,0h100v190h-100z" />
+    <path
+        android:fillColor="@color/ground_glow"
+        android:pathData="M0,0h100v190h-100z" />
+</vector>

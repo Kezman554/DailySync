@@ -1,6 +1,5 @@
 package com.personalmorningalarm.ui
 
-import android.animation.ArgbEvaluator
 import android.app.KeyguardManager
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -25,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.color.MaterialColors
 import com.personalmorningalarm.R
 import com.personalmorningalarm.challenge.CheckpointResult
 import com.personalmorningalarm.challenge.ContentScreenManager
@@ -64,7 +64,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
     private lateinit var repository: AlarmRepository
     private val alfredRepository: AlfredRepository by lazy { AlfredRepository(this) }
 
-    private val argbEvaluator = ArgbEvaluator()
     private var vibrator: Vibrator? = null
     private val dismissRunnable = Runnable { dismissToHome() }
 
@@ -144,7 +143,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
             onProgress = { progress -> onShakeProgress(progress) }
             onComplete = { onShakeComplete() }
         }
-        updateBackground(0f)
         binding.tvSeconds.text = getString(R.string.seconds_format, TARGET_SECONDS)
 
         binding.btnStopAlarm.setOnClickListener {
@@ -200,8 +198,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
         val remaining = ceil((1f - progress) * TARGET_SECONDS).toInt().coerceAtLeast(0)
         binding.tvSeconds.text = getString(R.string.seconds_format, remaining)
 
-        updateBackground(progress)
-
         val bucket = percent / 25
         if (bucket != lastLoggedBucket) {
             lastLoggedBucket = bucket
@@ -215,17 +211,12 @@ class AlarmDismissalActivity : AppCompatActivity() {
         shakeChallenge.stop()
 
         binding.shakeProgress.progress = 100
-        updateBackground(1f)
         AlarmService.stop(this)
         logStage1Success()
 
         binding.tvTitle.text = getString(R.string.stage1_success)
         binding.tvSeconds.visibility = View.GONE
         binding.root.postDelayed({ startStage2() }, SUCCESS_DELAY_MS)
-    }
-
-    private fun updateBackground(progress: Float) {
-        binding.root.setBackgroundColor(argbEvaluator.evaluate(progress, COLOR_RED, COLOR_GREEN) as Int)
     }
 
     private fun logStage1Success() {
@@ -252,7 +243,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
         binding.shakeProgress.visibility = View.GONE
         binding.tvSeconds.visibility = View.GONE
         binding.tvCountdown.visibility = View.VISIBLE
-        binding.root.setBackgroundColor(COLOR_STAGE2)
 
         CountdownService.start(this, stage2DurationMinutes * 60)
         observeCountdown()
@@ -555,7 +545,11 @@ class AlarmDismissalActivity : AppCompatActivity() {
         }
         binding.contentBody.visibility = View.GONE
         binding.contentListScroll.visibility = View.VISIBLE
-        binding.tvContentList.text = ScheduleRenderer.format(this, agenda, COLOR_CALENDAR)
+        binding.tvContentList.text = ScheduleRenderer.format(
+            this,
+            agenda,
+            MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorPrimary)
+        )
         Log.d(TAG, "Daily schedule: ${agenda.groups.size} groups, ${tasks.size} tasks (stale=${result is AlfredResult.Stale})")
     }
 
@@ -603,7 +597,10 @@ class AlarmDismissalActivity : AppCompatActivity() {
         }
         binding.contentBody.visibility = View.GONE
         binding.contentListScroll.visibility = View.VISIBLE
-        binding.tvContentList.text = ChalkboardRenderer.format(items, COLOR_FAINT)
+        binding.tvContentList.text = ChalkboardRenderer.format(
+            items,
+            MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSurfaceVariant)
+        )
         Log.d(TAG, "Chalkboard: ${items.size} items (stale=${result is AlfredResult.Stale})")
     }
 
@@ -634,7 +631,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
         binding.btnConfirm.visibility = View.GONE
         binding.tvCheckpoint.visibility = View.GONE
         binding.tvTitle.text = getString(R.string.success_title)
-        binding.root.setBackgroundColor(COLOR_GREEN)
 
         lifecycleScope.launch {
             recordStage2Success(seconds)
@@ -783,16 +779,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
         private const val SUCCESS_SCREEN_MS = 5000L
         private const val TAP_GRACE_MS = 1500L
         private const val WRONG_PULSE_MS = 150L
-
-        /** Secondary text on the content panel's white-on-blue (e.g. to-do dates). */
-        private const val COLOR_FAINT = 0xB3FFFFFF.toInt()
-
-        /** Marks family-calendar rows on the Stage 2 panel's blue, where white is the plan. */
-        private const val COLOR_CALENDAR = 0xFFFFD180.toInt()
-
-        private const val COLOR_RED = 0xFFD32F2F.toInt()
-        private const val COLOR_GREEN = 0xFF388E3C.toInt()
-        private const val COLOR_STAGE2 = 0xFF1565C0.toInt()
 
         private const val READER_FLAGS =
             NfcAdapter.FLAG_READER_NFC_A or

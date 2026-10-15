@@ -66,6 +66,23 @@ RFC1918 LAN defaults (192.168.x.x, 10.x.x.x, 172.16-31.x.x) are fine to commit â
 Foreground services for alarm and countdown reliability
 Extensible challenge system â€” new challenges implement a common interface
 
+## Design
+Theme roles live in res/values/colors.xml + values-night/colors.xml, wired up in
+themes.xml (Theme.PersonalMorningAlarm). Reference: the design canvas, 2026-10-15.
+
+Colours only via theme attributes (?attr/colorPrimary, ?attr/colorPositive,
+?attr/colorSurface2, ...): never a hex or @android:color in a layout, style or
+Kotlin; resolve in code with MaterialColors.getColor. Colour resources are named
+by role, never by colour
+Accent: colorPrimary for text, icons, progress and rings; colorAccentFill for
+buttons and switches. Labels on the cyan fill are black, in both modes
+Red (colorError) only for errors and the nuclear alarm
+Green (colorPositive) means done or armed
+Light mode applies to every screen, the alarm screens included: no screen
+paints its own background over the glow ground (drawable/bg_ground)
+Space Grotesk only (bundled in res/font, never fetched); weights via textStyle
+or textFontWeight; tabular figures are on app-wide
+
 Reference
 
 Requirements: docs/wake-up-alarm_PRD.md

@@ -1402,3 +1402,23 @@
     path as the pager, covered by unit tests)
   - Unit tests 279 green: boundary table at 08:59/09:00/11:59/12:00/16:59/17:00,
     17:30 event beside "eve" items, Early ordering, five-period render
+
+2026-10-15  UI makeover foundation: theme roles, Space Grotesk, glow ground
+  - Colour roles by name in values/colors.xml (light) + values-night/colors.xml
+    (dark), mapped onto M3 roles in Theme.PersonalMorningAlarm (still DayNight, so
+    the Appearance setting works). Custom attrs: colorSurface2, colorAccentFill,
+    colorOnAccentFill, colorPositive, colorOnPositive. colorPrimary = accent on
+    ground (#0076A8 light), colorAccentFill = #00A6E0 both modes, black label
+  - Space Grotesk 400/500/600/700 bundled in res/font (OFL in docs/licenses), set
+    at theme level with tnum. M3 title/label appearances get textFontWeight 500
+  - drawable/bg_ground: ground + radial cyan glow from the top-right (vector,
+    100x190 viewport so the circle stretches to the canvas's 190% x 100% ellipse);
+    the window background for every activity
+  - Component defaults: cards 20dp no stroke; buttons/chips/FAB fully rounded,
+    bold labels; filled buttons and FAB on the accent fill; switches accent track
+    + black thumb; checkboxes positive; dividers and progress tracks surface 2
+  - Hardcoded colours gone from layouts, Nuclear* styles and icons. Alarm screen
+    no longer floods red->green / blue / green (the design dropped the flood in
+    round 2); progress bar and title text carry the stage as before. Code colours
+    (to-do dates, calendar rows, nuclear ticks) now resolve theme attributes
+  - Build + unit tests green. Not yet walked on the A32 (no device attached)

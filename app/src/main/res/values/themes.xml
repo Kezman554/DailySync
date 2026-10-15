@@ -1,6 +1,216 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.PersonalMorningAlarm" parent="Theme.Material3.DayNight.NoActionBar" />
+    <!--
+      DailySync theme. Colour values come from values/colors.xml (light) and
+      values-night/colors.xml (dark); the DayNight parent picks between them, so the
+      Light / Dark / System setting keeps working. Layouts and code reference
+      colours only through these attributes. Design rules: CLAUDE.md, ## Design.
+    -->
+    <style name="Theme.PersonalMorningAlarm" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Accent on ground or card: text, icons, progress bars and rings -->
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorOnPrimary">@color/on_accent</item>
+        <!-- Containers that M3 fills (FAB and friends) take the accent fill -->
+        <item name="colorPrimaryContainer">@color/accent_fill</item>
+        <item name="colorOnPrimaryContainer">@color/on_accent_fill</item>
+        <item name="colorPrimaryInverse">@color/inverse_accent</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorOnSecondary">@color/on_accent</item>
+        <!-- Selected pills, bottom-nav indicator -->
+        <item name="colorSecondaryContainer">@color/surface_2</item>
+        <item name="colorOnSecondaryContainer">@color/text_primary</item>
+        <item name="colorTertiary">@color/positive</item>
+        <item name="colorOnTertiary">@color/on_positive</item>
+        <item name="colorTertiaryContainer">@color/surface_2</item>
+        <item name="colorOnTertiaryContainer">@color/positive</item>
+        <item name="colorError">@color/error</item>
+        <item name="colorOnError">@color/on_error</item>
+        <item name="colorErrorContainer">@color/surface_2</item>
+        <item name="colorOnErrorContainer">@color/error</item>
+
+        <item name="android:colorBackground">@color/ground</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/surface_2</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorSurfaceInverse">@color/inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/inverse_text</item>
+        <item name="colorSurfaceBright">@color/surface</item>
+        <item name="colorSurfaceDim">@color/surface</item>
+        <item name="colorSurfaceContainerLowest">@color/surface</item>
+        <item name="colorSurfaceContainerLow">@color/surface</item>
+        <item name="colorSurfaceContainer">@color/surface</item>
+        <item name="colorSurfaceContainerHigh">@color/surface</item>
+        <item name="colorSurfaceContainerHighest">@color/surface_2</item>
+        <item name="colorOutline">@color/outline</item>
+        <!-- Hairline dividers -->
+        <item name="colorOutlineVariant">@color/surface_2</item>
+
+        <item name="colorSurface2">@color/surface_2</item>
+        <item name="colorAccentFill">@color/accent_fill</item>
+        <item name="colorOnAccentFill">@color/on_accent_fill</item>
+        <item name="colorPositive">@color/positive</item>
+        <item name="colorOnPositive">@color/on_positive</item>
+
+        <!-- Framework and AppCompat widgets (EditText, RadioButton, TimePicker) -->
+        <item name="android:colorAccent">@color/accent</item>
+        <item name="colorControlActivated">@color/accent</item>
+        <item name="colorControlNormal">@color/text_secondary</item>
+
+        <!-- Ground with the cyan glow, behind every screen -->
+        <item name="android:windowBackground">@drawable/bg_ground</item>
+        <item name="android:statusBarColor">@color/ground</item>
+        <item name="android:navigationBarColor">@color/ground</item>
+
+        <!--
+          Space Grotesk everywhere. Set at theme level so it reaches every TextView,
+          which also means it outranks any family a textAppearance names; weights
+          come from textStyle="bold" (700) or textFontWeight. Tabular figures
+          everywhere, so times, counts and countdowns don't jitter.
+        -->
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="fontFamily">@font/space_grotesk</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+
+        <!-- M3 titles and labels are medium weight -->
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.DailySync.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.DailySync.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.DailySync.TitleSmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.DailySync.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.DailySync.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.DailySync.LabelSmall</item>
+
+        <item name="materialButtonStyle">@style/Widget.DailySync.Button</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.DailySync.Button.Outlined</item>
+        <item name="borderlessButtonStyle">@style/Widget.DailySync.Button.TextButton</item>
+        <item name="floatingActionButtonStyle">@style/Widget.DailySync.FloatingActionButton</item>
+        <item name="chipStyle">@style/Widget.DailySync.Chip</item>
+        <item name="materialCardViewStyle">@style/Widget.DailySync.CardView</item>
+        <item name="switchStyle">@style/Widget.DailySync.Switch</item>
+        <item name="materialSwitchStyle">@style/Widget.DailySync.MaterialSwitch</item>
+        <item name="checkboxStyle">@style/Widget.DailySync.CheckBox</item>
+        <item name="materialDividerStyle">@style/Widget.DailySync.Divider</item>
+        <item name="android:progressBarStyleHorizontal">@style/Widget.DailySync.ProgressBar.Horizontal</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.DailySync.MaterialAlertDialog</item>
+    </style>
+
+    <!-- Type -->
+    <style name="TextAppearance.DailySync.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textFontWeight">500</item>
+    </style>
+    <style name="TextAppearance.DailySync.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textFontWeight">500</item>
+    </style>
+    <style name="TextAppearance.DailySync.TitleSmall" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textFontWeight">500</item>
+    </style>
+    <style name="TextAppearance.DailySync.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textFontWeight">500</item>
+    </style>
+    <style name="TextAppearance.DailySync.LabelMedium" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textFontWeight">500</item>
+    </style>
+    <style name="TextAppearance.DailySync.LabelSmall" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textFontWeight">500</item>
+    </style>
+
+    <!-- Button labels are bold -->
+    <style name="TextAppearance.DailySync.Button" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textFontWeight">700</item>
+    </style>
+
+    <!-- Shapes -->
+    <style name="ShapeAppearance.DailySync.Full" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+    <style name="ShapeAppearance.DailySync.Card" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">20dp</item>
+    </style>
+
+    <!-- Buttons: fully rounded, bold labels. Filled ones use the accent fill with a
+         black label in both modes. -->
+    <style name="Widget.DailySync.Button" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/button_accent_fill_bg</item>
+        <item name="android:textColor">@color/button_on_accent_fill</item>
+        <item name="iconTint">@color/button_on_accent_fill</item>
+        <item name="android:textAppearance">@style/TextAppearance.DailySync.Button</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.DailySync.Full</item>
+    </style>
+
+    <style name="Widget.DailySync.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textAppearance">@style/TextAppearance.DailySync.Button</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.DailySync.Full</item>
+    </style>
+
+    <style name="Widget.DailySync.Button.TextButton" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textAppearance">@style/TextAppearance.DailySync.Button</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.DailySync.Full</item>
+    </style>
+
+    <style name="Widget.DailySync.Button.TextButton.Dialog" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textAppearance">@style/TextAppearance.DailySync.Button</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.DailySync.Full</item>
+    </style>
+
+    <style name="Widget.DailySync.FloatingActionButton" parent="Widget.Material3.FloatingActionButton.Primary">
+        <item name="backgroundTint">@color/button_accent_fill_bg</item>
+        <item name="tint">@color/button_on_accent_fill</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.DailySync.Full</item>
+    </style>
+
+    <style name="Widget.DailySync.Chip" parent="Widget.Material3.Chip.Assist">
+        <item name="shapeAppearance">@style/ShapeAppearance.DailySync.Full</item>
+    </style>
+
+    <!-- Cards: card surface, 20dp corners, no stroke, flat -->
+    <style name="Widget.DailySync.CardView" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.DailySync.Card</item>
+    </style>
+
+    <!-- Switches: accent-fill track with a black thumb when on -->
+    <style name="Widget.DailySync.Switch" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="useMaterialThemeColors">false</item>
+        <item name="thumbTint">@color/switch_thumb</item>
+        <item name="trackTint">@color/switch_track</item>
+    </style>
+
+    <style name="Widget.DailySync.MaterialSwitch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="thumbTint">@color/switch_thumb</item>
+        <item name="trackTint">@color/switch_track</item>
+        <item name="trackDecorationTint">@color/switch_track</item>
+    </style>
+
+    <!-- Checkboxes: positive when ticked -->
+    <style name="Widget.DailySync.CheckBox" parent="Widget.Material3.CompoundButton.CheckBox">
+        <item name="useMaterialThemeColors">false</item>
+        <item name="buttonTint">@color/checkbox_button</item>
+        <item name="buttonIconTint">@color/checkbox_icon</item>
+    </style>
+
+    <!-- Hairline dividers: surface 2 -->
+    <style name="Widget.DailySync.Divider" parent="Widget.Material3.MaterialDivider">
+        <item name="dividerColor">?attr/colorSurface2</item>
+    </style>
+
+    <!-- Progress bars: fully rounded accent fill on a surface-2 track -->
+    <style name="Widget.DailySync.ProgressBar.Horizontal" parent="android:Widget.Material.ProgressBar.Horizontal">
+        <item name="android:progressDrawable">@drawable/progress_horizontal</item>
+        <item name="android:minHeight">8dp</item>
+        <item name="android:maxHeight">8dp</item>
+    </style>
+
+    <style name="ThemeOverlay.DailySync.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.DailySync.Button.TextButton.Dialog</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.DailySync.Button.TextButton.Dialog</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.DailySync.Button.TextButton.Dialog</item>
+    </style>
 
     <!-- Nuclear dismissal challenge cards -->
     <style name="NuclearCard">
@@ -9,7 +219,7 @@
         <item name="android:orientation">vertical</item>
         <item name="android:layout_marginTop">20dp</item>
         <item name="android:padding">16dp</item>
-        <item name="android:background">#22FFFFFF</item>
+        <item name="android:background">@drawable/bg_card</item>
     </style>
 
     <style name="NuclearCardHeader">
@@ -24,27 +234,26 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginEnd">12dp</item>
         <item name="android:text">○</item>
-        <item name="android:textColor">#FFBBBBBB</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
         <item name="android:textSize">24sp</item>
     </style>
 
     <style name="NuclearCardTitle">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
         <item name="android:textAppearance">?attr/textAppearanceTitleMedium</item>
     </style>
 
     <style name="NuclearInput">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:textColor">@android:color/white</item>
-        <item name="android:textColorHint">#FF888888</item>
-        <item name="android:backgroundTint">@android:color/white</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textColorHint">?attr/colorOnSurfaceVariant</item>
     </style>
 
     <!-- PIN keypad button: fixed-size text button, no min-width clutter -->
-    <style name="PinKey" parent="Widget.Material3.Button.TextButton">
+    <style name="PinKey" parent="Widget.DailySync.Button.TextButton">
         <item name="android:layout_width">72dp</item>
         <item name="android:layout_height">64dp</item>
         <item name="android:layout_margin">4dp</item>

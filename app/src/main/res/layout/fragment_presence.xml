@@ -65,7 +65,7 @@
 
                 <Button
                     android:id="@+id/btn_presence_sign_in"
-                    style="@style/Widget.Material3.Button"
+                    style="@style/Widget.DailySync.Button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
@@ -75,7 +75,7 @@
 
             <Button
                 android:id="@+id/btn_presence_sign_out"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.DailySync.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"

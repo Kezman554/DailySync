@@ -1,5 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  DailySync colour roles, light mode. Dark values live in values-night/colors.xml
+  under the same names. Layouts and code never use these directly: they go
+  through the theme attributes in themes.xml (?attr/colorPrimary, ?attr/colorPositive
+  and so on). Name new colours by role, never by colour.
+-->
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Screen ground, under the cyan glow (drawable/bg_ground.xml) -->
+    <color name="ground">#FFF2F4F5</color>
+    <!-- Cards -->
+    <color name="surface">#FFFFFFFF</color>
+    <!-- Icon badges, tracks, hairlines, selected pills on cards -->
+    <color name="surface_2">#FFE6EAEC</color>
+    <color name="outline">#FFC9D0D4</color>
+    <color name="text_primary">#FF0B0F12</color>
+    <color name="text_secondary">#FF5F6B73</color>
+
+    <!-- Accent for text, icons, progress bars and rings, on ground or card -->
+    <color name="accent">#FF0076A8</color>
+    <color name="on_accent">#FFFFFFFF</color>
+    <!-- Accent fill for buttons and switches: the same in both modes, and the
+         label on it is always black (white on this cyan is 2.8:1) -->
+    <color name="accent_fill">#FF00A6E0</color>
+    <color name="on_accent_fill">#FF000000</color>
+
+    <!-- Done, armed, ticks -->
+    <color name="positive">#FF1B7F37</color>
+    <color name="on_positive">#FFFFFFFF</color>
+    <!-- Errors and the nuclear alarm, nothing else -->
+    <color name="error">#FFC42F1C</color>
+    <color name="on_error">#FFFFFFFF</color>
+
+    <!-- Snackbars: the other mode's card and text -->
+    <color name="inverse_surface">#FF1B2023</color>
+    <color name="inverse_text">#FFFFFFFF</color>
+    <color name="inverse_accent">#FF00A6E0</color>
+
+    <!-- Ground glow stops (cyan at 18%, 7%, 2%, 0) -->
+    <color name="ground_glow_core">#2E00A6E0</color>
+    <color name="ground_glow_inner">#1200A6E0</color>
+    <color name="ground_glow_outer">#0500A6E0</color>
+    <color name="ground_glow_edge">#0000A6E0</color>
 </resources>

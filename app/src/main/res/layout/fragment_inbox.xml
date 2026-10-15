@@ -64,7 +64,7 @@
 
                 <Button
                     android:id="@+id/btn_inbox_refused_dismiss"
-                    style="@style/Widget.Material3.Button.TextButton"
+                    style="@style/Widget.DailySync.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/chalkboard_conflict_dismiss" />
@@ -122,7 +122,7 @@
 
                 <Button
                     android:id="@+id/btn_inbox_capture"
-                    style="@style/Widget.Material3.Button.TextButton"
+                    style="@style/Widget.DailySync.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"

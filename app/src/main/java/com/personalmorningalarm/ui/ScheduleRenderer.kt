@@ -49,9 +49,8 @@ object ScheduleRenderer {
     }
 
     /**
-     * The merged day. [calendarColor] marks the family-calendar rows, and is passed
-     * in because the surfaces sit on different backgrounds — the alarm panel is
-     * white-on-blue, the tile screens follow the theme.
+     * The merged day. [calendarColor] marks the family-calendar rows; callers pass
+     * the theme accent (?attr/colorPrimary) resolved against their own view.
      */
     fun format(context: Context, agenda: DayAgenda, @ColorInt calendarColor: Int): CharSequence {
         val out = SpannableStringBuilder()

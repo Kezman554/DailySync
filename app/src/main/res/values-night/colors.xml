@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DailySync colour roles, dark mode. See values/colors.xml. accent_fill and
+     on_accent_fill are the same in both modes, so they live there only. -->
+<resources>
+    <color name="ground">#FF000000</color>
+    <color name="surface">#FF1B2023</color>
+    <color name="surface_2">#FF2C3236</color>
+    <color name="outline">#FF3C4144</color>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FF95999C</color>
+
+    <color name="accent">#FF00A6E0</color>
+    <color name="on_accent">#FF000000</color>
+
+    <color name="positive">#FF57D64B</color>
+    <color name="on_positive">#FF000000</color>
+    <color name="error">#FFFF6B5E</color>
+    <color name="on_error">#FF000000</color>
+
+    <color name="inverse_surface">#FFFFFFFF</color>
+    <color name="inverse_text">#FF0B0F12</color>
+    <color name="inverse_accent">#FF0076A8</color>
+
+    <!-- Ground glow stops (cyan at 30%, 15%, 5%, 0) -->
+    <color name="ground_glow_core">#4D00A6E0</color>
+    <color name="ground_glow_inner">#2600A6E0</color>
+    <color name="ground_glow_outer">#0D00A6E0</color>
+    <color name="ground_glow_edge">#0000A6E0</color>
+</resources>
