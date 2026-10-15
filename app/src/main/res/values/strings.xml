@@ -170,7 +170,7 @@
     <string name="tiles_todo_loading">Checking…</string>
     <string name="tiles_todo_empty">Nothing to do</string>
     <string name="tiles_todo_unavailable">To-do unavailable</string>
-    <string name="tiles_shopping_left"> · %1$d left</string>
+    <string name="tiles_shopping_left">" · %1$d left"</string>
     <string name="tiles_shopping_done">Nothing left to buy</string>
     <string name="tiles_shopping_unavailable">Lists unavailable</string>
     <string name="tiles_inbox_subtitle">Capture a thought</string>
@@ -233,18 +233,38 @@
     <string name="status_done">✓</string>
     <string name="status_pending">○</string>
 
-    <!-- Home screen -->
-    <string name="home_tap_to_change">Tap to change</string>
-    <string name="home_alarm_enabled">Alarm enabled</string>
-    <string name="home_alarm_set_for">Alarm set for %1$s</string>
-    <string name="home_alarm_off">Alarm off</string>
-    <string name="home_morning_goal">Morning goal</string>
+    <!-- Alarm tab (HomeFragment) -->
+    <string name="home_alarm_enabled">Alarm on</string>
     <string name="home_goal_exercise">Exercise</string>
     <string name="home_goal_project">Project</string>
-    <string name="home_current_streak">Current streak: %1$d days</string>
-    <string name="home_current_streak_one">Current streak: 1 day</string>
-    <string name="home_week_rate">This week: %1$d/%2$d days</string>
-    <string name="home_week_rate_empty">This week: no wake-ups yet</string>
+    <string name="alarm_tab_on">● On</string>
+    <string name="alarm_tab_off">○ Off</string>
+    <plurals name="alarm_tab_streak">
+        <item quantity="one">" · streak %1$d day"</item>
+        <item quantity="other">" · streak %1$d days"</item>
+    </plurals>
+    <string name="alarm_tab_goal">Goal</string>
+    <string name="alarm_tab_sound">Wake-up sound</string>
+    <string name="alarm_tab_sound_volume">" · %1$d%%"</string>
+    <string name="alarm_tab_nfc">NFC tags</string>
+    <plurals name="alarm_tab_nfc_taps">
+        <item quantity="one">%1$d tap · %2$d min</item>
+        <item quantity="other">%1$d taps · %2$d min</item>
+    </plurals>
+    <string name="alarm_tab_content">Morning content</string>
+    <string name="alarm_tab_content_count">%1$d of %2$d on</string>
+    <string name="alarm_tab_content_quote">Quote</string>
+    <string name="alarm_tab_content_stretch">Stretch</string>
+    <string name="alarm_tab_content_stretch_minutes">" · %1$d min"</string>
+    <string name="alarm_tab_content_schedule">Schedule</string>
+    <string name="alarm_tab_content_todo">To-do</string>
+    <string name="alarm_tab_nuclear">Nuclear</string>
+    <string name="alarm_tab_nuclear_vibrate">%1$s · vibrate</string>
+    <string name="alarm_tab_pin">Alarm PIN</string>
+    <string name="alarm_tab_pin_on">On</string>
+    <string name="alarm_tab_pin_off">Not set</string>
+    <string name="alarm_tab_test_alarm">Alarm 1 min</string>
+    <string name="alarm_tab_test_countdown">Countdown 15s</string>
     <string name="home_exact_alarm_needed">Allow “Alarms &amp; reminders”, then turn the alarm on again</string>
     <string name="home_dev_tools">Dev tools</string>
 
@@ -394,8 +414,6 @@
     <string name="dashboard_host_invalid">Enter an address like 192.168.1.100:8500</string>
 
     <!-- Temporary dev controls -->
-    <string name="schedule_test_alarm">Schedule test alarm (1 min)</string>
-    <string name="test_countdown">Test countdown (15s)</string>
     <string name="stop_alarm_temp">Stop alarm (temp)</string>
     <string name="abort_temp">Abort (temp)</string>
 </resources>

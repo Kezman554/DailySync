@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.entity.AlarmConfig
+import com.personalmorningalarm.data.entity.ContentToggle
+import com.personalmorningalarm.data.model.ContentType
 import com.personalmorningalarm.data.model.MorningGoal
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -11,7 +13,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Streak + weekly success snapshot for the home screen. */
+/** Streak + weekly success snapshot for the Alarm tab (the tab shows the streak). */
 data class HomeStats(
     val currentStreak: Int = 0,
     val successDays: Int = 0,
@@ -40,12 +42,25 @@ class HomeViewModel(private val repository: AlarmRepository) : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeStats())
 
+    /** The morning content screens, for the Alarm tab's tick grid. */
+    val contentToggles: StateFlow<List<ContentToggle>> = repository.observeContentToggles()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     fun setAlarmTime(minutesSinceMidnight: Int) =
         persist { it.copy(alarmTime = minutesSinceMidnight) }
 
     fun setEnabled(enabled: Boolean) = persist { it.copy(isEnabled = enabled) }
 
     fun setMorningGoal(goal: MorningGoal) = persist { it.copy(morningGoal = goal) }
+
+    /** Turns one morning content screen on or off (the same setting Settings edits). */
+    fun setContentEnabled(type: ContentType, enabled: Boolean) {
+        viewModelScope.launch {
+            repository.getContentToggle(type)?.let {
+                repository.updateContentToggle(it.copy(isEnabled = enabled))
+            }
+        }
+    }
 
     /**
      * Applies [transform] to the single config row, updating it in place (or

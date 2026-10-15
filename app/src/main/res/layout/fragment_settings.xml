@@ -391,6 +391,7 @@
 
         <!-- Alarm sounds & volume -->
         <TextView
+            android:id="@+id/sound_section_title"
             style="@style/DailySync.GroupLabel"
             android:text="@string/sound_section_title" />
 
@@ -508,6 +509,7 @@
 
         <!-- Stage 2 time limit (PIN-protected) -->
         <TextView
+            android:id="@+id/stage2_section_title"
             style="@style/DailySync.GroupLabel"
             android:text="@string/stage2_title" />
 
@@ -547,6 +549,7 @@
 
         <!-- Alarm PIN -->
         <TextView
+            android:id="@+id/pin_section_title"
             style="@style/DailySync.GroupLabel"
             android:text="@string/pin_section_title" />
 

@@ -1467,3 +1467,32 @@
     restored byte-identical afterwards (sha256 checked). Alarm off -> "Alarm off";
     back on -> re-armed for 2026-10-16 06:30 (dumpsys alarm). Every tile opens its
     screen; coming-soon tiles do nothing. Unit tests 288 green
+
+2026-10-15  Alarm tab restyle: hero, goal pills, tile grid, dev strip
+  - Hero: time at 60sp bold (24h shows "06:30"), tap to change (PIN-guarded,
+    same picker), switch on the right; status line "● On" in positive / "○ Off"
+    in secondary, then " · streak N days". The separate weekly stats line is gone
+  - Goal strip replaces the radio group: Exercise | Project pills (accent fill +
+    black label when selected, outlined otherwise)
+  - 1-2-1-2 grid: Wake-up sound ("Default (sys… · 87%" - only the name
+    ellipsizes) | NFC tags ("6 taps · 15 min"); Morning content wide - header
+    opens content settings, the 2x2 items toggle their screen in place (positive
+    tick / dimmed empty mark, "N of 4 on"); Nuclear (siren in the error colour,
+    "Klaxon · vibrate") | Alarm PIN ("On"/"Not set", re-read on resume)
+  - Small tiles open Settings scrolled to their section (nav arg "section",
+    SettingsFragment.SECTION_*) until session AK gives them screens
+  - Dev tools in a dashed strip: "Alarm 1 min" / "Countdown 15s" (shortened from
+    the canvas labels so the strip fits one line at 360dp)
+  - Fits one screen on the A32 (360x800dp, 3-button nav) after trimming paddings;
+    the ScrollView stays only as a fallback for large font scales
+  - Verified on the A32, dark and light: time 06:30 -> 07:30 -> 06:30 (dumpsys
+    alarm followed); alarm off/on without a PIN; with a test PIN (1234): Cancel
+    leaves it on, PIN turns it off / on - then the PIN was disabled again; each
+    content item off and back on; each tile's Settings section; test alarm fired
+    (as a notification - app was foreground, existing behaviour), opened, Abort
+    stopped it, no services left, 06:30 re-armed; countdown started
+    (CountdownService running) and was force-stopped at ~4s so the nuclear alarm
+    never fired, app relaunched -> 06:30 re-armed. Appearance left on Dark.
+    Unit tests 289 green (new: HomeViewModel.setContentEnabled)
+  - Noticed, not changed: the PIN keypad and sound pickers are framework
+    android.app.AlertDialogs, so they keep the stock grey dialog look

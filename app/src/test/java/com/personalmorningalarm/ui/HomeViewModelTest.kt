@@ -2,6 +2,8 @@ package com.personalmorningalarm.ui
 
 import com.personalmorningalarm.data.entity.AlarmConfig
 import com.personalmorningalarm.data.entity.AlarmEvent
+import com.personalmorningalarm.data.entity.ContentToggle
+import com.personalmorningalarm.data.model.ContentType
 import com.personalmorningalarm.data.model.MorningGoal
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -72,5 +74,24 @@ class HomeViewModelTest : ViewModelTestSupport() {
         val stats = awaitValue(vm.stats) { it.currentStreak == 2 }
         assertEquals(2, stats.successDays)
         assertEquals(2, stats.attemptedDays)
+    }
+
+    @Test
+    fun `setContentEnabled flips just that content screen`() {
+        runBlocking {
+            repo.saveContentToggles(ContentType.entries.map { ContentToggle(contentType = it, isEnabled = true) })
+        }
+        val vm = HomeViewModel(repo)
+        keepSubscribed(vm.contentToggles)
+        awaitValue(vm.contentToggles) { it.size == ContentType.entries.size }
+
+        vm.setContentEnabled(ContentType.STRETCH, false)
+        val toggles = awaitValue(vm.contentToggles) { list ->
+            list.any { it.contentType == ContentType.STRETCH && !it.isEnabled }
+        }
+        assertEquals(
+            ContentType.entries.filter { it != ContentType.STRETCH }.toSet(),
+            toggles.filter { it.isEnabled }.map { it.contentType }.toSet()
+        )
     }
 }

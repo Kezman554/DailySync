@@ -375,6 +375,35 @@
         <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
     </style>
 
+    <!-- One-of-two choice pill (Alarm tab Goal); View.isSelected picks it -->
+    <style name="DailySync.ChoicePill" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">38dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/bg_pill_choice</item>
+        <item name="android:textColor">@color/pill_choice_text</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- Small outlined pill in the dev tools strip -->
+    <style name="DailySync.DevToolButton" parent="Widget.DailySync.Button.Outlined">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
     <!-- Nuclear dismissal challenge cards -->
     <style name="NuclearCard">
         <item name="android:layout_width">match_parent</item>

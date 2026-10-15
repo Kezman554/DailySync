@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Alarm tab, below the shared header: the hero (time + switch + status line),
+  the Goal strip, a 1-2-1-2 grid of tiles and the dev tools strip. Designed to fit
+  one screen; the ScrollView only comes into play if it can't (large font scale).
+-->
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -11,126 +16,268 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="10dp">
 
-        <!-- Tap-to-edit alarm time -->
-        <TextView
-            android:id="@+id/tv_alarm_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="16dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:padding="8dp"
-            android:textSize="64sp"
-            tools:text="6:30 AM" />
-
-        <TextView
-            android:id="@+id/tv_tap_hint"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="@string/home_tap_to_change"
-            android:textAppearance="?attr/textAppearanceLabelMedium" />
-
-        <!-- Enable / disable -->
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_enabled"
+        <!-- Hero: tap the time to change it (PIN-guarded); switch on the right -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/home_alarm_enabled"
-            android:textAppearance="?attr/textAppearanceTitleMedium" />
+            android:gravity="bottom"
+            android:orientation="horizontal"
+            android:paddingHorizontal="4dp">
 
-        <TextView
-            android:id="@+id/tv_next_alarm"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            tools:text="Alarm set for 6:30 AM" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-        <View
+                <TextView
+                    android:id="@+id/tv_alarm_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:includeFontPadding="false"
+                    android:letterSpacing="-0.04"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="60sp"
+                    android:textStyle="bold"
+                    tools:text="06:30" />
+
+                <TextView
+                    android:id="@+id/tv_alarm_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textFontWeight="600"
+                    android:textSize="14sp"
+                    tools:text="○ Off · streak 0 days" />
+            </LinearLayout>
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_enabled"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="2dp"
+                android:contentDescription="@string/home_alarm_enabled" />
+        </LinearLayout>
+
+        <!-- Goal: one of two pills -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginVertical="24dp"
-            android:background="?attr/colorOutlineVariant" />
-
-        <!-- Morning goal -->
-        <TextView
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/home_morning_goal"
-            android:textAppearance="?attr/textAppearanceTitleMedium" />
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingVertical="8dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="10dp">
 
-        <RadioGroup
-            android:id="@+id/rg_goal"
-            android:layout_width="wrap_content"
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/alarm_tab_goal"
+                android:textAllCaps="true"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp"
+                android:letterSpacing="0.05"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/pill_exercise"
+                style="@style/DailySync.ChoicePill"
+                android:text="@string/home_goal_exercise"
+                tools:selected="true" />
+
+            <TextView
+                android:id="@+id/pill_project"
+                style="@style/DailySync.ChoicePill"
+                android:layout_marginStart="8dp"
+                android:text="@string/home_goal_project" />
+        </LinearLayout>
+
+        <!-- Row 1: Wake-up sound | NFC tags -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="10dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
-            <RadioButton
-                android:id="@+id/rb_exercise"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/home_goal_exercise" />
+            <include
+                android:id="@+id/tile_sound"
+                layout="@layout/item_alarm_tile"
+                android:layout_width="0dp"
+                android:layout_height="112dp"
+                android:layout_weight="1" />
 
-            <RadioButton
-                android:id="@+id/rb_project"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:text="@string/home_goal_project" />
-        </RadioGroup>
+            <include
+                android:id="@+id/tile_nfc"
+                layout="@layout/item_alarm_tile"
+                android:layout_width="0dp"
+                android:layout_height="112dp"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1" />
+        </LinearLayout>
 
-        <View
+        <!-- Row 2: Morning content, wide. The header opens the content
+             settings; each item toggles its screen directly. -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginVertical="24dp"
-            android:background="?attr/colorOutlineVariant" />
-
-        <!-- Stats -->
-        <TextView
-            android:id="@+id/tv_streak"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            tools:text="Current streak: 3 days" />
+            android:layout_marginTop="10dp">
 
-        <TextView
-            android:id="@+id/tv_week_rate"
-            android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="4dp">
+
+                <LinearLayout
+                    android:id="@+id/row_content_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_icon_badge"
+                        android:importantForAccessibility="no"
+                        android:scaleType="center"
+                        android:src="@drawable/ic_badge_content" />
+
+                    <TextView
+                        style="@style/DailySync.TileTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:text="@string/alarm_tab_content" />
+
+                    <TextView
+                        android:id="@+id/tv_content_count"
+                        style="@style/DailySync.TileSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="4 of 4 on" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:orientation="horizontal">
+
+                    <include
+                        android:id="@+id/item_quote"
+                        layout="@layout/item_content_toggle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+
+                    <include
+                        android:id="@+id/item_stretch"
+                        layout="@layout/item_content_toggle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <include
+                        android:id="@+id/item_schedule"
+                        layout="@layout/item_content_toggle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+
+                    <include
+                        android:id="@+id/item_todo"
+                        layout="@layout/item_content_toggle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Row 3: Nuclear | Alarm PIN -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            tools:text="This week: 4/5 days" />
+            android:layout_marginTop="10dp"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <include
+                android:id="@+id/tile_nuclear"
+                layout="@layout/item_alarm_tile"
+                android:layout_width="0dp"
+                android:layout_height="112dp"
+                android:layout_weight="1" />
+
+            <include
+                android:id="@+id/tile_pin"
+                layout="@layout/item_alarm_tile"
+                android:layout_width="0dp"
+                android:layout_height="112dp"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1" />
+        </LinearLayout>
 
         <!-- TODO(temporary): dev tools for exercising the alarm/countdown/nuclear flow -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
-            android:text="@string/home_dev_tools"
-            android:textAppearance="?attr/textAppearanceLabelMedium" />
-
-        <Button
-            android:id="@+id/btn_test_alarm"
-            style="?attr/materialButtonOutlinedStyle"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/schedule_test_alarm" />
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_tile_dashed"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingVertical="6dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="8dp">
 
-        <Button
-            android:id="@+id/btn_test_countdown"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/test_countdown" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxLines="1"
+                android:text="@string/home_dev_tools"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_test_alarm"
+                style="@style/DailySync.DevToolButton"
+                android:text="@string/alarm_tab_test_alarm" />
+
+            <Button
+                android:id="@+id/btn_test_countdown"
+                style="@style/DailySync.DevToolButton"
+                android:layout_marginStart="8dp"
+                android:text="@string/alarm_tab_test_countdown" />
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>

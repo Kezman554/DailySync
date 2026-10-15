@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Choice pill label: black on the accent fill when selected, text colour otherwise. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/colorOnAccentFill" android:state_selected="true" />
+    <item android:color="?attr/colorOnSurface" />
+</selector>

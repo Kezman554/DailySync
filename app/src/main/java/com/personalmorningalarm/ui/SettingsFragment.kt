@@ -79,6 +79,7 @@ class SettingsFragment : Fragment() {
         dashboardSettings = DashboardSettings(requireContext())
 
         binding.btnBack.setOnClickListener { findNavController().navigateUp() }
+        if (savedInstanceState == null) scrollToSection(arguments?.getString(ARG_SECTION))
 
         // Theme: a three-way segmented control. Changing it recreates the activity,
         // so the new theme shows immediately; the segment is marked first so it
@@ -438,18 +439,40 @@ class SettingsFragment : Fragment() {
             .show()
     }
 
+    /**
+     * Opens on one section when the Alarm tab asked for it — the tiles' stand-in
+     * for the screens session AK gives them. Unknown or blank: stay at the top.
+     */
+    private fun scrollToSection(section: String?) {
+        val target = when (section) {
+            SECTION_SOUND -> binding.soundSectionTitle
+            SECTION_NFC -> binding.nfcSectionTitle
+            SECTION_CONTENT -> binding.contentSectionTitle
+            SECTION_PIN -> binding.pinSectionTitle
+            else -> return
+        }
+        binding.root.post { _binding?.root?.scrollTo(0, target.top) }
+    }
+
     private fun toast(message: String) {
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
     }
 
-    private companion object {
+    companion object {
+        /** Nav argument: which section to open on (one of the SECTION_ values). */
+        const val ARG_SECTION = "section"
+        const val SECTION_SOUND = "sound"
+        const val SECTION_NFC = "nfc"
+        const val SECTION_CONTENT = "content"
+        const val SECTION_PIN = "pin"
+
         /** Picker ceiling (also allows more if the user registers more tags). */
-        const val MAX_SEQUENCE_LENGTH = 10
+        private const val MAX_SEQUENCE_LENGTH = 10
 
         /** Stage 2 time-limit bounds, per the PRD (5–15 min). */
-        const val MIN_STAGE2_DURATION = 5
-        const val MAX_STAGE2_DURATION = 15
-        const val DEFAULT_STAGE2_DURATION = 10
+        private const val MIN_STAGE2_DURATION = 5
+        private const val MAX_STAGE2_DURATION = 15
+        private const val DEFAULT_STAGE2_DURATION = 10
     }
 
     override fun onResume() {

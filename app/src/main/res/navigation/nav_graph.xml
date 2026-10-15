@@ -54,7 +54,13 @@
         android:id="@+id/homeFragment"
         android:name="com.personalmorningalarm.ui.HomeFragment"
         android:label="@string/title_alarm"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home">
+        <!-- Until the alarm tiles get their own screens (session AK), each opens
+             Settings scrolled to its section. -->
+        <action
+            android:id="@+id/action_alarm_to_settings"
+            app:destination="@id/settingsFragment" />
+    </fragment>
 
     <!-- One destination, narrowed by TodayFragment.ARG_SECTION: each home tile opens
          a single feed. -->
@@ -98,6 +104,11 @@
         android:name="com.personalmorningalarm.ui.SettingsFragment"
         android:label="@string/title_settings"
         tools:layout="@layout/fragment_settings">
+        <!-- Optional: a SettingsFragment.SECTION_* to scroll to on open -->
+        <argument
+            android:name="section"
+            android:defaultValue=""
+            app:argType="string" />
         <action
             android:id="@+id/action_settings_to_nfcTags"
             app:destination="@id/nfcTagsFragment" />
