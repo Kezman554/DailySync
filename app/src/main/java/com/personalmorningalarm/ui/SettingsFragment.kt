@@ -5,14 +5,17 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.slider.Slider
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
@@ -75,19 +78,26 @@ class SettingsFragment : Fragment() {
         alfredSettings = AlfredSettings(requireContext())
         dashboardSettings = DashboardSettings(requireContext())
 
-        // Theme: per-button onClick (not the group listener) so setting the initial
-        // checked state below doesn't loop. Changing it recreates the activity, so the
-        // new theme shows immediately.
-        binding.rgTheme.check(
-            when (themeManager.getThemeMode()) {
-                ThemeMode.LIGHT -> R.id.rb_theme_light
-                ThemeMode.DARK -> R.id.rb_theme_dark
-                ThemeMode.SYSTEM -> R.id.rb_theme_system
-            }
+        binding.btnBack.setOnClickListener { findNavController().navigateUp() }
+
+        // Theme: a three-way segmented control. Changing it recreates the activity,
+        // so the new theme shows immediately; the segment is marked first so it
+        // doesn't flicker back while that happens.
+        val themeSegments = mapOf(
+            ThemeMode.LIGHT to binding.segThemeLight,
+            ThemeMode.DARK to binding.segThemeDark,
+            ThemeMode.SYSTEM to binding.segThemeSystem
         )
-        binding.rbThemeLight.setOnClickListener { themeManager.setThemeMode(ThemeMode.LIGHT) }
-        binding.rbThemeDark.setOnClickListener { themeManager.setThemeMode(ThemeMode.DARK) }
-        binding.rbThemeSystem.setOnClickListener { themeManager.setThemeMode(ThemeMode.SYSTEM) }
+        fun selectTheme(mode: ThemeMode) =
+            themeSegments.forEach { (m, segment) -> segment.isSelected = m == mode }
+        selectTheme(themeManager.getThemeMode())
+        themeSegments.forEach { (mode, segment) ->
+            segment.setOnClickListener {
+                if (themeManager.getThemeMode() == mode) return@setOnClickListener
+                selectTheme(mode)
+                themeManager.setThemeMode(mode)
+            }
+        }
 
         binding.btnBattery.setOnClickListener {
             BatteryOptimisationHelper.showExplanationDialog(requireContext())
@@ -450,21 +460,39 @@ class SettingsFragment : Fragment() {
 
     /** Reflects whether notifications can actually be delivered (refreshed on return). */
     private fun renderNotificationStatus() {
-        val enabled = NotificationPermissionHelper.areNotificationsEnabled(requireContext())
-        binding.tvNotificationsStatus.text = getString(
-            if (enabled) R.string.notifications_status_enabled
-            else R.string.notifications_status_blocked
+        renderHealthRow(
+            ok = NotificationPermissionHelper.areNotificationsEnabled(requireContext()),
+            status = binding.tvNotificationsStatus,
+            help = binding.tvNotificationsHelp,
+            fix = binding.btnNotifications
         )
-        binding.btnNotifications.isEnabled = !enabled
     }
 
     /** Reflects the current battery-optimisation state (refreshed on return). */
     private fun renderBatteryStatus() {
-        val ignoring = BatteryOptimisationHelper.isIgnoringBatteryOptimizations(requireContext())
-        binding.tvBatteryStatus.text = getString(
-            if (ignoring) R.string.battery_status_whitelisted else R.string.battery_status_optimised
+        renderHealthRow(
+            ok = BatteryOptimisationHelper.isIgnoringBatteryOptimizations(requireContext()),
+            status = binding.tvBatteryStatus,
+            help = binding.tvBatteryHelp,
+            fix = binding.btnBattery
         )
-        binding.btnBattery.isEnabled = !ignoring
+    }
+
+    /**
+     * One Alarm health row: "Enabled" in the positive colour when the check
+     * passes, otherwise "Restricted" in the text colour with the explanation and
+     * the fix action, which only exist while the check fails.
+     */
+    private fun renderHealthRow(ok: Boolean, status: TextView, help: View, fix: View) {
+        status.setText(if (ok) R.string.health_enabled else R.string.health_restricted)
+        status.setTextColor(
+            MaterialColors.getColor(
+                status,
+                if (ok) R.attr.colorPositive else com.google.android.material.R.attr.colorOnSurface
+            )
+        )
+        help.isVisible = !ok
+        fix.isVisible = !ok
     }
 
     override fun onPause() {

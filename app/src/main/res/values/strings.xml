@@ -6,6 +6,12 @@
     <string name="title_home">Home</string>
     <string name="title_alarm">Alarm</string>
     <string name="title_settings">Settings</string>
+    <string name="action_back">Back</string>
+
+    <!-- Settings › Alarm health -->
+    <string name="health_section_title">Alarm health</string>
+    <string name="health_enabled">Enabled</string>
+    <string name="health_restricted">Restricted</string>
 
     <!-- NFC tag management -->
     <string name="nfc_section_title">NFC Tags</string>
@@ -225,12 +231,11 @@
     <string name="theme_section_title">Appearance</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
-    <string name="theme_system">Follow system</string>
+    <string name="theme_system">System</string>
 
     <!-- Notifications (the alarm's dismissal screen depends on them) -->
     <string name="notifications_section_title">Notifications</string>
     <string name="notifications_status_blocked">Blocked — the alarm will sound with no way to turn it off.</string>
-    <string name="notifications_status_enabled">Enabled — the alarm can show its dismissal screen.</string>
     <string name="notifications_button">Fix notification access</string>
     <string name="notifications_dialog_title">Notifications are blocked</string>
     <string name="notifications_dialog_message">MorningSync needs notifications to show the screen that turns the alarm off. Without them the alarm still sounds at full volume, but nothing appears to dismiss it.\n\nTurn notifications on to fix this.</string>
@@ -238,9 +243,8 @@
     <string name="notifications_not_now">Not now</string>
 
     <!-- Battery optimisation -->
-    <string name="battery_section_title">Battery</string>
+    <string name="battery_section_title">Background running</string>
     <string name="battery_status_optimised">Battery optimisation is on — alarms may be delayed or missed.</string>
-    <string name="battery_status_whitelisted">Whitelisted — alarms can run reliably.</string>
     <string name="battery_button">Allow background running</string>
     <string name="battery_dialog_title">Allow background running</string>
     <string name="battery_dialog_message">To make sure your alarm fires reliably every morning, allow the app to ignore battery optimisation. Otherwise Android may delay or stop the alarm to save power.</string>
@@ -358,12 +362,12 @@
 
     <!-- Alfred Vault API -->
     <string name="alfred_section_title">Alfred</string>
-    <string name="alfred_host_label">Alfred host address</string>
+    <string name="alfred_host_label">Alfred host</string>
     <string name="alfred_host_dialog_title">Alfred host address</string>
     <string name="alfred_host_hint">host:port</string>
     <string name="alfred_host_help">Address of the Alfred Vault API on your home network. Port defaults to 8200.</string>
     <string name="alfred_host_invalid">Enter an address like 192.168.1.100:8200</string>
-    <string name="dashboard_host_label">Kitchen dashboard address</string>
+    <string name="dashboard_host_label">Kitchen dashboard</string>
     <string name="dashboard_host_dialog_title">Kitchen dashboard address</string>
     <string name="dashboard_host_help">Address of the kitchen dashboard on your home network — used by Kitchen Sign-in. Port defaults to 8500.</string>
     <string name="dashboard_host_invalid">Enter an address like 192.168.1.100:8500</string>

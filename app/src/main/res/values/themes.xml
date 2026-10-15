@@ -58,10 +58,19 @@
         <item name="colorControlActivated">@color/accent</item>
         <item name="colorControlNormal">@color/text_secondary</item>
 
+        <!-- Text with no colour of its own (M3 ships fixed greys here) -->
+        <item name="android:textColorPrimary">@color/text_primary_states</item>
+        <item name="android:textColorSecondary">@color/text_secondary_states</item>
+        <item name="android:textColorTertiary">@color/text_secondary_states</item>
+        <item name="android:textColorPrimaryInverse">@color/inverse_text</item>
+        <item name="android:textColorHint">@color/text_secondary</item>
+
         <!-- Ground with the cyan glow, behind every screen -->
         <item name="android:windowBackground">@drawable/bg_ground</item>
         <item name="android:statusBarColor">@color/ground</item>
         <item name="android:navigationBarColor">@color/ground</item>
+        <item name="android:windowLightStatusBar">@bool/light_system_bars</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">@bool/light_system_bars</item>
 
         <!--
           Space Grotesk everywhere. Set at theme level so it reaches every TextView,
@@ -138,21 +147,25 @@
         <item name="android:textColor">@color/button_on_accent_fill</item>
         <item name="iconTint">@color/button_on_accent_fill</item>
         <item name="android:textAppearance">@style/TextAppearance.DailySync.Button</item>
+        <item name="android:textStyle">bold</item>
         <item name="shapeAppearance">@style/ShapeAppearance.DailySync.Full</item>
     </style>
 
     <style name="Widget.DailySync.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
         <item name="android:textAppearance">@style/TextAppearance.DailySync.Button</item>
+        <item name="android:textStyle">bold</item>
         <item name="shapeAppearance">@style/ShapeAppearance.DailySync.Full</item>
     </style>
 
     <style name="Widget.DailySync.Button.TextButton" parent="Widget.Material3.Button.TextButton">
         <item name="android:textAppearance">@style/TextAppearance.DailySync.Button</item>
+        <item name="android:textStyle">bold</item>
         <item name="shapeAppearance">@style/ShapeAppearance.DailySync.Full</item>
     </style>
 
     <style name="Widget.DailySync.Button.TextButton.Dialog" parent="Widget.Material3.Button.TextButton.Dialog">
         <item name="android:textAppearance">@style/TextAppearance.DailySync.Button</item>
+        <item name="android:textStyle">bold</item>
         <item name="shapeAppearance">@style/ShapeAppearance.DailySync.Full</item>
     </style>
 
@@ -210,6 +223,102 @@
         <item name="buttonBarPositiveButtonStyle">@style/Widget.DailySync.Button.TextButton.Dialog</item>
         <item name="buttonBarNegativeButtonStyle">@style/Widget.DailySync.Button.TextButton.Dialog</item>
         <item name="buttonBarNeutralButtonStyle">@style/Widget.DailySync.Button.TextButton.Dialog</item>
+    </style>
+
+    <!-- Screen header: date or screen title, 26sp bold -->
+    <style name="DailySync.ScreenTitle" parent="">
+        <item name="android:textSize">26sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <!-- 44dp icon button: header cog, back arrow -->
+    <style name="DailySync.IconButton" parent="">
+        <item name="android:layout_width">44dp</item>
+        <item name="android:layout_height">44dp</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:scaleType">center</item>
+    </style>
+
+    <!-- Header Home | Alarm pills: 36dp, fully rounded, bold. Selection is
+         View.isSelected, which drives both the fill and the label colour. -->
+    <style name="DailySync.TabPill" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/bg_pill_tab</item>
+        <item name="android:textColor">@color/pill_text</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- One segment of a segmented control (Settings › Appearance) -->
+    <style name="DailySync.Segment" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/bg_pill_segment</item>
+        <item name="android:textColor">@color/pill_text</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- Small uppercase group label above a settings card -->
+    <style name="DailySync.GroupLabel" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">22dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:paddingStart">4dp</item>
+        <item name="android:paddingEnd">4dp</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.05</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <!-- Settings card: rows inside, separated by DailySync.Hairline -->
+    <style name="DailySync.SettingsCard" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:background">@drawable/bg_card</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+    </style>
+
+    <style name="DailySync.Hairline" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">?attr/colorSurface2</item>
+    </style>
+
+    <!-- Row text inside a settings card -->
+    <style name="DailySync.RowLabel" parent="">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="DailySync.RowValue" parent="DailySync.RowLabel">
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="DailySync.RowHelp" parent="">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
     </style>
 
     <!-- Nuclear dismissal challenge cards -->

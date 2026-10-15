@@ -7,9 +7,13 @@ import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.getSystemService
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupWithNavController
+import androidx.navigation.navOptions
+import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
 import com.personalmorningalarm.data.remote.ChalkboardSync
@@ -21,10 +25,14 @@ import com.personalmorningalarm.util.BatteryOptimisationHelper
 import com.personalmorningalarm.util.NotificationPermissionHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var navController: NavController
 
     /** Guards against stacking a second dialog when onStart runs again. */
     private var notificationDialogShown = false
@@ -44,7 +52,8 @@ class MainActivity : AppCompatActivity() {
 
         val navHostFragment = supportFragmentManager
             .findFragmentById(binding.navHostFragment.id) as NavHostFragment
-        binding.bottomNav.setupWithNavController(navHostFragment.navController)
+        navController = navHostFragment.navController
+        setUpHeader()
 
         rearmAlarmIfEnabled()
 
@@ -55,6 +64,40 @@ class MainActivity : AppCompatActivity() {
             BatteryOptimisationHelper.markPrompted(this)
             BatteryOptimisationHelper.showExplanationDialog(this)
         }
+    }
+
+    /**
+     * The shared Home / Alarm header. The pills switch top-level screens the way
+     * the old bottom bar did (single top, each tab's state saved and restored,
+     * back from Alarm lands on Home); the cog opens Settings, which brings its
+     * own back arrow. Everywhere else the header is hidden.
+     */
+    private fun setUpHeader() {
+        binding.pillHome.setOnClickListener { openTopLevel(R.id.tilesFragment) }
+        binding.pillAlarm.setOnClickListener { openTopLevel(R.id.homeFragment) }
+        binding.btnSettings.setOnClickListener { navController.navigate(R.id.settingsFragment) }
+
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            val id = destination.id
+            binding.header.isVisible = id == R.id.tilesFragment || id == R.id.homeFragment
+            binding.pillHome.isSelected = id == R.id.tilesFragment
+            binding.pillAlarm.isSelected = id == R.id.homeFragment
+            renderHeaderDate()
+        }
+    }
+
+    private fun openTopLevel(destinationId: Int) {
+        if (navController.currentDestination?.id == destinationId) return
+        navController.navigate(destinationId, null, navOptions {
+            launchSingleTop = true
+            restoreState = true
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+        })
+    }
+
+    /** "Thursday 15 Oct". Refreshed on every start and screen change, so it rolls over. */
+    private fun renderHeaderDate() {
+        binding.tvHeaderDate.text = LocalDate.now().format(HEADER_DATE_FORMAT)
     }
 
     /**
@@ -73,6 +116,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        renderHeaderDate()
+
         // Re-checked on every launch, not once: the grant can vanish under the app
         // (a reinstall resets it, and the user can revoke it in system settings),
         // and the failure is silent — the alarm sounds with no dismissal screen.
@@ -209,5 +254,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "PMA"
+        private val HEADER_DATE_FORMAT = DateTimeFormatter.ofPattern("EEEE d MMM", Locale.getDefault())
     }
 }

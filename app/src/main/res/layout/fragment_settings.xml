@@ -11,480 +11,588 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Appearance -->
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Title bar: back arrow + "Settings" -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/theme_section_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <RadioGroup
-            android:id="@+id/rg_theme"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="vertical">
+            <ImageButton
+                android:id="@+id/btn_back"
+                style="@style/DailySync.IconButton"
+                android:contentDescription="@string/action_back"
+                android:src="@drawable/ic_back" />
 
-            <RadioButton
-                android:id="@+id/rb_theme_light"
+            <TextView
+                style="@style/DailySync.ScreenTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/title_settings" />
+        </LinearLayout>
+
+        <!-- Appearance: Light / Dark / System segmented control -->
+        <TextView
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/theme_section_title" />
+
+        <LinearLayout
+            android:id="@+id/seg_theme"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_segmented"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/seg_theme_light"
+                style="@style/DailySync.Segment"
                 android:text="@string/theme_light" />
 
-            <RadioButton
-                android:id="@+id/rb_theme_dark"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/theme_dark" />
+            <TextView
+                android:id="@+id/seg_theme_dark"
+                style="@style/DailySync.Segment"
+                android:layout_marginStart="6dp"
+                android:text="@string/theme_dark"
+                tools:selected="true" />
 
-            <RadioButton
-                android:id="@+id/rb_theme_system"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+            <TextView
+                android:id="@+id/seg_theme_system"
+                style="@style/DailySync.Segment"
+                android:layout_marginStart="6dp"
                 android:text="@string/theme_system" />
-        </RadioGroup>
+        </LinearLayout>
 
-        <!-- Notifications — the alarm's dismissal screen rides on them -->
+        <!-- Alfred Vault API and the kitchen dashboard -->
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/notifications_section_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/alfred_section_title" />
 
+        <LinearLayout style="@style/DailySync.SettingsCard">
+
+            <LinearLayout
+                android:id="@+id/row_alfred_host"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="vertical"
+                android:paddingVertical="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/alfred_host_label" />
+
+                    <TextView
+                        android:id="@+id/tv_alfred_host"
+                        style="@style/DailySync.RowValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        tools:text="192.168.1.100:8200" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/DailySync.RowHelp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/alfred_host_help" />
+            </LinearLayout>
+
+            <View style="@style/DailySync.Hairline" />
+
+            <LinearLayout
+                android:id="@+id/row_dashboard_host"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="vertical"
+                android:paddingVertical="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/dashboard_host_label" />
+
+                    <TextView
+                        android:id="@+id/tv_dashboard_host"
+                        style="@style/DailySync.RowValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        tools:text="192.168.1.100:8500" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/DailySync.RowHelp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/dashboard_host_help" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Alarm health: each check shows its status; the fix appears only when
+             the check fails (SettingsFragment.renderHealthRow) -->
         <TextView
-            android:id="@+id/tv_notifications_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            tools:text="Blocked — the alarm will sound with no way to turn it off." />
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/health_section_title" />
 
-        <Button
-            android:id="@+id/btn_notifications"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/notifications_button" />
+        <LinearLayout style="@style/DailySync.SettingsCard">
 
-        <!-- Battery optimisation -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/battery_section_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingVertical="14dp">
 
-        <TextView
-            android:id="@+id/tv_battery_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            tools:text="Battery optimisation is on — alarms may be delayed or missed." />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/btn_battery"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/battery_button" />
+                    <TextView
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/notifications_section_title" />
 
+                    <TextView
+                        android:id="@+id/tv_notifications_status"
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="@string/health_enabled" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_notifications_help"
+                    style="@style/DailySync.RowHelp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/notifications_status_blocked"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/btn_notifications"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/notifications_button"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <View style="@style/DailySync.Hairline" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingVertical="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/battery_section_title" />
+
+                    <TextView
+                        android:id="@+id/tv_battery_status"
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="@string/health_restricted" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_battery_help"
+                    style="@style/DailySync.RowHelp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/battery_status_optimised"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+                <Button
+                    android:id="@+id/btn_battery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/battery_button"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!--
+          The alarm sections below stay here until session AK moves them to the
+          Alarm tab, so nothing becomes unreachable in between. Restyled only.
+        -->
         <TextView
             android:id="@+id/nfc_section_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/nfc_section_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/nfc_section_title" />
 
-        <Button
-            android:id="@+id/btn_manage_tags"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/manage_nfc_tags" />
+        <LinearLayout
+            style="@style/DailySync.SettingsCard"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp">
 
-        <TextView
-            android:id="@+id/nfc_taps_label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/nfc_taps_label"
-            android:textAppearance="?attr/textAppearanceBodyLarge" />
+            <Button
+                android:id="@+id/btn_manage_tags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/manage_nfc_tags" />
 
-        <NumberPicker
-            android:id="@+id/picker_nfc_taps"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
+            <TextView
+                android:id="@+id/nfc_taps_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/nfc_taps_label"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
 
-        <TextView
-            android:id="@+id/nfc_taps_hint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBodySmall" />
+            <NumberPicker
+                android:id="@+id/picker_nfc_taps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/nfc_taps_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textAppearance="?attr/textAppearanceBodySmall" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/content_section_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/content_section_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_quote"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/toggle_quote" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_stretch"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/toggle_stretch" />
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/content_section_title" />
 
         <LinearLayout
-            android:id="@+id/stretch_duration_group"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="4dp"
-            android:orientation="vertical"
-            android:visibility="gone">
+            style="@style/DailySync.SettingsCard"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_quote"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/stretch_duration_label"
-                android:textAppearance="?attr/textAppearanceBodyMedium" />
+                android:layout_marginTop="8dp"
+                android:text="@string/toggle_quote" />
 
-            <RadioGroup
-                android:id="@+id/rg_stretch_duration"
-                android:layout_width="wrap_content"
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_stretch"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:layout_marginTop="8dp"
+                android:text="@string/toggle_stretch" />
 
-                <RadioButton
-                    android:id="@+id/rb_stretch_5"
+            <LinearLayout
+                android:id="@+id/stretch_duration_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="4dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/stretch_5_min" />
+                    android:text="@string/stretch_duration_label"
+                    android:textAppearance="?attr/textAppearanceBodyMedium" />
 
-                <RadioButton
-                    android:id="@+id/rb_stretch_10"
+                <RadioGroup
+                    android:id="@+id/rg_stretch_duration"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:text="@string/stretch_10_min" />
+                    android:orientation="horizontal">
 
-            </RadioGroup>
+                    <RadioButton
+                        android:id="@+id/rb_stretch_5"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/stretch_5_min" />
 
+                    <RadioButton
+                        android:id="@+id/rb_stretch_10"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="@string/stretch_10_min" />
+
+                </RadioGroup>
+
+            </LinearLayout>
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_daily_schedule"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/toggle_daily_schedule" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_chalkboard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/toggle_chalkboard" />
+
+            <Button
+                android:id="@+id/btn_manage_quotes"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/manage_quotes" />
+
+            <Button
+                android:id="@+id/btn_manage_routines"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/manage_routines" />
         </LinearLayout>
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_daily_schedule"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/toggle_daily_schedule" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_chalkboard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/toggle_chalkboard" />
-
-        <Button
-            android:id="@+id/btn_manage_quotes"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/manage_quotes" />
-
-        <Button
-            android:id="@+id/btn_manage_routines"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/manage_routines" />
-
-        <!-- Alfred Vault API — shared by every Alfred-backed content screen -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/alfred_section_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
-
-        <LinearLayout
-            android:id="@+id/row_alfred_host"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:orientation="vertical"
-            android:paddingVertical="8dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/alfred_host_label"
-                android:textAppearance="?attr/textAppearanceBodyLarge" />
-
-            <TextView
-                android:id="@+id/tv_alfred_host"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                tools:text="192.168.1.100:8200" />
-
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/alfred_host_help"
-            android:textAppearance="?attr/textAppearanceBodySmall" />
-
-        <LinearLayout
-            android:id="@+id/row_dashboard_host"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:orientation="vertical"
-            android:paddingVertical="8dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/dashboard_host_label"
-                android:textAppearance="?attr/textAppearanceBodyLarge" />
-
-            <TextView
-                android:id="@+id/tv_dashboard_host"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                tools:text="192.168.1.100:8500" />
-
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/dashboard_host_help"
-            android:textAppearance="?attr/textAppearanceBodySmall" />
 
         <!-- Alarm sounds & volume -->
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/sound_section_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/sound_section_title" />
 
         <LinearLayout
-            android:id="@+id/row_stage1_sound"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingVertical="8dp">
+            style="@style/DailySync.SettingsCard"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:id="@+id/row_stage1_sound"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:layout_marginTop="8dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="8dp">
 
-                <TextView
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sound_stage1_label"
+                        android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+                    <TextView
+                        android:id="@+id/tv_stage1_sound"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textColor="?attr/colorPrimary"
+                        tools:text="Soft Chime" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_preview_stage1"
+                    style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/sound_stage1_label"
-                    android:textAppearance="?attr/textAppearanceBodyLarge" />
-
-                <TextView
-                    android:id="@+id/tv_stage1_sound"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceTitleSmall"
-                    android:textColor="?attr/colorPrimary"
-                    tools:text="Soft Chime" />
+                    app:icon="@drawable/ic_play"
+                    android:text="@string/sound_preview" />
             </LinearLayout>
-
-            <Button
-                android:id="@+id/btn_preview_stage1"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:icon="@drawable/ic_play"
-                android:text="@string/sound_preview" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/row_nuclear_sound"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingVertical="8dp">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:id="@+id/row_nuclear_sound"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:layout_marginTop="8dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="8dp">
 
-                <TextView
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sound_nuclear_label"
+                        android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+                    <TextView
+                        android:id="@+id/tv_nuclear_sound"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textColor="?attr/colorPrimary"
+                        tools:text="Rapid Beep" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_preview_nuclear"
+                    style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/sound_nuclear_label"
-                    android:textAppearance="?attr/textAppearanceBodyLarge" />
-
-                <TextView
-                    android:id="@+id/tv_nuclear_sound"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceTitleSmall"
-                    android:textColor="?attr/colorPrimary"
-                    tools:text="Rapid Beep" />
+                    app:icon="@drawable/ic_play"
+                    android:text="@string/sound_preview" />
             </LinearLayout>
 
-            <Button
-                android:id="@+id/btn_preview_nuclear"
-                style="?attr/materialButtonOutlinedStyle"
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:icon="@drawable/ic_play"
-                android:text="@string/sound_preview" />
+                android:layout_marginTop="16dp"
+                android:text="@string/volume_stage1_label"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/slider_volume"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:stepSize="1"
+                android:valueFrom="0"
+                android:valueTo="100" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_vibration"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/vibration_toggle" />
         </LinearLayout>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/volume_stage1_label"
-            android:textAppearance="?attr/textAppearanceBodyLarge" />
-
-        <com.google.android.material.slider.Slider
-            android:id="@+id/slider_volume"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:stepSize="1"
-            android:valueFrom="0"
-            android:valueTo="100" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_vibration"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/vibration_toggle" />
 
         <!-- Stage 2 time limit (PIN-protected) -->
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/stage2_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/stage2_title" />
 
         <LinearLayout
-            android:id="@+id/row_stage2_duration"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingVertical="12dp">
+            style="@style/DailySync.SettingsCard"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp">
 
-            <TextView
-                android:layout_width="0dp"
+            <LinearLayout
+                android:id="@+id/row_stage2_duration"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/stage2_duration_label"
-                android:textAppearance="?attr/textAppearanceBodyLarge" />
+                android:layout_marginTop="8dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="12dp">
 
-            <TextView
-                android:id="@+id/tv_stage2_duration_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textColor="?attr/colorPrimary"
-                tools:text="10 min" />
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/stage2_duration_label"
+                    android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+                <TextView
+                    android:id="@+id/tv_stage2_duration_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textColor="?attr/colorPrimary"
+                    tools:text="10 min" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Alarm PIN -->
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/pin_section_title"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/pin_section_title" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="@string/pin_section_explainer"
-            android:textAppearance="?attr/textAppearanceBodySmall" />
+        <LinearLayout
+            style="@style/DailySync.SettingsCard"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp">
 
-        <TextView
-            android:id="@+id/tv_pin_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            tools:text="PIN is on" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/pin_section_explainer"
+                android:textAppearance="?attr/textAppearanceBodySmall" />
 
-        <Button
-            android:id="@+id/btn_set_pin"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/pin_set" />
+            <TextView
+                android:id="@+id/tv_pin_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                tools:text="PIN is on" />
 
-        <Button
-            android:id="@+id/btn_change_pin"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/pin_change" />
+            <Button
+                android:id="@+id/btn_set_pin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/pin_set" />
 
-        <Button
-            android:id="@+id/btn_disable_pin"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/pin_disable" />
+            <Button
+                android:id="@+id/btn_change_pin"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/pin_change" />
+
+            <Button
+                android:id="@+id/btn_disable_pin"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/pin_disable" />
+        </LinearLayout>
 
     </LinearLayout>
 
