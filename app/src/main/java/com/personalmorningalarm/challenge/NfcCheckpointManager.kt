@@ -12,7 +12,7 @@ import com.personalmorningalarm.data.entity.NfcTag
  *  - [sequenceLength] > number of tags: tags repeat to reach the length, but never
  *    the same tag twice in a row (unavoidable only when a single tag is registered).
  */
-class NfcCheckpointManager(tags: List<NfcTag>, sequenceLength: Int) {
+class NfcCheckpointManager(private val tags: List<NfcTag>, sequenceLength: Int) {
 
     private val ordered: List<NfcTag> = buildSequence(tags, sequenceLength)
     private var index = 0
@@ -34,7 +34,10 @@ class NfcCheckpointManager(tags: List<NfcTag>, sequenceLength: Int) {
             if (isComplete) CheckpointResult.SequenceComplete
             else CheckpointResult.Correct(currentTag!!)
         } else {
-            CheckpointResult.Wrong(expected)
+            CheckpointResult.Wrong(
+                expected = expected,
+                tapped = tags.firstOrNull { it.tagId.equals(tagId, ignoreCase = true) }
+            )
         }
     }
 
@@ -64,8 +67,11 @@ sealed interface CheckpointResult {
     /** Right tag; [next] is the new checkpoint to seek. */
     data class Correct(val next: NfcTag) : CheckpointResult
 
-    /** Wrong tag; [expected] is the one still being sought. */
-    data class Wrong(val expected: NfcTag) : CheckpointResult
+    /**
+     * Wrong tag; [expected] is the one still being sought. [tapped] is the tag that
+     * was actually scanned, or null if it isn't one of the registered tags.
+     */
+    data class Wrong(val expected: NfcTag, val tapped: NfcTag?) : CheckpointResult
 
     /** The final checkpoint was just tapped. */
     data object SequenceComplete : CheckpointResult

@@ -10,7 +10,6 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -92,6 +91,7 @@ class NuclearDismissalActivity : AppCompatActivity() {
         setupMath()
         setupTyping()
         setupNfc()
+        renderCards()
 
         // Reaching the nuclear screen is the failure: log it and reset the streak
         // up front, so it stands even if the user never completes the gauntlet.
@@ -125,7 +125,7 @@ class NuclearDismissalActivity : AppCompatActivity() {
             onComplete = {
                 binding.shakeProgress.progress = 100
                 shakeDone = true
-                markDone(binding.statusShake)
+                markDone()
                 Log.d(TAG, "Nuclear shake complete")
             }
         }
@@ -138,7 +138,7 @@ class NuclearDismissalActivity : AppCompatActivity() {
                 mathDone = true
                 binding.etMath.isEnabled = false
                 binding.btnMathSubmit.isEnabled = false
-                markDone(binding.statusMath)
+                markDone()
                 Log.d(TAG, "Nuclear math correct")
             } else {
                 binding.etMath.error = getString(R.string.math_wrong)
@@ -153,7 +153,7 @@ class NuclearDismissalActivity : AppCompatActivity() {
                 typeDone = true
                 binding.etType.isEnabled = false
                 binding.btnTypeSubmit.isEnabled = false
-                markDone(binding.statusType)
+                markDone()
                 Log.d(TAG, "Nuclear typing correct")
             } else {
                 binding.etType.error = getString(R.string.type_wrong)
@@ -170,7 +170,7 @@ class NuclearDismissalActivity : AppCompatActivity() {
                 // Nothing to tap (no tags or NFC off) — don't trap the user.
                 nfcDone = true
                 binding.tvNfcHint.text = getString(R.string.nfc_no_tags_skipped)
-                markDone(binding.statusNfc)
+                markDone()
                 Log.d(TAG, "Nuclear NFC auto-completed (no usable tags)")
             } else {
                 enableNfcReader()
@@ -186,7 +186,7 @@ class NuclearDismissalActivity : AppCompatActivity() {
             nfcDone = true
             binding.tvNfcHint.text = getString(R.string.nfc_accepted)
             disableNfcReader()
-            markDone(binding.statusNfc)
+            markDone()
             Log.d(TAG, "Nuclear NFC tag accepted")
         } else {
             binding.tvNfcHint.text = getString(R.string.nfc_wrong_tag)
@@ -195,11 +195,47 @@ class NuclearDismissalActivity : AppCompatActivity() {
 
     // --- Completion ---
 
-    /** Marks a status indicator done and checks whether the gauntlet is finished. */
-    private fun markDone(status: TextView) {
-        status.text = getString(R.string.status_done)
-        status.setTextColor(MaterialColors.getColor(status, R.attr.colorPositive))
+    /** Called once a challenge's flag is set: redraws the cards, then checks for the finish. */
+    private fun markDone() {
+        renderCards()
         maybeFinish()
+    }
+
+    /**
+     * Each challenge card in one of three states: done (positive ✓), current
+     * (error ●, error outline — the first one not yet done, in screen order), or
+     * still to do (secondary ○). They can be done in any order; "current" only
+     * points at where to look next.
+     */
+    private fun renderCards() {
+        val cards = listOf(
+            Triple(binding.cardShake, binding.statusShake, shakeDone),
+            Triple(binding.cardMath, binding.statusMath, mathDone),
+            Triple(binding.cardNfc, binding.statusNfc, nfcDone),
+            Triple(binding.cardType, binding.statusType, typeDone)
+        )
+        val current = cards.indexOfFirst { !it.third }
+        cards.forEachIndexed { i, (card, status, done) ->
+            when {
+                done -> {
+                    card.setBackgroundResource(R.drawable.bg_card)
+                    status.setText(R.string.status_done)
+                    status.setTextColor(MaterialColors.getColor(status, R.attr.colorPositive))
+                }
+                i == current -> {
+                    card.setBackgroundResource(R.drawable.bg_card_error)
+                    status.setText(R.string.status_current)
+                    status.setTextColor(MaterialColors.getColor(status, com.google.android.material.R.attr.colorError))
+                }
+                else -> {
+                    card.setBackgroundResource(R.drawable.bg_card)
+                    status.setText(R.string.status_pending)
+                    status.setTextColor(
+                        MaterialColors.getColor(status, com.google.android.material.R.attr.colorOnSurfaceVariant)
+                    )
+                }
+            }
+        }
     }
 
     private fun maybeFinish() {

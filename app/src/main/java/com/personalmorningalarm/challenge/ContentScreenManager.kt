@@ -12,6 +12,9 @@ class ContentScreenManager(private val enabledTypes: List<ContentType>) {
 
     val hasContent: Boolean get() = enabledTypes.isNotEmpty()
 
+    /** How many content screens this morning has (one per enabled type). */
+    val count: Int get() = enabledTypes.size
+
     /** Content for the gap after the (0-based) checkpoint just completed, or null. */
     fun contentForGap(gapIndex: Int): ContentType? = enabledTypes.getOrNull(gapIndex)
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The X on the wrong-tag notice: error colour. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="22dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M6,6l12,12M18,6L6,18"
+        android:strokeWidth="2.4"
+        android:strokeColor="?attr/colorError"
+        android:strokeLineCap="round" />
+</vector>

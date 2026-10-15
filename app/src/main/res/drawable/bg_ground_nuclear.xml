@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The nuclear alarm's ground: bg_ground's shape and stops, glowing in the error
+     colour instead of cyan. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="190dp"
+    android:viewportWidth="100"
+    android:viewportHeight="190">
+    <path
+        android:fillColor="@color/ground"
+        android:pathData="M0,0h100v190h-100z" />
+    <path
+        android:fillColor="@color/nuclear_glow"
+        android:pathData="M0,0h100v190h-100z" />
+</vector>

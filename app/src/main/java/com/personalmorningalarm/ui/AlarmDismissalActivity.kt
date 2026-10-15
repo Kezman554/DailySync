@@ -1,5 +1,7 @@
 package com.personalmorningalarm.ui
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.KeyguardManager
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -15,15 +17,19 @@ import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.text.format.DateFormat
 import android.util.Log
+import android.util.TypedValue
 import android.view.View
 import android.view.WindowManager
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.R as MaterialR
 import com.google.android.material.color.MaterialColors
 import com.personalmorningalarm.R
 import com.personalmorningalarm.challenge.CheckpointResult
@@ -49,13 +55,20 @@ import com.personalmorningalarm.service.CountdownService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.ceil
 
 /**
  * Stage 1 (shake) and Stage 2 (NFC checkpoint sequence). Shows over the lock
- * screen, blocks back. Stage 1: shake to fill a bar. Stage 2: tap the registered
+ * screen, blocks back. Stage 1: shake to fill the ring. Stage 2: tap the registered
  * NFC tags in a randomised order while the countdown runs; if none are
  * registered, a single "tap to confirm" stands in.
+ *
+ * One layout serves every stage: a label row (with the time-left chip in Stage 2),
+ * a big heading, two stats, the ring and a "what's next" card, each filled by the
+ * render functions below.
  */
 class AlarmDismissalActivity : AppCompatActivity() {
 
@@ -143,7 +156,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
             onProgress = { progress -> onShakeProgress(progress) }
             onComplete = { onShakeComplete() }
         }
-        binding.tvSeconds.text = getString(R.string.seconds_format, TARGET_SECONDS)
+        renderStage1()
 
         binding.btnStopAlarm.setOnClickListener {
             AlarmService.stop(this)
@@ -157,6 +170,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 sequenceLength = config.sequenceLength
                 morningGoal = config.morningGoal
             }
+            if (stage == STAGE_1) renderStage1Info()
         }
     }
 
@@ -168,7 +182,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 if (checkpointManager != null) enableNfcDispatch()
                 if (showingUnlockHint && !keyguardManager.isKeyguardLocked) {
                     showingUnlockHint = false
-                    binding.tvFeedback.visibility = View.GONE
+                    binding.tvNote.visibility = View.GONE
                 }
             }
         }
@@ -191,12 +205,53 @@ class AlarmDismissalActivity : AppCompatActivity() {
 
     // --- Stage 1 ---
 
+    /**
+     * "STAGE 1 OF 2 · FRI 16 OCT", the time at 72sp, Shaken / Left, the ring, and
+     * the card saying what Stage 2 will ask for. The time shown is the time the
+     * alarm went off (now), which is the alarm time on a real morning.
+     */
+    private fun renderStage1() {
+        binding.tvStageLabel.text = getString(
+            R.string.alarm_stage1_label,
+            LocalDate.now().format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault()))
+        )
+        binding.tvTimeLeft.isVisible = false
+        binding.tvBigLabel.isVisible = false
+        setBig(LocalTime.now().format(clockFormat()), BIG_TIME_SP)
+        binding.noticeWrongTag.isVisible = false
+
+        binding.tvStat1Label.setText(R.string.alarm_stat_shaken)
+        binding.tvStat1Value.setTextColor(color(R.attr.colorPositive))
+        binding.tvStat2Label.setText(R.string.alarm_stat_left)
+        binding.stat2.isVisible = true
+        renderShake(0f)
+
+        binding.ivRingIcon.isVisible = false
+        setRingText(getString(R.string.shake_instruction), RING_TEXT_SP)
+        renderStage1Info()
+    }
+
+    private fun renderShake(progress: Float) {
+        binding.ring.setProgress(progress)
+        binding.tvStat1Value.text = getString(R.string.alarm_stat_shaken_value, (progress * 100).toInt())
+        val remaining = ceil((1f - progress) * TARGET_SECONDS).toInt().coerceAtLeast(0)
+        binding.tvStat2Value.text = getString(R.string.seconds_format, remaining)
+    }
+
+    /** Next: N NFC checkpoints / Time to finish: 15:00 / If you don't: Nuclear alarm. */
+    private fun renderStage1Info() {
+        setInfoRows(
+            getString(R.string.alarm_info_next) to
+                resources.getQuantityString(R.plurals.alarm_info_next_value, sequenceLength, sequenceLength),
+            getString(R.string.alarm_info_time_to_finish) to
+                CountdownService.formatTime(stage2DurationMinutes * 60),
+            getString(R.string.alarm_info_if_not) to null
+        )
+    }
+
     private fun onShakeProgress(progress: Float) {
         val percent = (progress * 100).toInt()
-        binding.shakeProgress.progress = percent
-
-        val remaining = ceil((1f - progress) * TARGET_SECONDS).toInt().coerceAtLeast(0)
-        binding.tvSeconds.text = getString(R.string.seconds_format, remaining)
+        renderShake(progress)
 
         val bucket = percent / 25
         if (bucket != lastLoggedBucket) {
@@ -210,12 +265,11 @@ class AlarmDismissalActivity : AppCompatActivity() {
         stage = STAGE_TRANSITION
         shakeChallenge.stop()
 
-        binding.shakeProgress.progress = 100
+        renderShake(1f)
         AlarmService.stop(this)
         logStage1Success()
 
-        binding.tvTitle.text = getString(R.string.stage1_success)
-        binding.tvSeconds.visibility = View.GONE
+        binding.tvRingText.setText(R.string.stage1_success)
         binding.root.postDelayed({ startStage2() }, SUCCESS_DELAY_MS)
     }
 
@@ -240,9 +294,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
         stage = STAGE_2
         stage2StartMs = SystemClock.elapsedRealtime()
 
-        binding.shakeProgress.visibility = View.GONE
-        binding.tvSeconds.visibility = View.GONE
-        binding.tvCountdown.visibility = View.VISIBLE
+        binding.tvTimeLeft.isVisible = true
 
         CountdownService.start(this, stage2DurationMinutes * 60)
         observeCountdown()
@@ -269,13 +321,82 @@ class AlarmDismissalActivity : AppCompatActivity() {
         }
     }
 
-    private fun showCheckpoint() {
+    private fun showCheckpoint() = renderCheckpoint(wrong = null)
+
+    /**
+     * "STAGE 2 · CHECKPOINT n OF N", GO TO + the tag, Done / Then, the segmented
+     * ring and what's left. With [wrong] set, the heading reads "WRONG TAG — FIND"
+     * and the error notice names the tag that was tapped.
+     */
+    private fun renderCheckpoint(wrong: CheckpointResult.Wrong?) {
         val manager = checkpointManager ?: return
-        binding.tvCheckpoint.visibility = View.VISIBLE
-        binding.tvCheckpoint.text =
-            getString(R.string.checkpoint_progress, manager.currentNumber, manager.total)
-        binding.tvTitle.text = getString(R.string.stage2_go_to, manager.currentTag?.label.orEmpty())
-        binding.tvFeedback.visibility = View.GONE
+        val number = manager.currentNumber
+        val total = manager.total
+        val target = manager.currentTag?.label.orEmpty()
+
+        binding.tvStageLabel.text = getString(R.string.alarm_stage2_label, number, total)
+        binding.tvBigLabel.isVisible = true
+        binding.tvBigLabel.setText(if (wrong != null) R.string.alarm_wrong_find else R.string.alarm_go_to)
+        setBig(target, nameSizeSp(target))
+
+        binding.noticeWrongTag.isVisible = wrong != null
+        if (wrong != null) {
+            binding.tvNotice.text = wrong.tapped?.let { getString(R.string.wrong_tag_notice, it.label, target) }
+                ?: getString(R.string.wrong_tag_notice_unregistered, target)
+        }
+
+        binding.statsRow.isVisible = true
+        binding.tvStat1Label.setText(R.string.alarm_stat_done)
+        binding.tvStat1Value.text = getString(R.string.alarm_stat_done_value, number - 1, total)
+        binding.tvStat1Value.setTextColor(color(R.attr.colorPositive))
+        binding.stat2.isVisible = true
+        binding.tvStat2Label.setText(R.string.alarm_stat_then)
+        binding.tvStat2Value.text = thenLabel(number, total)
+
+        binding.ring.isVisible = true
+        binding.ring.setSegments(total, number - 1)
+        binding.ringCentre.isVisible = true
+        binding.ivRingIcon.isVisible = true
+        setRingText(getString(R.string.alarm_hold_phone), RING_HINT_SP)
+
+        val after = total - number
+        setInfoRows(
+            getString(R.string.alarm_info_still_to_find) to
+                if (after == 0) getString(R.string.alarm_info_last)
+                else resources.getQuantityString(R.plurals.alarm_info_still_value, after, after),
+            getString(R.string.alarm_info_if_time_runs_out) to null
+        )
+    }
+
+    /** What follows this checkpoint: the content screen for this gap, the next tag, or the finish. */
+    private fun thenLabel(number: Int, total: Int): String {
+        if (number >= total) return getString(R.string.alarm_then_finish)
+        return when (contentScreenManager?.contentForGap(gapsShown)) {
+            ContentType.QUOTE -> getString(R.string.alarm_tab_content_quote)
+            ContentType.STRETCH -> getString(R.string.alarm_tab_content_stretch)
+            ContentType.DAILY_SCHEDULE -> getString(R.string.alarm_tab_content_schedule)
+            ContentType.CHALKBOARD -> getString(R.string.alarm_tab_content_todo)
+            null -> getString(R.string.alarm_then_next_tag)
+        }
+    }
+
+    /**
+     * The wrong-tag notice wobbles once as it appears (-12, +10, -8, +6, -3, 0dp
+     * over about half a second) — skipped when the system has animations off.
+     */
+    private fun wobbleNotice() {
+        val notice = binding.noticeWrongTag
+        notice.animate().cancel()
+        notice.translationX = 0f
+        if (!ValueAnimator.areAnimatorsEnabled()) return
+        val dp = resources.displayMetrics.density
+        ObjectAnimator.ofFloat(
+            notice, View.TRANSLATION_X,
+            0f, -12f * dp, 10f * dp, -8f * dp, 6f * dp, -3f * dp, 0f
+        ).apply {
+            duration = WOBBLE_MS
+            start()
+        }
     }
 
     private fun onCheckpointTag(tagId: String) {
@@ -288,9 +409,9 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 if (content != null) showContentScreen(content) else showCheckpoint()
             }
             is CheckpointResult.Wrong -> {
-                Log.d(TAG, "Wrong tag — still need: ${result.expected.label}")
-                binding.tvFeedback.visibility = View.VISIBLE
-                binding.tvFeedback.text = getString(R.string.wrong_tag, result.expected.label)
+                Log.d(TAG, "Wrong tag (${result.tapped?.label ?: "unregistered"}) — still need: ${result.expected.label}")
+                renderCheckpoint(wrong = result)
+                wobbleNotice()
                 vibrator?.vibrate(VibrationEffect.createOneShot(WRONG_PULSE_MS, VibrationEffect.DEFAULT_AMPLITUDE))
             }
             CheckpointResult.SequenceComplete -> {
@@ -302,9 +423,14 @@ class AlarmDismissalActivity : AppCompatActivity() {
     }
 
     private fun setupFallbackConfirm() {
-        binding.tvCheckpoint.visibility = View.GONE
-        binding.tvFeedback.visibility = View.GONE
-        binding.tvTitle.text = getString(R.string.stage2_title)
+        binding.tvStageLabel.setText(R.string.alarm_stage2_fallback_label)
+        binding.tvBigLabel.isVisible = false
+        setBig(getString(R.string.stage2_title), FALLBACK_TITLE_SP)
+        binding.noticeWrongTag.isVisible = false
+        binding.statsRow.isVisible = false
+        binding.ring.isVisible = false
+        binding.ringCentre.isVisible = false
+        setInfoRows(getString(R.string.alarm_info_if_time_runs_out) to null)
         binding.btnConfirm.visibility = View.VISIBLE
         binding.btnConfirm.setOnClickListener { onStage2Complete() }
     }
@@ -313,6 +439,8 @@ class AlarmDismissalActivity : AppCompatActivity() {
 
     private fun showContentScreen(type: ContentType) {
         showingContent = true
+        binding.tvStageLabel.text =
+            getString(R.string.alarm_between_taps, gapsShown, contentScreenManager?.count ?: gapsShown)
         // Freeze the Stage 2 deadline while content shows — content time shouldn't
         // count against the nuclear timer (a 10-min stretch must not fail you).
         CountdownService.pause(this)
@@ -625,20 +753,31 @@ class AlarmDismissalActivity : AppCompatActivity() {
         CountdownService.stop(this)
         clearAlarmNotifications()
 
-        // Base success screen; the streak line fills in once it's computed.
-        binding.tvCountdown.visibility = View.GONE
-        binding.tvFeedback.visibility = View.GONE
+        // Base success screen; the streak fills in once it's computed.
+        binding.tvTimeLeft.isVisible = false
+        binding.tvStageLabel.setText(R.string.alarm_stage2_done_label)
+        binding.tvBigLabel.isVisible = false
+        setBig(getString(R.string.success_title), FALLBACK_TITLE_SP)
+        binding.noticeWrongTag.isVisible = false
         binding.btnConfirm.visibility = View.GONE
-        binding.tvCheckpoint.visibility = View.GONE
-        binding.tvTitle.text = getString(R.string.success_title)
+        binding.tvNote.isVisible = false
+        binding.infoCard.isVisible = false
+        binding.statsRow.isVisible = false
+        binding.ring.isVisible = true
+        val total = checkpointManager?.total ?: 1
+        binding.ring.setSegments(total, total)
+        binding.ringCentre.isVisible = true
+        binding.ivRingIcon.isVisible = false
+        setRingText(goalReminder(), RING_HINT_SP)
 
         lifecycleScope.launch {
             recordStage2Success(seconds)
             val streak = repository.getCurrentStreak()
-            binding.tvSeconds.visibility = View.VISIBLE
-            binding.tvSeconds.text = getString(R.string.streak_format, streak)
-            binding.tvFeedback.visibility = View.VISIBLE
-            binding.tvFeedback.text = goalReminder()
+            binding.statsRow.isVisible = true
+            binding.stat2.isVisible = false
+            binding.tvStat1Label.setText(R.string.alarm_stat_streak)
+            binding.tvStat1Value.text = resources.getQuantityString(R.plurals.alarm_streak_days, streak, streak)
+            binding.tvStat1Value.setTextColor(color(R.attr.colorPositive))
             Log.d(TAG, "Stage 2 success — streak now $streak")
         }
 
@@ -691,11 +830,66 @@ class AlarmDismissalActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 CountdownService.remainingSeconds.collect { seconds ->
-                    binding.tvCountdown.text = CountdownService.formatTime(seconds)
+                    binding.tvTimeLeft.text =
+                        getString(R.string.alarm_time_left, CountdownService.formatTime(seconds))
                 }
             }
         }
     }
+
+    // --- Shared rendering ---
+
+    /** The big heading: [text] at [sizeSp]. */
+    private fun setBig(text: String, sizeSp: Float) {
+        binding.tvBig.setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp)
+        binding.tvBig.text = text
+    }
+
+    /** The ring's centre text: 22sp for the shake instruction, 16sp under the NFC icon. */
+    private fun setRingText(text: String, sizeSp: Float) {
+        binding.tvRingText.setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp)
+        binding.tvRingText.text = text
+    }
+
+    /** 60sp for a short tag name, stepping down so a long one still fits in two lines. */
+    private fun nameSizeSp(name: String): Float = when {
+        name.length <= 9 -> 60f
+        name.length <= 14 -> 46f
+        else -> 36f
+    }
+
+    /**
+     * Fills the "what's next" card with up to three label/value rows, hairlines
+     * between. A null value means "Nuclear alarm" in the error colour — the only
+     * red on this screen.
+     */
+    private fun setInfoRows(vararg rows: Pair<String, String?>) {
+        binding.infoCard.isVisible = true
+        val views = listOf(
+            Triple(binding.infoRow1, binding.tvInfo1Label, binding.tvInfo1Value),
+            Triple(binding.infoRow2, binding.tvInfo2Label, binding.tvInfo2Value),
+            Triple(binding.infoRow3, binding.tvInfo3Label, binding.tvInfo3Value)
+        )
+        views.forEachIndexed { i, (row, label, value) ->
+            val content = rows.getOrNull(i)
+            row.isVisible = content != null
+            if (content == null) return@forEachIndexed
+            label.text = content.first
+            value.text = content.second ?: getString(R.string.alarm_info_nuclear)
+            value.setTextColor(
+                color(if (content.second == null) MaterialR.attr.colorError else MaterialR.attr.colorOnSurface)
+            )
+        }
+        binding.infoDivider2.isVisible = rows.size > 1
+        binding.infoDivider3.isVisible = rows.size > 2
+    }
+
+    private fun color(attr: Int): Int = MaterialColors.getColor(binding.root, attr)
+
+    private fun clockFormat(): DateTimeFormatter = DateTimeFormatter.ofPattern(
+        if (DateFormat.is24HourFormat(this)) "HH:mm" else "h:mm",
+        Locale.getDefault()
+    )
 
     // --- NFC ---
 
@@ -710,8 +904,8 @@ class AlarmDismissalActivity : AppCompatActivity() {
     private fun promptUnlockIfNeeded() {
         if (keyguardManager.isKeyguardLocked) {
             showingUnlockHint = true
-            binding.tvFeedback.visibility = View.VISIBLE
-            binding.tvFeedback.text = getString(R.string.nfc_unlock_hint)
+            binding.tvNote.visibility = View.VISIBLE
+            binding.tvNote.text = getString(R.string.nfc_unlock_hint)
             keyguardManager.requestDismissKeyguard(this, null)
         }
     }
@@ -779,6 +973,12 @@ class AlarmDismissalActivity : AppCompatActivity() {
         private const val SUCCESS_SCREEN_MS = 5000L
         private const val TAP_GRACE_MS = 1500L
         private const val WRONG_PULSE_MS = 150L
+        private const val WOBBLE_MS = 500L
+
+        private const val BIG_TIME_SP = 72f
+        private const val FALLBACK_TITLE_SP = 40f
+        private const val RING_TEXT_SP = 22f
+        private const val RING_HINT_SP = 16f
 
         private const val READER_FLAGS =
             NfcAdapter.FLAG_READER_NFC_A or

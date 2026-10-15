@@ -87,5 +87,19 @@ class NfcCheckpointManagerTest {
         assertTrue(result is CheckpointResult.Wrong)
         assertEquals(firstExpected.tagId, manager.currentTag!!.tagId)
         assertEquals(1, manager.currentNumber)
+        // Not a registered tag: nothing to name.
+        assertEquals(null, (result as CheckpointResult.Wrong).tapped)
+    }
+
+    @Test
+    fun `wrong tag names the registered tag that was tapped`() {
+        val manager = NfcCheckpointManager(tags(3), sequenceLength = 3)
+        val expected = manager.currentTag!!
+        val other = tags(3).first { it.tagId != expected.tagId }
+
+        val result = manager.onTagScanned(other.tagId.lowercase()) as CheckpointResult.Wrong
+
+        assertEquals(expected.tagId, result.expected.tagId)
+        assertEquals(other.label, result.tapped?.label)
     }
 }

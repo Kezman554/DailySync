@@ -26,4 +26,10 @@
     <color name="ground_glow_inner">#2600A6E0</color>
     <color name="ground_glow_outer">#0D00A6E0</color>
     <color name="ground_glow_edge">#0000A6E0</color>
+
+    <!-- Nuclear ground glow: the error colour (FF6B5E) at the same 30/15/5/0 stops -->
+    <color name="nuclear_glow_core">#4DFF6B5E</color>
+    <color name="nuclear_glow_inner">#26FF6B5E</color>
+    <color name="nuclear_glow_outer">#0DFF6B5E</color>
+    <color name="nuclear_glow_edge">#00FF6B5E</color>
 </resources>

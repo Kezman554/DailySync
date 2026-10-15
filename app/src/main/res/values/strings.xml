@@ -47,13 +47,9 @@
     <string name="seconds_format">%1$ds</string>
     <string name="stage1_success">Nice — you\'re up!</string>
     <string name="stage2_title">Stage 2 — get moving</string>
-    <string name="stage2_go_to">Go to: %1$s</string>
-    <string name="checkpoint_progress">%1$d of %2$d</string>
-    <string name="wrong_tag">Wrong tag — find %1$s</string>
     <string name="tap_to_confirm">Tap to confirm</string>
     <string name="stage2_complete">All done — great job!</string>
     <string name="success_title">Great job!</string>
-    <string name="streak_format">Day %1$d of your streak!</string>
     <string name="goal_reminder_exercise">Time to exercise</string>
     <string name="goal_reminder_project">Time for project work</string>
     <string name="nfc_unlock_hint">Unlock your phone to tap the tags</string>
@@ -229,6 +225,7 @@
     <string name="nfc_accepted">Tag accepted ✓</string>
     <string name="status_done">✓</string>
     <string name="status_pending">○</string>
+    <string name="status_current">●</string>
 
     <!-- Alarm settings screens, opened from the Alarm tab tiles -->
     <string name="group_stage1">Stage 1 · Shake</string>
@@ -249,6 +246,48 @@
         <item quantity="other">%1$d tags</item>
     </plurals>
     <string name="preview_sound">Preview %1$s</string>
+
+    <!-- Alarm dismissal screens (Stage 1 shake, Stage 2 checkpoints) -->
+    <string name="alarm_stage1_label">Stage 1 of 2 · %1$s</string>
+    <string name="alarm_stat_shaken">Shaken</string>
+    <string name="alarm_stat_shaken_value">↗ %1$d%%</string>
+    <string name="alarm_stat_left">Left</string>
+    <string name="alarm_info_next">Next</string>
+    <plurals name="alarm_info_next_value">
+        <item quantity="one">%1$d NFC checkpoint</item>
+        <item quantity="other">%1$d NFC checkpoints</item>
+    </plurals>
+    <string name="alarm_info_time_to_finish">Time to finish</string>
+    <string name="alarm_info_if_not">If you don\'t</string>
+    <string name="alarm_info_if_time_runs_out">If time runs out</string>
+    <string name="alarm_info_nuclear">Nuclear alarm</string>
+    <string name="alarm_info_still_to_find">Still to find</string>
+    <plurals name="alarm_info_still_value">
+        <item quantity="one">%1$d more after this</item>
+        <item quantity="other">%1$d more after this</item>
+    </plurals>
+    <string name="alarm_info_last">This is the last</string>
+    <string name="alarm_stage2_label">Stage 2 · Checkpoint %1$d of %2$d</string>
+    <string name="alarm_stage2_fallback_label">Stage 2</string>
+    <string name="alarm_stage2_done_label">Stage 2 · Done</string>
+    <string name="alarm_between_taps">Between taps · %1$d of %2$d</string>
+    <string name="alarm_time_left">%1$s left</string>
+    <string name="alarm_go_to">Go to</string>
+    <string name="alarm_wrong_find">Wrong tag — find</string>
+    <string name="alarm_stat_done">Done</string>
+    <string name="alarm_stat_done_value">↗ %1$d / %2$d</string>
+    <string name="alarm_stat_then">Then</string>
+    <string name="alarm_then_finish">Finish</string>
+    <string name="alarm_then_next_tag">Next tag</string>
+    <string name="alarm_stat_streak">Streak</string>
+    <plurals name="alarm_streak_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="alarm_hold_phone">Hold the phone to the tag</string>
+    <string name="wrong_tag_notice">That was %1$s. %2$s is next.</string>
+    <string name="wrong_tag_notice_unregistered">That tag isn\'t registered. %1$s is next.</string>
+    <string name="nuclear_label">Nuclear alarm · you didn\'t finish in time</string>
 
     <!-- Alarm tab (HomeFragment) -->
     <string name="home_alarm_enabled">Alarm on</string>

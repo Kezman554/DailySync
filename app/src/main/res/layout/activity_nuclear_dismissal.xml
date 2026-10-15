@@ -1,47 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The nuclear gauntlet: four challenges, any order, all four to silence it. The
+  ground glows in the error colour; each challenge is a card whose state
+  (done / current / to do) NuclearDismissalActivity sets.
+-->
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_ground_nuclear"
     android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:paddingHorizontal="20dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="24dp">
+
+        <TextView
+            style="@style/DailySync.AlarmLabel"
+            android:text="@string/nuclear_label"
+            android:textColor="?attr/colorError" />
 
         <TextView
             android:id="@+id/tv_nuclear_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
+            android:layout_marginTop="6dp"
+            android:includeFontPadding="false"
+            android:letterSpacing="-0.03"
             android:text="@string/nuclear_title"
-            android:textAppearance="?attr/textAppearanceHeadlineMedium"
             android:textColor="?attr/colorError"
+            android:textSize="64sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_nuclear_instruction"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
+            android:layout_marginTop="6dp"
             android:text="@string/nuclear_instruction"
-            android:textAppearance="?attr/textAppearanceTitleSmall"
-            android:textColor="?attr/colorOnSurface" />
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textFontWeight="600"
+            android:textSize="15sp" />
 
         <!-- 1. Shake -->
-        <LinearLayout style="@style/NuclearCard">
+        <LinearLayout
+            android:id="@+id/card_shake"
+            style="@style/NuclearCard">
 
             <LinearLayout style="@style/NuclearCardHeader">
 
                 <TextView
                     android:id="@+id/status_shake"
                     style="@style/NuclearStatus"
-                    tools:text="○" />
+                    tools:text="✓" />
 
                 <TextView
                     style="@style/NuclearCardTitle"
@@ -53,44 +70,49 @@
                 style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="12dp"
                 android:max="100"
                 android:progress="0" />
         </LinearLayout>
 
         <!-- 2. Math -->
-        <LinearLayout style="@style/NuclearCard">
+        <LinearLayout
+            android:id="@+id/card_math"
+            style="@style/NuclearCard">
 
             <LinearLayout style="@style/NuclearCardHeader">
 
                 <TextView
                     android:id="@+id/status_math"
                     style="@style/NuclearStatus"
-                    tools:text="○" />
+                    tools:text="●" />
 
                 <TextView
                     style="@style/NuclearCardTitle"
                     android:text="@string/challenge_math_title" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_math_question"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="28sp"
-                tools:text="37 + 58 = ?" />
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_math_question"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    tools:text="37 + 58 = ?" />
 
                 <EditText
                     android:id="@+id/et_math"
                     style="@style/NuclearInput"
+                    android:layout_width="0dp"
+                    android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:hint="@string/math_answer_hint"
                     android:importantForAutofill="no"
@@ -98,6 +120,7 @@
 
                 <Button
                     android:id="@+id/btn_math_submit"
+                    style="@style/Widget.DailySync.Button.Error"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
@@ -106,7 +129,9 @@
         </LinearLayout>
 
         <!-- 3. NFC -->
-        <LinearLayout style="@style/NuclearCard">
+        <LinearLayout
+            android:id="@+id/card_nfc"
+            style="@style/NuclearCard">
 
             <LinearLayout style="@style/NuclearCardHeader">
 
@@ -126,11 +151,15 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="@string/nfc_tap_hint"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textFontWeight="600"
+                android:textSize="14sp" />
         </LinearLayout>
 
         <!-- 4. Typing -->
-        <LinearLayout style="@style/NuclearCard">
+        <LinearLayout
+            android:id="@+id/card_type"
+            style="@style/NuclearCard">
 
             <LinearLayout style="@style/NuclearCardHeader">
 
@@ -151,25 +180,33 @@
                 android:layout_marginTop="8dp"
                 android:text="@string/nuclear_phrase"
                 android:textColor="?attr/colorOnSurface"
-                android:textSize="20sp"
-                android:textStyle="italic" />
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
-            <EditText
-                android:id="@+id/et_type"
-                style="@style/NuclearInput"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_marginTop="8dp"
-                android:hint="@string/type_answer_hint"
-                android:importantForAutofill="no"
-                android:inputType="textNoSuggestions" />
-
-            <Button
-                android:id="@+id/btn_type_submit"
-                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="end"
                 android:layout_marginTop="8dp"
-                android:text="@string/submit" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/et_type"
+                    style="@style/NuclearInput"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:hint="@string/type_answer_hint"
+                    android:importantForAutofill="no"
+                    android:inputType="textNoSuggestions" />
+
+                <Button
+                    android:id="@+id/btn_type_submit"
+                    style="@style/Widget.DailySync.Button.Error"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/submit" />
+            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>

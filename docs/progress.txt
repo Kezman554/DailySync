@@ -1521,3 +1521,33 @@
     them; Time limit and the alarm time both asked for the PIN. Then put every
     value back (Default 87%, 6, 15 min, all on, 5 min, Klaxon, vibrate, no PIN);
     06:30 armed, Appearance Dark. Light mode checked on the NFC screen
+
+2026-10-15  Alarm screens restyled: Stage 1 ring, Stage 2 checkpoints, nuclear
+  - activity_alarm_dismissal: one layout for every stage - label row (Stage 2's
+    "14:12 left" chip on the right, kept up through the content screens), big
+    heading, two stats, a 210dp ProgressRingView (new: continuous arc for the shake,
+    one segment per checkpoint in Stage 2), and a "what's next" card whose only red
+    is "Nuclear alarm". Content panel unchanged apart from hanging under the label row
+  - Stage 1: "STAGE 1 OF 2 · THU 15 OCT", the time it rang at 72sp (= alarm time on
+    a real morning; a test alarm shows when it fired), Shaken / Left, ring, Next /
+    Time to finish / If you don't
+  - Stage 2: "STAGE 2 · CHECKPOINT n OF N", GO TO + tag (60sp, stepping down for
+    long names), Done / Then (next content screen, "Next tag" or "Finish"), Still to
+    find. Between taps the label reads "Between taps · k of m"
+  - Wrong tag: CheckpointResult.Wrong now carries the tapped tag (null when it isn't
+    registered) - "That was Black clock. Spice box is next." / "That tag isn't
+    registered. Fish Bowl is next." in an error-outlined notice that wobbles once
+    (500ms; skipped when animator scale is 0). Test added
+  - Nuclear: bg_ground_nuclear (the glow in the error colour, same shape and stops),
+    error label + TIME'S UP, challenge cards done / current (first not done, error
+    outline) / to do, Submit in error fill with a black label
+  - Abort (temp) kept working, now a small outlined secondary button
+  - NOT changed, deliberately: the Stage 2 deadline still pauses during content
+    screens (so the chip holds still there), as it has since content screens landed
+  - Verified on the A32: real test alarm -> Stage 1 in dark and light, Abort stops
+    it cleanly, 06:30 re-armed. Shaking and NFC taps can't be done remotely, so
+    Stage 2, both wrong-tag notices, a content screen, checkpoint 2/6 and nuclear
+    were shown through a temporary debug hook (real startStage2 / onCheckpointTag
+    paths, no history writes) that was removed before commit. Still to do by hand:
+    shake through, real wrong tag, full checkpoints, a Stage 2 timeout
+  - Light-mode note: black on the light error red is ~3.8:1 (Submit)

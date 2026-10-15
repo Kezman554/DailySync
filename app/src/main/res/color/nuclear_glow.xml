@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The nuclear screen's glow: same shape as ground_glow, in the error colour. -->
+<gradient xmlns:android="http://schemas.android.com/apk/res/android"
+    android:type="radial"
+    android:centerX="100"
+    android:centerY="0"
+    android:gradientRadius="190">
+    <item android:offset="0" android:color="@color/nuclear_glow_core" />
+    <item android:offset="0.4" android:color="@color/nuclear_glow_inner" />
+    <item android:offset="0.7" android:color="@color/nuclear_glow_outer" />
+    <item android:offset="0.9" android:color="@color/nuclear_glow_edge" />
+</gradient>
