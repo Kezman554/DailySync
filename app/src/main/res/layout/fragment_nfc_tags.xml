@@ -3,33 +3,38 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:paddingHorizontal="16dp"
+    android:paddingTop="12dp">
+
+    <include
+        android:id="@+id/title_bar"
+        layout="@layout/view_screen_title" />
+
 
     <TextView
         android:id="@+id/tv_nfc_status"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceBodyMedium" />
+        android:layout_marginTop="16dp"
+        android:paddingHorizontal="4dp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="14sp" />
 
     <Button
         android:id="@+id/btn_register_tag"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="12dp"
         android:text="@string/register_new_tag" />
 
     <TextView
         android:id="@+id/tv_active_count"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:textAppearance="?attr/textAppearanceTitleSmall" />
+        style="@style/DailySync.GroupLabel" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_tags"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
         android:layout_weight="1"
         android:clipToPadding="false"
         android:paddingBottom="16dp" />

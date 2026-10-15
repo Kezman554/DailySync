@@ -1,7 +1,6 @@
 package com.personalmorningalarm.util
 
 import android.Manifest
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -9,6 +8,7 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.personalmorningalarm.R
 
 /**
@@ -61,7 +61,7 @@ object NotificationPermissionHelper {
      * isn't advice, the app can't do its one job in this state.
      */
     fun showBlockedDialog(context: Context) {
-        AlertDialog.Builder(context)
+        MaterialAlertDialogBuilder(context)
             .setTitle(R.string.notifications_dialog_title)
             .setMessage(R.string.notifications_dialog_message)
             .setPositiveButton(R.string.notifications_open_settings) { _, _ ->

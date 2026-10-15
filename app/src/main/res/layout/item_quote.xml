@@ -3,18 +3,19 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
+    style="@style/DailySync.ListCard"
+    android:paddingEnd="16dp"
     android:clickable="true"
     android:focusable="true"
-    android:orientation="vertical"
-    android:paddingHorizontal="8dp"
-    android:paddingVertical="14dp">
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/tv_quote_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="15sp"
+        android:textStyle="bold"
         tools:text="The secret of getting ahead is getting started." />
 
     <TextView
@@ -22,7 +23,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="13sp"
         android:textStyle="italic"
         tools:text="— Mark Twain" />
 

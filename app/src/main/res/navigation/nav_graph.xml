@@ -55,12 +55,64 @@
         android:name="com.personalmorningalarm.ui.HomeFragment"
         android:label="@string/title_alarm"
         tools:layout="@layout/fragment_home">
-        <!-- Until the alarm tiles get their own screens (session AK), each opens
-             Settings scrolled to its section. -->
+        <!-- The Alarm tab's tiles, one screen each -->
         <action
-            android:id="@+id/action_alarm_to_settings"
-            app:destination="@id/settingsFragment" />
+            android:id="@+id/action_alarm_to_wakeSound"
+            app:destination="@id/wakeSoundFragment" />
+        <action
+            android:id="@+id/action_alarm_to_nfcSettings"
+            app:destination="@id/nfcSettingsFragment" />
+        <action
+            android:id="@+id/action_alarm_to_morningContent"
+            app:destination="@id/morningContentFragment" />
+        <action
+            android:id="@+id/action_alarm_to_nuclear"
+            app:destination="@id/nuclearSettingsFragment" />
+        <action
+            android:id="@+id/action_alarm_to_pin"
+            app:destination="@id/alarmPinFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/wakeSoundFragment"
+        android:name="com.personalmorningalarm.ui.WakeSoundFragment"
+        android:label="@string/alarm_tab_sound"
+        tools:layout="@layout/fragment_wake_sound" />
+
+    <fragment
+        android:id="@+id/nfcSettingsFragment"
+        android:name="com.personalmorningalarm.ui.NfcSettingsFragment"
+        android:label="@string/alarm_tab_nfc"
+        tools:layout="@layout/fragment_nfc_settings">
+        <action
+            android:id="@+id/action_nfcSettings_to_nfcTags"
+            app:destination="@id/nfcTagsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/morningContentFragment"
+        android:name="com.personalmorningalarm.ui.MorningContentFragment"
+        android:label="@string/alarm_tab_content"
+        tools:layout="@layout/fragment_morning_content">
+        <action
+            android:id="@+id/action_morningContent_to_quotes"
+            app:destination="@id/quoteManagementFragment" />
+        <action
+            android:id="@+id/action_morningContent_to_routines"
+            app:destination="@id/stretchRoutinesFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nuclearSettingsFragment"
+        android:name="com.personalmorningalarm.ui.NuclearSettingsFragment"
+        android:label="@string/alarm_tab_nuclear"
+        tools:layout="@layout/fragment_nuclear_settings" />
+
+    <fragment
+        android:id="@+id/alarmPinFragment"
+        android:name="com.personalmorningalarm.ui.AlarmPinFragment"
+        android:label="@string/alarm_tab_pin"
+        tools:layout="@layout/fragment_alarm_pin" />
 
     <!-- One destination, narrowed by TodayFragment.ARG_SECTION: each home tile opens
          a single feed. -->
@@ -103,22 +155,7 @@
         android:id="@+id/settingsFragment"
         android:name="com.personalmorningalarm.ui.SettingsFragment"
         android:label="@string/title_settings"
-        tools:layout="@layout/fragment_settings">
-        <!-- Optional: a SettingsFragment.SECTION_* to scroll to on open -->
-        <argument
-            android:name="section"
-            android:defaultValue=""
-            app:argType="string" />
-        <action
-            android:id="@+id/action_settings_to_nfcTags"
-            app:destination="@id/nfcTagsFragment" />
-        <action
-            android:id="@+id/action_settings_to_quotes"
-            app:destination="@id/quoteManagementFragment" />
-        <action
-            android:id="@+id/action_settings_to_routines"
-            app:destination="@id/stretchRoutinesFragment" />
-    </fragment>
+        tools:layout="@layout/fragment_settings" />
 
     <fragment
         android:id="@+id/nfcTagsFragment"

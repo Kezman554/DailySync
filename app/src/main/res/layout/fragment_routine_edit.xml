@@ -9,7 +9,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -17,12 +19,23 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
+            <ImageButton
+                android:id="@+id/btn_back"
+                style="@style/DailySync.IconButton"
+                android:contentDescription="@string/action_back"
+                android:src="@drawable/ic_back" />
+
             <TextView
                 android:id="@+id/tv_routine_name"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="22sp"
+                android:textStyle="bold"
                 tools:text="Pre-Run Warmup" />
 
             <Button
@@ -38,8 +51,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:paddingHorizontal="4dp"
             android:text="@string/routine_empty"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="14sp"
             android:visibility="gone"
             tools:visibility="gone" />
 
@@ -47,7 +62,7 @@
             android:id="@+id/rv_exercises"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="16dp"
             android:layout_weight="1"
             android:clipToPadding="false"
             android:paddingBottom="88dp"
@@ -67,8 +82,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:layout_marginBottom="72dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="84dp"
         android:contentDescription="@string/stretch_add_title"
         android:src="@drawable/ic_add" />
 

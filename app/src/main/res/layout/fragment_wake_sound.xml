@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wake-up sound (Alarm tab tile): the Stage 1 sound, with preview, and its volume. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout style="@style/DailySync.ScreenColumn">
+
+        <include
+            android:id="@+id/title_bar"
+            layout="@layout/view_screen_title" />
+
+        <TextView
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/group_stage1" />
+
+        <LinearLayout
+            style="@style/DailySync.SettingsCard"
+            android:paddingBottom="12dp">
+
+            <!-- Tap the row to pick (each choice previews); the round button
+                 plays the saved one -->
+            <LinearLayout
+                android:id="@+id/row_sound"
+                style="@style/DailySync.CardRow">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/row_sound" />
+
+                    <TextView
+                        android:id="@+id/tv_sound"
+                        style="@style/DailySync.RowValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        tools:text="Default (system alarm)" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_preview"
+                    style="@style/DailySync.RoundIconButton"
+                    android:layout_marginStart="12dp"
+                    app:icon="@drawable/ic_play" />
+            </LinearLayout>
+
+            <View style="@style/DailySync.Hairline" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingTop="14dp">
+
+                <TextView
+                    style="@style/DailySync.RowLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/row_volume" />
+
+                <TextView
+                    android:id="@+id/tv_volume"
+                    style="@style/DailySync.RowValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="85%" />
+            </LinearLayout>
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/slider_volume"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/row_volume"
+                android:stepSize="1"
+                android:valueFrom="0"
+                android:valueTo="100" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

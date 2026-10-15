@@ -9,90 +9,93 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp">
+
+        <include
+            android:id="@+id/title_bar"
+            layout="@layout/view_screen_title" />
+
+        <!-- Which routine Stage 2 uses: one card, rows under hairlines -->
+        <LinearLayout
+            style="@style/DailySync.SettingsCard"
+            android:layout_marginTop="16dp">
 
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/switch_match_goal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/routine_match_goal"
-            android:textAppearance="?attr/textAppearanceTitleMedium" />
+            style="@style/DailySync.SwitchRow"
+            android:text="@string/routine_match_goal" />
 
         <!-- Per-goal routine mapping, shown only when matching is on -->
         <LinearLayout
             android:id="@+id/goal_mapping_group"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
             android:orientation="vertical"
             android:visibility="gone"
             tools:visibility="visible">
 
+            <View style="@style/DailySync.Hairline" />
+
             <LinearLayout
                 android:id="@+id/row_exercise_routine"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingVertical="12dp">
+                style="@style/DailySync.CardRow">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/routine_for_exercise"
-                    android:textAppearance="?attr/textAppearanceBodyLarge" />
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tv_exercise_routine"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:layout_marginStart="12dp"
                     android:textColor="?attr/colorPrimary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
                     tools:text="Pre-Run Warmup" />
             </LinearLayout>
 
+            <View style="@style/DailySync.Hairline" />
+
             <LinearLayout
                 android:id="@+id/row_project_routine"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingVertical="12dp">
+                style="@style/DailySync.CardRow">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/routine_for_project"
-                    android:textAppearance="?attr/textAppearanceBodyLarge" />
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tv_project_routine"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:layout_marginStart="12dp"
                     android:textColor="?attr/colorPrimary"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
                     tools:text="General Morning Stretch" />
             </LinearLayout>
         </LinearLayout>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginVertical="12dp"
-            android:background="?attr/colorOutlineVariant" />
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_routines"
             android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:layout_marginTop="16dp"
             android:layout_weight="1"
             android:clipToPadding="false"
             android:paddingBottom="88dp"

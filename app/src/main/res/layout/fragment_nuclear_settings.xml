@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nuclear (Alarm tab tile): the sound when Stage 2 runs out, and whether it vibrates.
+     The group label is in the error colour - red belongs to the nuclear alarm. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout style="@style/DailySync.ScreenColumn">
+
+        <include
+            android:id="@+id/title_bar"
+            layout="@layout/view_screen_title" />
+
+        <TextView
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/group_nuclear"
+            android:textColor="?attr/colorError" />
+
+        <LinearLayout style="@style/DailySync.SettingsCard">
+
+            <LinearLayout
+                android:id="@+id/row_nuclear_sound"
+                style="@style/DailySync.CardRow">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/row_nuclear_sound" />
+
+                    <TextView
+                        android:id="@+id/tv_nuclear_sound"
+                        style="@style/DailySync.RowValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        tools:text="Klaxon" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_preview"
+                    style="@style/DailySync.RoundIconButton"
+                    android:layout_marginStart="12dp"
+                    app:icon="@drawable/ic_play" />
+            </LinearLayout>
+
+            <View style="@style/DailySync.Hairline" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_vibration"
+                style="@style/DailySync.SwitchRow"
+                android:text="@string/vibration_toggle" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

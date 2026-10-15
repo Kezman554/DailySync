@@ -1,9 +1,9 @@
 package com.personalmorningalarm.ui
 
-import android.app.AlertDialog
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.personalmorningalarm.R
 import com.personalmorningalarm.databinding.DialogPinBinding
 
@@ -31,7 +31,7 @@ class PinDialog(
 
     private var cancelled = true // until a PIN completes, dismissing counts as cancel
 
-    private val dialog = AlertDialog.Builder(context)
+    private val dialog = MaterialAlertDialogBuilder(context)
         .setView(binding.root)
         .setOnCancelListener { if (cancelled) onCancel() }
         .create()

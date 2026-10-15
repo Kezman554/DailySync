@@ -1,6 +1,6 @@
 package com.personalmorningalarm.ui
 
-import android.app.AlertDialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +14,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
@@ -45,6 +46,7 @@ class QuoteManagementFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        bindScreenTitle(binding.titleBar, R.string.quote_management_title)
 
         binding.rvQuotes.layoutManager = LinearLayoutManager(requireContext())
         binding.rvQuotes.adapter = quoteAdapter
@@ -100,7 +102,7 @@ class QuoteManagementFragment : Fragment() {
     private fun confirmDelete(quote: BundledQuote, position: Int) {
         // Restore the swiped row unless the delete actually goes through.
         val restore = { quoteAdapter.notifyItemChanged(position) }
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.delete_quote_title)
             .setMessage(R.string.delete_quote_message)
             .setPositiveButton(R.string.delete) { _, _ ->
@@ -117,7 +119,7 @@ class QuoteManagementFragment : Fragment() {
         dialogBinding.etQuoteText.setText(existing?.quoteText.orEmpty())
         dialogBinding.etQuoteAuthor.setText(existing?.author.orEmpty())
 
-        val dialog = AlertDialog.Builder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(if (existing == null) R.string.quote_add_title else R.string.quote_edit_title)
             .setView(dialogBinding.root)
             .setPositiveButton(R.string.save, null) // overridden below to validate
@@ -126,7 +128,7 @@ class QuoteManagementFragment : Fragment() {
 
         // Override the positive button so blank text keeps the dialog open.
         dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 val text = dialogBinding.etQuoteText.text?.toString().orEmpty().trim()
                 val author = dialogBinding.etQuoteAuthor.text?.toString()
                 if (text.isEmpty()) {

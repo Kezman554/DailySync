@@ -3,13 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
+    style="@style/DailySync.ListCard"
+    android:paddingStart="8dp"
     android:clickable="true"
     android:focusable="true"
     android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingHorizontal="4dp"
-    android:paddingVertical="8dp">
+    android:orientation="horizontal">
 
     <RadioButton
         android:id="@+id/rb_active"
@@ -30,14 +29,18 @@
             android:id="@+id/tv_routine_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="15sp"
+            android:textStyle="bold"
             tools:text="Pre-Run Warmup" />
 
         <TextView
             android:id="@+id/tv_routine_subtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:layout_marginTop="2dp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="13sp"
             tools:text="5 stretches" />
     </LinearLayout>
 

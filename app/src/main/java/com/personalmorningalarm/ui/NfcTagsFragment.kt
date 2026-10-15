@@ -1,6 +1,5 @@
 package com.personalmorningalarm.ui
 
-import android.app.AlertDialog
 import android.content.Intent
 import android.nfc.NfcAdapter
 import android.os.Bundle
@@ -12,12 +11,14 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
@@ -63,6 +64,7 @@ class NfcTagsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        bindScreenTitle(binding.titleBar, R.string.nfc_tags_screen_title)
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(requireContext())
 
@@ -145,7 +147,7 @@ class NfcTagsFragment : Fragment() {
     }
 
     private fun showWaitingDialog() {
-        waitingDialog = AlertDialog.Builder(requireContext())
+        waitingDialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.register_new_tag)
             .setMessage(R.string.nfc_hold_tag)
             .setNegativeButton(R.string.cancel) { _, _ -> stopRegistration() }
@@ -165,7 +167,7 @@ class NfcTagsFragment : Fragment() {
             addView(locationInput)
         }
 
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.register_dialog_title)
             .setView(container)
             .setPositiveButton(R.string.save) { _, _ ->
@@ -178,7 +180,7 @@ class NfcTagsFragment : Fragment() {
     }
 
     private fun confirmDelete(tag: NfcTag) {
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.delete_tag_title)
             .setMessage(getString(R.string.delete_tag_message, tag.label))
             .setPositiveButton(R.string.delete) { _, _ -> viewModel.deleteTag(tag) }

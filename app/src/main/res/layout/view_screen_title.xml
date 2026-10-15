@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Back arrow + screen title, the top of every pushed screen. The screen sets
+     the title text and wires the arrow to navigateUp. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <ImageButton
+        android:id="@+id/btn_back"
+        style="@style/DailySync.IconButton"
+        android:contentDescription="@string/action_back"
+        android:src="@drawable/ic_back" />
+
+    <TextView
+        android:id="@+id/tv_screen_title"
+        style="@style/DailySync.ScreenTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        tools:text="Wake-up sound" />
+
+</LinearLayout>

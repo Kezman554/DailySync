@@ -1,6 +1,6 @@
 package com.personalmorningalarm.ui
 
-import android.app.AlertDialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
@@ -51,6 +52,7 @@ class RoutineEditFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.btnBack.setOnClickListener { findNavController().navigateUp() }
 
         viewModel.setRoutine(requireArguments().getLong(ARG_ROUTINE_ID, -1L))
 
@@ -87,7 +89,7 @@ class RoutineEditFragment : Fragment() {
             setSelection(text.length)
         }
         val pad = (16 * resources.displayMetrics.density).toInt()
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.routine_rename_title)
             .setView(input.apply { setPadding(pad, pad / 2, pad, 0) })
             .setPositiveButton(R.string.save) { _, _ ->
@@ -107,7 +109,7 @@ class RoutineEditFragment : Fragment() {
             dialogBinding.etStretchInstructions.setText(it.instructions)
         }
 
-        val dialog = AlertDialog.Builder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(if (existing == null) R.string.stretch_add_title else R.string.stretch_edit_title)
             .setView(dialogBinding.root)
             .setPositiveButton(R.string.save, null) // overridden to validate
@@ -115,7 +117,7 @@ class RoutineEditFragment : Fragment() {
             .create()
 
         dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
                 val name = dialogBinding.etStretchName.text?.toString().orEmpty().trim()
                 val seconds = dialogBinding.etStretchSeconds.text?.toString()?.toIntOrNull() ?: 0
                 val instructions = dialogBinding.etStretchInstructions.text?.toString().orEmpty().trim()
@@ -136,7 +138,7 @@ class RoutineEditFragment : Fragment() {
     }
 
     private fun confirmDeleteExercise(exercise: StretchExercise) {
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.stretch_delete_title)
             .setMessage(getString(R.string.stretch_delete_message, exercise.name))
             .setPositiveButton(R.string.delete) { _, _ -> viewModel.deleteExercise(exercise) }
@@ -146,7 +148,7 @@ class RoutineEditFragment : Fragment() {
 
     private fun confirmDeleteRoutine() {
         val routine: StretchRoutine = viewModel.routine.value ?: return
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.routine_delete_title)
             .setMessage(getString(R.string.routine_delete_message, routine.name))
             .setPositiveButton(R.string.delete) { _, _ ->

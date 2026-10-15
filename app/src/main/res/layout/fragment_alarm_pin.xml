@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Alarm PIN (Alarm tab tile): what it protects, whether it's on, and set /
+     change / disable. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout style="@style/DailySync.ScreenColumn">
+
+        <include
+            android:id="@+id/title_bar"
+            layout="@layout/view_screen_title" />
+
+        <TextView
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/group_pin" />
+
+        <LinearLayout
+            style="@style/DailySync.SettingsCard"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp">
+
+            <TextView
+                style="@style/DailySync.RowHelp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingMultiplier="1.15"
+                android:text="@string/pin_section_explainer"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tv_pin_status"
+                style="@style/DailySync.RowLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                tools:text="PIN is on" />
+
+            <Button
+                android:id="@+id/btn_set_pin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/pin_set" />
+
+            <Button
+                android:id="@+id/btn_change_pin"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/pin_change" />
+
+            <Button
+                android:id="@+id/btn_disable_pin"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/pin_disable" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

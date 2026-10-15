@@ -1,6 +1,5 @@
 package com.personalmorningalarm.ui
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
@@ -51,6 +51,7 @@ class StretchRoutinesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        bindScreenTitle(binding.titleBar, R.string.routines_title)
 
         binding.rvRoutines.layoutManager = LinearLayoutManager(requireContext())
         binding.rvRoutines.adapter = routineAdapter
@@ -100,7 +101,7 @@ class StretchRoutinesFragment : Fragment() {
     private fun chooseRoutineForGoal(goal: MorningGoal) {
         if (routines.isEmpty()) return
         val names = routines.map { it.routine.name }.toTypedArray()
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.routine_choose_title)
             .setItems(names) { _, which ->
                 viewModel.setGoalRoutine(goal, routines[which].routine.id)

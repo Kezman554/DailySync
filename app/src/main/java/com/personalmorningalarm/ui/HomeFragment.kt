@@ -10,8 +10,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.annotation.DrawableRes
+import androidx.annotation.IdRes
 import androidx.annotation.StringRes
-import androidx.core.os.bundleOf
 import androidx.core.text.inSpans
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -45,8 +45,8 @@ import java.util.Locale
  * The Alarm tab: the time and on/off switch with today's state and streak, the
  * morning goal, a tile per alarm setting and the dev tools. Fits one screen.
  *
- * The small tiles open Settings at their section until session AK gives them
- * screens of their own; the morning content items toggle in place.
+ * Each tile opens its own settings screen; the morning content items toggle in
+ * place, and the content header opens the full Morning content screen.
  */
 class HomeFragment : Fragment() {
 
@@ -93,11 +93,13 @@ class HomeFragment : Fragment() {
         binding.pillExercise.setOnClickListener { viewModel.setMorningGoal(MorningGoal.EXERCISE) }
         binding.pillProject.setOnClickListener { viewModel.setMorningGoal(MorningGoal.PROJECT) }
 
-        setUpTile(binding.tileSound, R.drawable.ic_badge_sound, R.string.alarm_tab_sound, SettingsFragment.SECTION_SOUND)
-        setUpTile(binding.tileNfc, R.drawable.ic_badge_nfc, R.string.alarm_tab_nfc, SettingsFragment.SECTION_NFC)
-        setUpTile(binding.tileNuclear, R.drawable.ic_badge_nuclear, R.string.alarm_tab_nuclear, SettingsFragment.SECTION_SOUND)
-        setUpTile(binding.tilePin, R.drawable.ic_badge_pin, R.string.alarm_tab_pin, SettingsFragment.SECTION_PIN)
-        binding.rowContentHeader.setOnClickListener { openSettings(SettingsFragment.SECTION_CONTENT) }
+        setUpTile(binding.tileSound, R.drawable.ic_badge_sound, R.string.alarm_tab_sound, R.id.action_alarm_to_wakeSound)
+        setUpTile(binding.tileNfc, R.drawable.ic_badge_nfc, R.string.alarm_tab_nfc, R.id.action_alarm_to_nfcSettings)
+        setUpTile(binding.tileNuclear, R.drawable.ic_badge_nuclear, R.string.alarm_tab_nuclear, R.id.action_alarm_to_nuclear)
+        setUpTile(binding.tilePin, R.drawable.ic_badge_pin, R.string.alarm_tab_pin, R.id.action_alarm_to_pin)
+        binding.rowContentHeader.setOnClickListener {
+            findNavController().navigate(R.id.action_alarm_to_morningContent)
+        }
 
         setupDevTools()
 
@@ -204,18 +206,11 @@ class HomeFragment : Fragment() {
         tile: ItemAlarmTileBinding,
         @DrawableRes icon: Int,
         @StringRes title: Int,
-        section: String
+        @IdRes action: Int
     ) {
         tile.ivBadge.setImageResource(icon)
         tile.tvTitle.setText(title)
-        tile.root.setOnClickListener { openSettings(section) }
-    }
-
-    private fun openSettings(section: String) {
-        findNavController().navigate(
-            R.id.action_alarm_to_settings,
-            bundleOf(SettingsFragment.ARG_SECTION to section)
-        )
+        tile.root.setOnClickListener { findNavController().navigate(action) }
     }
 
     private fun color(attr: Int): Int = MaterialColors.getColor(binding.root, attr)

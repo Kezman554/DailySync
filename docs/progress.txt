@@ -1496,3 +1496,28 @@
     Unit tests 289 green (new: HomeViewModel.setContentEnabled)
   - Noticed, not changed: the PIN keypad and sound pickers are framework
     android.app.AlertDialogs, so they keep the stock grey dialog look
+
+2026-10-15  Alarm settings get their own screens; manage screens + dialogs themed
+  - Five screens behind the Alarm tab tiles, each with back arrow + title and a
+    grouped card: Wake-up sound (sound row with round preview button, volume
+    slider with live %), NFC tags (- N + stepper replacing the NumberPicker, hint,
+    PIN-guarded Time limit row, Manage NFC tags with tag count + chevron), Morning
+    content (four switches, 5/10 min pills, Manage quotes / stretch routines rows),
+    Nuclear (error-colour group label, sound + preview, Vibrate), Alarm PIN
+    (explainer, status, set / change / disable). All share SettingsViewModel;
+    showSoundPicker + bindScreenTitle live in ScreenParts.kt
+  - Settings is now Appearance, Alfred and Alarm health only; its "section" nav
+    argument and scroll-to-section stand-in from the Alarm tab session are gone
+  - Manage screens (NFC tags, quotes, stretch routines, routine edit) get the title
+    bar and card rows; ids and behaviour unchanged. Every android.app.AlertDialog
+    (PIN keypad, sound pickers, duration slider, quote / stretch edit, tag
+    register / delete, battery + notification prompts) is now a
+    MaterialAlertDialogBuilder, so dialogs follow the theme
+  - Fixed on the way: routine edit's FAB covered "Delete routine" (layout_margin
+    overrode layout_marginBottom)
+  - Verified on the A32: changed every setting from its new screen (Soft Chime,
+    50%, 7 taps, 10 min, quote off, stretch 10 min, Rapid Beep, vibrate off, PIN
+    1234), force-stopped and relaunched - all held, and the Alarm tab tiles showed
+    them; Time limit and the alarm time both asked for the PIN. Then put every
+    value back (Default 87%, 6, 15 min, all on, 5 min, Klaxon, vibrate, no PIN);
+    06:30 armed, Appearance Dark. Light mode checked on the NFC screen

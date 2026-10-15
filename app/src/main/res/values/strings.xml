@@ -17,9 +17,8 @@
     <string name="nfc_section_title">NFC Tags</string>
     <string name="nfc_tags_screen_title">NFC Tags</string>
     <string name="manage_nfc_tags">Manage NFC tags</string>
-    <string name="nfc_taps_label">Number of NFC taps</string>
     <string name="nfc_taps_hint">%1$d of %2$d registered tags used. Each tag is unique.</string>
-    <string name="nfc_taps_hint_repeats">%1$d taps from %2$d registered tags — some tags will repeat (never twice in a row).</string>
+    <string name="nfc_taps_hint_repeats">%1$d taps from %2$d registered tags — some repeat, never twice in a row.</string>
     <string name="nfc_taps_no_tags">Register at least one NFC tag to set checkpoints.</string>
     <string name="register_new_tag">Register New Tag</string>
     <string name="active_tag_count">Active tags: %1$d</string>
@@ -190,12 +189,10 @@
     <string name="goal_project">Project work</string>
 
     <!-- Content toggles (Settings) -->
-    <string name="content_section_title">Morning Content</string>
     <string name="toggle_quote">Motivational quote</string>
     <string name="toggle_stretch">Stretching prompt</string>
-    <string name="toggle_daily_schedule">Daily schedule (Alfred)</string>
-    <string name="toggle_chalkboard">Rolling To-Do List (Alfred)</string>
-    <string name="stretch_duration_label">Stretch duration</string>
+    <string name="toggle_daily_schedule">Daily schedule</string>
+    <string name="toggle_chalkboard">Rolling to-do</string>
     <string name="stretch_5_min">5 min</string>
     <string name="stretch_10_min">10 min</string>
 
@@ -232,6 +229,26 @@
     <string name="nfc_accepted">Tag accepted ✓</string>
     <string name="status_done">✓</string>
     <string name="status_pending">○</string>
+
+    <!-- Alarm settings screens, opened from the Alarm tab tiles -->
+    <string name="group_stage1">Stage 1 · Shake</string>
+    <string name="group_stage2">Stage 2 · Get moving</string>
+    <string name="group_between_taps">Between taps</string>
+    <string name="group_nuclear">If time runs out · Nuclear</string>
+    <string name="group_pin">Lock</string>
+    <string name="row_sound">Sound</string>
+    <string name="row_nuclear_sound">Nuclear sound</string>
+    <string name="row_volume">Volume</string>
+    <string name="row_volume_value">%1$d%%</string>
+    <string name="row_nfc_taps">NFC taps</string>
+    <string name="row_time_limit">Time limit</string>
+    <string name="nfc_taps_fewer">Fewer taps</string>
+    <string name="nfc_taps_more">More taps</string>
+    <plurals name="row_tag_count">
+        <item quantity="one">%1$d tag</item>
+        <item quantity="other">%1$d tags</item>
+    </plurals>
+    <string name="preview_sound">Preview %1$s</string>
 
     <!-- Alarm tab (HomeFragment) -->
     <string name="home_alarm_enabled">Alarm on</string>
@@ -293,14 +310,9 @@
     <string name="battery_not_now">Not now</string>
 
     <!-- Alarm sounds & volume -->
-    <string name="sound_section_title">Alarm sounds &amp; volume</string>
-    <string name="sound_stage1_label">Wake-up sound</string>
-    <string name="sound_nuclear_label">Nuclear alarm sound</string>
-    <string name="sound_preview">Preview</string>
     <string name="sound_pick_stage1_title">Wake-up sound</string>
     <string name="sound_pick_nuclear_title">Nuclear alarm sound</string>
-    <string name="volume_stage1_label">Stage 1 volume</string>
-    <string name="vibration_toggle">Vibrate during nuclear alarm</string>
+    <string name="vibration_toggle">Vibrate</string>
 
     <!-- Stretch routines -->
     <string name="manage_routines">Manage stretch routines</string>
@@ -354,7 +366,6 @@
     <string name="quote_keep_one">Keep at least one quote</string>
 
     <!-- Alarm PIN -->
-    <string name="pin_section_title">Alarm PIN</string>
     <string name="pin_section_explainer">Protects the alarm time, on/off switch, and Stage 2 time limit so you can\'t change them half-asleep.</string>
     <string name="pin_status_off">No PIN set</string>
     <string name="pin_status_on">PIN is on</string>
@@ -375,7 +386,6 @@
     <string name="pin_disabled">PIN disabled</string>
 
     <!-- Stage 2 time limit -->
-    <string name="stage2_duration_label">Stage 2 time limit</string>
     <string name="stage2_duration_value">%1$d min</string>
     <string name="stage2_duration_dialog_title">Stage 2 time limit (minutes)</string>
 

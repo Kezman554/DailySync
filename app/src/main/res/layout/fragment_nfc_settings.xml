@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- NFC tags (Alarm tab tile): how many checkpoints, the Stage 2 time limit, and
+     the way into the registered tags. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout style="@style/DailySync.ScreenColumn">
+
+        <include
+            android:id="@+id/title_bar"
+            layout="@layout/view_screen_title" />
+
+        <TextView
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/group_stage2" />
+
+        <LinearLayout style="@style/DailySync.SettingsCard">
+
+            <!-- Checkpoint count: − 6 + -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:minHeight="56dp"
+                android:orientation="horizontal"
+                android:paddingTop="8dp">
+
+                <TextView
+                    style="@style/DailySync.RowLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/row_nfc_taps" />
+
+                <Button
+                    android:id="@+id/btn_taps_minus"
+                    style="@style/DailySync.StepperButton"
+                    android:contentDescription="@string/nfc_taps_fewer"
+                    android:text="−" />
+
+                <TextView
+                    android:id="@+id/tv_taps"
+                    android:layout_width="40dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    tools:text="6" />
+
+                <Button
+                    android:id="@+id/btn_taps_plus"
+                    style="@style/DailySync.StepperButton"
+                    android:contentDescription="@string/nfc_taps_more"
+                    android:text="+" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_taps_hint"
+                style="@style/DailySync.RowHelp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:lineSpacingMultiplier="1.15"
+                android:paddingBottom="12dp"
+                tools:text="6 taps from 5 registered tags — some repeat, never twice in a row." />
+
+            <View style="@style/DailySync.Hairline" />
+
+            <!-- Stage 2 time limit — PIN-protected before the slider opens -->
+            <LinearLayout
+                android:id="@+id/row_time_limit"
+                style="@style/DailySync.CardRow">
+
+                <TextView
+                    style="@style/DailySync.RowLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/row_time_limit" />
+
+                <TextView
+                    android:id="@+id/tv_time_limit"
+                    style="@style/DailySync.RowValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="15 min" />
+            </LinearLayout>
+
+            <View style="@style/DailySync.Hairline" />
+
+            <LinearLayout
+                android:id="@+id/row_manage_tags"
+                style="@style/DailySync.CardRow">
+
+                <TextView
+                    style="@style/DailySync.RowLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/manage_nfc_tags" />
+
+                <TextView
+                    android:id="@+id/tv_tag_count"
+                    style="@style/DailySync.RowHelp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    tools:text="5 tags" />
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="6dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

@@ -1,13 +1,13 @@
 package com.personalmorningalarm.util
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.personalmorningalarm.R
 
 /**
@@ -41,7 +41,7 @@ object BatteryOptimisationHelper {
      * call from any themed [context] (an Activity).
      */
     fun showExplanationDialog(context: Context) {
-        AlertDialog.Builder(context)
+        MaterialAlertDialogBuilder(context)
             .setTitle(R.string.battery_dialog_title)
             .setMessage(R.string.battery_dialog_message)
             .setPositiveButton(R.string.battery_open_settings) { _, _ -> requestExemption(context) }

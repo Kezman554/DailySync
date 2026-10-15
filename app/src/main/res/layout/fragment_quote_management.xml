@@ -9,13 +9,17 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp">
+
+        <include
+            android:id="@+id/title_bar"
+            layout="@layout/view_screen_title" />
+
 
         <TextView
             android:id="@+id/tv_quote_count"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
+            style="@style/DailySync.GroupLabel"
             tools:text="32 quotes" />
 
         <TextView
@@ -23,8 +27,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:paddingHorizontal="4dp"
             android:text="@string/quotes_empty"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="14sp"
             android:visibility="gone"
             tools:visibility="gone" />
 
@@ -32,7 +38,6 @@
             android:id="@+id/rv_quotes"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="8dp"
             android:layout_weight="1"
             android:clipToPadding="false"
             android:paddingBottom="88dp"

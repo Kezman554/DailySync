@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Touch ripple for a bg_card row, kept inside its 20dp corners. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight">
+    <item android:id="@android:id/mask">
+        <shape>
+            <corners android:radius="20dp" />
+            <solid android:color="?attr/colorOnSurface" />
+        </shape>
+    </item>
+</ripple>

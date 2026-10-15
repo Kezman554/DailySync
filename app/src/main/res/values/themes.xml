@@ -404,6 +404,96 @@
         <item name="android:textColor">?attr/colorOnSurface</item>
     </style>
 
+    <!-- Pushed screens (wake-up sound, NFC, content, nuclear, PIN, manage lists):
+         the scrolling column under view_screen_title -->
+    <style name="DailySync.ScreenColumn" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">24dp</item>
+    </style>
+
+    <!-- A tappable row in a settings card: label left, value/chevron right -->
+    <style name="DailySync.CardRow" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- A switch row in a settings card: the switch's own label, bold -->
+    <style name="DailySync.SwitchRow" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <!-- Round outlined icon button (sound preview): 44dp, accent icon -->
+    <style name="DailySync.RoundIconButton" parent="Widget.DailySync.Button.Outlined">
+        <item name="android:layout_width">44dp</item>
+        <item name="android:layout_height">44dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:padding">0dp</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">0dp</item>
+        <item name="iconSize">18dp</item>
+        <item name="iconTint">?attr/colorPrimary</item>
+    </style>
+
+    <!-- −/+ stepper button: 40dp round outlined, text-coloured symbol -->
+    <style name="DailySync.StepperButton" parent="Widget.DailySync.Button.Outlined">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:padding">0dp</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <!-- Small choice pill on a card (5 min / 10 min): surface 2 when selected -->
+    <style name="DailySync.SmallPill" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">34dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/bg_pill_segment</item>
+        <item name="android:textColor">@color/pill_text</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- A row in a manage list (tags, quotes, routines, stretches): its own card -->
+    <style name="DailySync.ListCard" parent="">
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:background">@drawable/bg_card</item>
+        <item name="android:foreground">@drawable/fg_card_ripple</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+
     <!-- Nuclear dismissal challenge cards -->
     <style name="NuclearCard">
         <item name="android:layout_width">match_parent</item>
