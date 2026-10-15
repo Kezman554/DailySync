@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One rolling to-do row on the Today screen: tap ticks, long-press drops. -->
+<!-- One rolling to-do row: a positive checkbox, the task, the date it went on the
+     list on the right. Tap ticks, long-press drops. -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
-    android:gravity="top"
+    android:gravity="center_vertical"
+    android:minHeight="52dp"
     android:orientation="horizontal"
-    android:paddingVertical="6dp">
+    android:paddingVertical="8dp">
 
     <!-- Display only — the row itself is the tap target, so a half-awake thumb
          doesn't have to hit a checkbox. -->
@@ -25,8 +27,8 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:layout_marginStart="8dp"
+        android:layout_weight="1"
         android:orientation="vertical">
 
         <TextView
@@ -34,29 +36,33 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:lineSpacingMultiplier="1.15"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurface"
+            android:textFontWeight="600"
+            android:textSize="15sp"
             tools:text="Plant the bamboo" />
-
-        <TextView
-            android:id="@+id/tv_todo_date"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="5 Jul 2026" />
 
         <!-- Only on items still waiting in the offline queue. -->
         <TextView
             android:id="@+id/tv_todo_pending"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
             android:text="@string/chalkboard_item_pending"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
             android:textColor="?attr/colorPrimary"
-            android:textStyle="italic"
+            android:textSize="12sp"
+            android:textStyle="bold|italic"
             android:visibility="gone"
             tools:visibility="visible" />
-
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/tv_todo_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="6dp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textFontWeight="600"
+        android:textSize="13sp"
+        tools:text="8 Apr" />
 </LinearLayout>

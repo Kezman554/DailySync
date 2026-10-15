@@ -1,46 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One day page of the week pager. ViewPager2 requires match_parent both ways. -->
-<LinearLayout
+<!-- One day page of the week pager: TODAY or the weekday, the date at 40sp, and a
+     card of the day's periods. ViewPager2 requires match_parent both ways. -->
+<androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/tv_day_header"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceHeadlineSmall"
-        tools:text="Saturday 18 July" />
-
-    <!-- Only visible on the current day's page. -->
-    <TextView
-        android:id="@+id/tv_day_today"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:text="@string/week_day_today"
-        android:textAppearance="?attr/textAppearanceLabelLarge"
-        android:textColor="?attr/colorPrimary"
-        android:visibility="gone"
-        tools:visibility="visible" />
-
-    <androidx.core.widget.NestedScrollView
+    <LinearLayout
+        android:id="@+id/day_page"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="8dp">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="14dp">
 
         <TextView
-            android:id="@+id/tv_day_body"
+            android:id="@+id/tv_day_label"
+            style="@style/DailySync.AlarmLabel"
+            android:layout_marginHorizontal="4dp"
+            tools:text="Today" />
+
+        <TextView
+            android:id="@+id/tv_day_header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:lineSpacingMultiplier="1.15"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            tools:text="Morning\n• 7k walk" />
+            android:layout_marginHorizontal="4dp"
+            android:layout_marginTop="4dp"
+            android:includeFontPadding="false"
+            android:letterSpacing="-0.03"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="40sp"
+            android:textStyle="bold"
+            tools:text="Thursday 15 Oct" />
 
-    </androidx.core.widget.NestedScrollView>
-
-</LinearLayout>
+        <!-- Period rows (96dp name column, tasks in bold), built per day -->
+        <LinearLayout
+            android:id="@+id/day_rows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_card"
+            android:orientation="vertical"
+            android:paddingHorizontal="18dp"
+            android:paddingVertical="10dp" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

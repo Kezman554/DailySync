@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Week day pill: card surface when selected, transparent otherwise; 18dp corners. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight">
+    <item android:id="@android:id/mask">
+        <shape>
+            <corners android:radius="18dp" />
+            <solid android:color="?attr/colorOnSurface" />
+        </shape>
+    </item>
+    <item>
+        <selector>
+            <item android:state_selected="true">
+                <shape>
+                    <corners android:radius="18dp" />
+                    <solid android:color="?attr/colorSurface" />
+                </shape>
+            </item>
+            <item android:drawable="@android:color/transparent" />
+        </selector>
+    </item>
+</ripple>

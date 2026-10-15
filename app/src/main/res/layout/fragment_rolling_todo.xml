@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Rolling To-Do (the To-Do tile): Open / Oldest, the sync line, the list in one
+  card (tap ticks, long-press drops), and a round + that opens the add field.
+  Writes go straight to Alfred, or queue on the phone when it's unreachable.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp">
+
+        <include
+            android:id="@+id/title_bar"
+            layout="@layout/view_screen_title" />
+
+        <!-- OPEN 6   OLDEST 190 days -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="4dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/DailySync.AlarmLabel"
+                    android:text="@string/todo_stat_open" />
+
+                <TextView
+                    android:id="@+id/tv_open_count"
+                    style="@style/DailySync.AlarmStatValue"
+                    tools:text="6" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="36dp"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/DailySync.AlarmLabel"
+                    android:text="@string/todo_stat_oldest" />
+
+                <TextView
+                    android:id="@+id/tv_oldest"
+                    style="@style/DailySync.AlarmStatValue"
+                    tools:text="190 days" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Saved copy / changes waiting to sync -->
+        <include
+            android:id="@+id/sync_line"
+            layout="@layout/view_sync_line" />
+
+        <!-- Queued changes that could never sync (the list moved on). Persistent,
+             not a snackbar: the flush may happen while the user is elsewhere. -->
+        <LinearLayout
+            android:id="@+id/row_chalkboard_conflict"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_notice_error"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingVertical="6dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="4dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/tv_chalkboard_conflict"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="?attr/colorError"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                tools:text="1 change couldn’t sync — the list had moved on:\n• Fix fence" />
+
+            <Button
+                android:id="@+id/btn_chalkboard_conflict_dismiss"
+                style="@style/Widget.DailySync.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chalkboard_conflict_dismiss" />
+        </LinearLayout>
+
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipe_refresh"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="12dp"
+            android:layout_weight="1">
+
+            <!-- NestedScrollView, not ScrollView: a wrap_content RecyclerView inside a
+                 plain ScrollView gets mis-measured and truncates the list. -->
+            <androidx.core.widget.NestedScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="96dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- Status messages only (loading / empty / unavailable) -->
+                    <TextView
+                        android:id="@+id/tv_chalkboard_body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="4dp"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="Checking with Alfred…" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_chalkboard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_card"
+                        android:nestedScrollingEnabled="false"
+                        android:paddingHorizontal="12dp"
+                        android:paddingVertical="2dp"
+                        android:visibility="gone"
+                        tools:itemCount="3"
+                        tools:listitem="@layout/item_rolling_todo"
+                        tools:visibility="visible" />
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+        <!-- The add field, opened by the + (and closed again by an empty Add) -->
+        <LinearLayout
+            android:id="@+id/row_chalkboard_add"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingVertical="12dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_chalkboard_add"
+                style="@style/DailySync.PillInput"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_chalkboard_add"
+                    style="@style/DailySync.PillInputField"
+                    android:hint="@string/chalkboard_add_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionDone"
+                    android:inputType="textCapSentences"
+                    android:maxLines="1" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/btn_chalkboard_add"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/chalkboard_add_action" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_add_todo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
+        android:contentDescription="@string/chalkboard_add_hint"
+        android:src="@drawable/ic_add"
+        app:fabCustomSize="60dp" />
+
+</FrameLayout>

@@ -76,7 +76,12 @@ class InboxViewModel(
             // Queued captures go first, same as the other tiles' refresh, so the
             // refetch below sees them as real files.
             if (sync.hasPending()) sync.flush()
-            _state.value = _state.value.copy(loading = false, result = alfred.getInbox())
+            // Fetch first, then read-and-copy the state: evaluating _state.value
+            // before the suspend point captures a snapshot that a concurrent queue
+            // update (a capture refused during the flush above) lands inside, and
+            // the copy would silently roll it back — the refused notice vanished.
+            val result = alfred.getInbox()
+            _state.value = _state.value.copy(loading = false, result = result)
         }
     }
 
@@ -124,7 +129,9 @@ class InboxViewModel(
     }
 
     private suspend fun reconcile() {
-        _state.value = _state.value.copy(result = alfred.getInbox())
+        // Fetch first, then copy — see refresh() for why the order matters.
+        val result = alfred.getInbox()
+        _state.value = _state.value.copy(result = result)
     }
 
     private companion object {

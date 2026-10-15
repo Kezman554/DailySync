@@ -145,9 +145,6 @@
     <string name="week_day_empty">No plan for this day</string>
     <string name="week_day_today">Today</string>
 
-    <string name="today_screen_title">Today</string>
-    <string name="today_schedule_section">Today\'s Schedule</string>
-    <string name="today_chalkboard_section">Rolling To-Do</string>
 
     <!-- Home tile grid -->
     <string name="tile_daily_schedule">Daily Schedule</string>
@@ -301,6 +298,21 @@
     <string name="alarm_stat_streak_value">↗ %1$s</string>
     <string name="alarm_start_the_day">Start the day</string>
     <string name="alarm_all_done">All done</string>
+
+    <!-- Week, Rolling To-Do and Inbox screens -->
+    <string name="week_title">Week</string>
+    <string name="week_swipe_hint">Swipe for other days</string>
+    <string name="week_prev_day">‹ %1$s</string>
+    <string name="week_next_day">%1$s ›</string>
+    <string name="week_all_day">All day</string>
+    <string name="todo_title">Rolling To-Do</string>
+    <string name="todo_stat_open">Open</string>
+    <string name="todo_stat_oldest">Oldest</string>
+    <string name="todo_stat_unknown">—</string>
+    <plurals name="todo_oldest_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
 
     <!-- Alarm tab (HomeFragment) -->
     <string name="home_alarm_enabled">Alarm on</string>

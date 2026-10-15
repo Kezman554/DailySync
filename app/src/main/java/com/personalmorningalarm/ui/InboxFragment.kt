@@ -54,6 +54,7 @@ class InboxFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        bindScreenTitle(binding.titleBar, R.string.inbox_title)
 
         binding.swipeRefresh.setOnRefreshListener { viewModel.refresh() }
         binding.rvInboxCaptures.layoutManager = LinearLayoutManager(requireContext())
@@ -92,12 +93,14 @@ class InboxFragment : Fragment() {
         val queued = state.pending.filterNot { it.failed }
         val refused = state.pending.filter { it.failed }
 
-        binding.tvInboxPendingCount.isVisible = queued.isNotEmpty()
-        if (queued.isNotEmpty()) {
-            binding.tvInboxPendingCount.text = resources.getQuantityString(
-                R.plurals.inbox_pending_count, queued.size, queued.size
-            )
-        }
+        // The sync line: a saved copy, and/or captures not in the vault yet.
+        val sync = listOfNotNull(
+            getString(R.string.schedule_stale).takeIf { state.result is AlfredResult.Stale },
+            resources.getQuantityString(R.plurals.inbox_pending_count, queued.size, queued.size)
+                .takeIf { queued.isNotEmpty() }
+        )
+        binding.syncLine.root.isVisible = sync.isNotEmpty()
+        binding.syncLine.tvSyncText.text = sync.joinToString(" · ")
         binding.rowInboxRefused.isVisible = refused.isNotEmpty()
         if (refused.isNotEmpty()) {
             binding.tvInboxRefused.text = resources.getQuantityString(
@@ -105,7 +108,7 @@ class InboxFragment : Fragment() {
             ) + refused.joinToString(separator = "") { "\n• ${it.text.lineSequence().first()}" }
         }
 
-        binding.tilInboxCapture.hint = getString(
+        binding.etInboxCapture.hint = getString(
             if (state.result is AlfredResult.Stale || state.result is AlfredResult.Unavailable) {
                 R.string.inbox_offline_hint
             } else {
@@ -113,15 +116,10 @@ class InboxFragment : Fragment() {
             }
         )
 
-        binding.tvInboxNote.isVisible = false
         val base: List<InboxCaptureDto>? = when (val result = state.result) {
             null -> null
             is AlfredResult.Fresh -> result.data
-            is AlfredResult.Stale -> {
-                binding.tvInboxNote.isVisible = true
-                binding.tvInboxNote.text = getString(R.string.schedule_stale)
-                result.data
-            }
+            is AlfredResult.Stale -> result.data
             AlfredResult.Unavailable -> null
         }
 
@@ -131,6 +129,7 @@ class InboxFragment : Fragment() {
             binding.rvInboxCaptures.isVisible = false
             binding.tvInboxBody.text =
                 getString(if (state.result == null) R.string.shopping_menu_loading else R.string.inbox_unavailable)
+            binding.titleBar.tvScreenMeta.isVisible = false
             captureAdapter.submitList(emptyList())
             return
         }
@@ -141,6 +140,9 @@ class InboxFragment : Fragment() {
         if (captures.isEmpty()) {
             binding.tvInboxBody.text = getString(R.string.inbox_empty)
         }
+        // How many captures are waiting for triage, on the right of the title.
+        binding.titleBar.tvScreenMeta.isVisible = true
+        binding.titleBar.tvScreenMeta.text = captures.size.toString()
         captureAdapter.submitList(captures)
     }
 

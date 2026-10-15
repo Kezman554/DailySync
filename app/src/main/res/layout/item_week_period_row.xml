@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One period of a week day: the name in a fixed 96dp column, its tasks in bold. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="8dp">
+
+    <TextView
+        android:id="@+id/tv_period"
+        android:layout_width="96dp"
+        android:layout_height="wrap_content"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textFontWeight="600"
+        android:textSize="16sp"
+        tools:text="Morning" />
+
+    <TextView
+        android:id="@+id/tv_tasks"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:lineSpacingExtra="4dp"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        tools:text="Brisk walk" />
+</LinearLayout>

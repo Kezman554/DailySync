@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 
 /**
  * One shopping list: add, tap-to-tick, long-press-to-drop — behaving exactly like
- * the rolling to-do's [TodayFragment] editing, just scoped to one list instead of
+ * the rolling to-do's [RollingTodoFragment] editing, just scoped to one list instead of
  * one chalkboard. Writes are accepted anywhere; offline they queue through the
  * shared [ShoppingSync] outbox and show as snapshot + pending edits.
  */

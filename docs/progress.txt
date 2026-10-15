@@ -1580,3 +1580,34 @@
   - Unit tests 290 green; one run hit an intermittent Dispatchers.Main race in
     ViewModelTestSupport teardown (SettingsViewModelTest), clean on two reruns -
     worth hardening the harness
+
+2026-10-15  Week, Rolling To-Do and Inbox screens restyled
+  - Shared: view_screen_title gains an optional count on the right; view_sync_line
+    (sync icon + secondary text) replaces the separate stale / pending lines -
+    "Saved copy — Alfred unreachable · 1 change waiting to sync"; conflict and
+    refused banners become error-outlined cards; DailySync.PillInput for fields
+  - Week: day pills (abbrev over date, 18dp corners, selected = surface fill, past
+    = secondary) that jump the pager; TODAY / weekday + date 40sp; a card of period
+    rows (96dp name column, tasks bold, calendar events in accent with times,
+    all-day events first as "All day"); footer "‹ Wed 14 · Swipe · Fri 16 ›"
+  - Rolling To-Do: the tile now opens RollingTodoFragment (to-do only; TodayFragment,
+    TodaySection and fragment_today retired - Week covers the schedule). OPEN /
+    OLDEST stats (RollingTodo.oldestOpenAgeDays, RollingTodoItem.addedOn - tested),
+    one card of rows with short dates on the right, a 60dp + that opens the add
+    field (empty Add closes it). TodayViewModel unchanged, still warming the
+    schedule cache for the alarm
+  - Inbox: count by the title, captures as cards (time, 16sp title, 2-line
+    preview with vault markup rendered), docked compose bar with a round send
+  - Bug found while testing, pre-existing: InboxViewModel.refresh/reconcile copied
+    _state before the suspending fetch, so a capture refused during the flush was
+    rolled out of state and the "couldn't be filed" notice never showed. Fixed the
+    same way TodayViewModel already was (fetch first, then copy)
+  - Week rows now render vault markup (VaultText) as the old ScheduleRenderer did
+  - Verified on the A32: dark with live Alfred; light in airplane mode against a
+    read-only test proxy (adb reverse, alfred_host swapped, prefs + cache restored
+    byte-identical after): saved-copy lines on all three, a queued to-do add and
+    capture with pending markers and counts, then reconnect -> proxy refused both
+    (to-do 404 -> conflict card, capture 422 -> refused card), dismissed, both
+    queues verified empty in a DB copy - nothing reached the vault. Pill tap jumps
+    the pager. Unit tests 292 green. (The inbox dropped from 4 to 3 meanwhile at the
+    source - Alfred itself lists 3; nothing in this test deletes captures.)

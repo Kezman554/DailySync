@@ -552,6 +552,53 @@
         <item name="android:textSize">17sp</item>
     </style>
 
+    <!-- Rounded single-field input (to-do add, inbox compose): a pill outline, the
+         hint inside the field rather than floating above it -->
+    <style name="DailySync.PillInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="hintEnabled">false</item>
+        <item name="boxCornerRadiusTopStart">24dp</item>
+        <item name="boxCornerRadiusTopEnd">24dp</item>
+        <item name="boxCornerRadiusBottomStart">24dp</item>
+        <item name="boxCornerRadiusBottomEnd">24dp</item>
+        <item name="boxBackgroundColor">?android:attr/colorBackground</item>
+    </style>
+
+    <style name="DailySync.PillInputField" parent="">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingStart">18dp</item>
+        <item name="android:paddingEnd">18dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textFontWeight">600</item>
+    </style>
+
+    <!-- Round accent-fill icon button with a black icon (inbox send) -->
+    <style name="DailySync.RoundFilledButton" parent="Widget.DailySync.Button">
+        <item name="android:layout_width">48dp</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:padding">0dp</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">0dp</item>
+        <item name="iconSize">22dp</item>
+    </style>
+
+    <!-- Week footer "‹ Wed 14" / "Fri 16 ›" links -->
+    <style name="DailySync.WeekFooterLink" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">40dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <!-- Small outlined button in secondary text (the temporary abort control) -->
     <style name="DailySync.SmallOutlinedButton" parent="Widget.DailySync.Button.Outlined">
         <item name="android:layout_width">wrap_content</item>

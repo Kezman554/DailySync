@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The quiet sync status under a title: "Saved copy — Alfred unreachable",
+     "2 changes waiting to sync". The screen sets the text and visibility. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="6dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="4dp"
+    android:visibility="gone"
+    tools:visibility="visible">
+
+    <ImageView
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_sync" />
+
+    <TextView
+        android:id="@+id/tv_sync_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        tools:text="2 changes waiting to sync" />
+</LinearLayout>

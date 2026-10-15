@@ -25,4 +25,14 @@
         android:maxLines="1"
         tools:text="Wake-up sound" />
 
+    <!-- Optional count on the right ("4", "6 open"); gone unless a screen sets it -->
+    <TextView
+        android:id="@+id/tv_screen_meta"
+        style="@style/DailySync.AlarmLabel"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="4dp"
+        android:visibility="gone"
+        tools:text="4"
+        tools:visibility="visible" />
+
 </LinearLayout>

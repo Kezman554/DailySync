@@ -5,6 +5,7 @@ import com.personalmorningalarm.data.entity.PendingChalkboardWrite
 import com.personalmorningalarm.util.VaultText
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 /** One rolling to-do item, cleaned up and ready to render. */
@@ -18,7 +19,9 @@ data class RollingTodoItem(
     /** Ticked in the vault, awaiting the overnight sweep. Shown struck through, not hidden. */
     val done: Boolean = false,
     /** Waiting in the offline queue — captured on the phone, not yet in the vault. */
-    val pending: Boolean = false
+    val pending: Boolean = false,
+    /** The day it went on the list, when the vault's date parses; null otherwise. */
+    val addedOn: LocalDate? = null
 )
 
 /**
@@ -44,6 +47,7 @@ object RollingTodo {
                 RollingTodoItem(
                     task = VaultText.stripWikiLinks(it.task!!.trim()),
                     date = displayDate(it.date),
+                    addedOn = parseDate(it.date),
                     line = it.line,
                     done = it.line != null && TICKED.containsMatchIn(it.line)
                 )
@@ -81,6 +85,22 @@ object RollingTodo {
      * dropping information because it didn't parse. Absent or blank gives null,
      * so the screen omits the line.
      */
+    /**
+     * How many days the oldest item still to do has been on the list, or null when
+     * no open item carries a date. Ticked items don't count — they're done.
+     */
+    fun oldestOpenAgeDays(items: List<RollingTodoItem>, today: LocalDate): Long? =
+        items.filterNot { it.done }
+            .mapNotNull { it.addedOn }
+            .minOrNull()
+            ?.let { ChronoUnit.DAYS.between(it, today).coerceAtLeast(0) }
+
+    private fun parseDate(raw: String?): LocalDate? = try {
+        raw?.trim()?.takeIf { it.isNotEmpty() }?.let(LocalDate::parse)
+    } catch (e: Exception) {
+        null
+    }
+
     private fun displayDate(raw: String?): String? {
         val trimmed = raw?.trim()
         if (trimmed.isNullOrEmpty()) return null

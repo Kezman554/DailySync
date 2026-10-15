@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -80,10 +79,7 @@ class TilesFragment : Fragment() {
         // still intercepts a drag), so the whole card opens the week.
         binding.scheduleStrip.setOnClickListener(openWeek)
         binding.cardTodo.setOnClickListener {
-            findNavController().navigate(
-                R.id.action_tiles_to_today,
-                bundleOf(TodayFragment.ARG_SECTION to TodaySection.CHALKBOARD.name)
-            )
+            findNavController().navigate(R.id.action_tiles_to_todo)
         }
         binding.cardShopping.setOnClickListener {
             findNavController().navigate(R.id.action_tiles_to_shoppingMenu)

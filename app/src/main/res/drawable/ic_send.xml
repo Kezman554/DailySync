@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Compose bar send arrow; tinted black by the accent-fill button. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="22dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M5,12h14M13,6l6,6l-6,6"
+        android:strokeWidth="1.8"
+        android:strokeColor="?attr/colorOnSurface"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

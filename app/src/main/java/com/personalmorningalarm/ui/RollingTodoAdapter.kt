@@ -10,6 +10,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.databinding.ItemRollingTodoBinding
 import com.personalmorningalarm.util.VaultText
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * The Today screen's editable rolling to-do. Tap ticks — the everyday verb, so
@@ -54,8 +57,13 @@ class RollingTodoAdapter(
             } else {
                 binding.tvTodoTask.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
             }
-            binding.tvTodoDate.isVisible = item.date != null
-            binding.tvTodoDate.text = item.date
+            // "8 Apr" on the right; the year only when it isn't this one. A date the
+            // vault wrote in some other shape is shown as it came.
+            val shown = item.addedOn?.format(
+                if (item.addedOn.year == LocalDate.now().year) SHORT_DATE else SHORT_DATE_YEAR
+            ) ?: item.date
+            binding.tvTodoDate.isVisible = shown != null
+            binding.tvTodoDate.text = shown
             binding.tvTodoPending.isVisible = item.pending
             binding.root.alpha = if (item.done) DONE_ALPHA else 1f
 
@@ -74,6 +82,8 @@ class RollingTodoAdapter(
 
     private companion object {
         const val DONE_ALPHA = 0.5f
+        val SHORT_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+        val SHORT_DATE_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yy", Locale.getDefault())
 
         val DIFF = object : DiffUtil.ItemCallback<RollingTodoItem>() {
             // Text+date rather than the raw line: ticking rewrites the line, and

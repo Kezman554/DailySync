@@ -24,6 +24,26 @@ class RollingTodoTest {
     )
 
     @Test
+    fun `oldest open age counts from the earliest dated item still to do`() {
+        val items = RollingTodo.items(
+            listOf(
+                task("Ticked long ago", "2026-01-01", line = "- [x] Ticked long ago"),
+                task("Oldest open", "2026-04-08"),
+                task("Newer", "2026-07-13"),
+                task("Undated")
+            )
+        )
+        assertEquals(190L, RollingTodo.oldestOpenAgeDays(items, java.time.LocalDate.of(2026, 10, 15)))
+        assertEquals(java.time.LocalDate.of(2026, 4, 8), items[1].addedOn)
+    }
+
+    @Test
+    fun `no dated open item gives no oldest age`() {
+        val items = RollingTodo.items(listOf(task("Undated"), task("Odd", "sometime")))
+        assertEquals(null, RollingTodo.oldestOpenAgeDays(items, java.time.LocalDate.of(2026, 10, 15)))
+    }
+
+    @Test
     fun `keeps API order`() {
         val items = RollingTodo.items(
             listOf(task("Plant the bamboo"), task("Cancel Beer52"), task("Trim front hedges"))

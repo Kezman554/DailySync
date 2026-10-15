@@ -1,39 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One inbox capture. No background selector and no click target: the inbox is
-     read-only from the phone — triage happens in a vault session. -->
+<!-- One inbox capture, as a card: when, the title, a two-line preview. No click
+     target: the inbox is read-only from the phone — triage happens in a vault
+     session. -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_card"
     android:orientation="vertical"
-    android:paddingVertical="8dp">
-
-    <TextView
-        android:id="@+id/tv_inbox_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceTitleSmall"
-        tools:text="Morningsync restructure ideas" />
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="14dp">
 
     <TextView
         android:id="@+id/tv_inbox_captured"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:layout_marginBottom="4dp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="12sp"
+        android:textStyle="bold"
         android:visibility="gone"
         tools:text="17 Jul, 13:56"
         tools:visibility="visible" />
 
     <TextView
+        android:id="@+id/tv_inbox_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        tools:text="Morningsync restructure ideas" />
+
+    <TextView
         android:id="@+id/tv_inbox_preview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:layout_marginTop="4dp"
         android:ellipsize="end"
         android:lineSpacingMultiplier="1.15"
-        android:maxLines="3"
-        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:maxLines="2"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textFontWeight="600"
+        android:textSize="13sp"
         android:visibility="gone"
         tools:text="Possible next phase / identity shift, no decisions yet…"
         tools:visibility="visible" />
@@ -43,11 +54,11 @@
         android:id="@+id/tv_inbox_pending"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
         android:text="@string/chalkboard_item_pending"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
         android:textColor="?attr/colorPrimary"
-        android:textStyle="italic"
+        android:textSize="12sp"
+        android:textStyle="bold|italic"
         android:visibility="gone"
         tools:visibility="visible" />
-
 </LinearLayout>

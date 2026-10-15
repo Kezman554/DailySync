@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.personalmorningalarm.data.model.InboxCapture
 import com.personalmorningalarm.databinding.ItemInboxCaptureBinding
+import com.personalmorningalarm.util.VaultText
 
 /**
  * One inbox capture: title, when it was captured, and a preview of the body. No
@@ -31,7 +32,8 @@ class InboxCaptureAdapter : ListAdapter<InboxCapture, InboxCaptureAdapter.Holder
             binding.tvInboxCaptured.isVisible = capture.captured != null
             binding.tvInboxCaptured.text = capture.captured
             binding.tvInboxPreview.isVisible = capture.preview.isNotBlank()
-            binding.tvInboxPreview.text = capture.preview
+            // The vault's markup rendered rather than shown raw ("**bold**").
+            binding.tvInboxPreview.text = VaultText.render(capture.preview)
             binding.tvInboxPending.isVisible = capture.pending
         }
     }

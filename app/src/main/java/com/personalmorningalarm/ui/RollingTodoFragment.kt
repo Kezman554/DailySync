@@ -5,7 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import android.widget.TextView
+import android.view.inputmethod.InputMethodManager
+import androidx.core.content.getSystemService
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -13,52 +14,34 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.divider.MaterialDividerItemDecoration
 import com.google.android.material.snackbar.Snackbar
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
-import com.personalmorningalarm.data.model.DailySchedule
 import com.personalmorningalarm.data.model.RollingTodo
 import com.personalmorningalarm.data.model.RollingTodoItem
-import com.personalmorningalarm.data.model.ScheduleTaskDto
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ChalkboardSync
-import com.personalmorningalarm.databinding.FragmentTodayBinding
+import com.personalmorningalarm.databinding.FragmentRollingTodoBinding
 import kotlinx.coroutines.launch
-
-/** Which feeds this instance shows — one per home tile, or both together. */
-enum class TodaySection {
-    BOTH,
-    SCHEDULE,
-    CHALKBOARD;
-
-    companion object {
-        /** Anything unrecognised shows everything, rather than an empty screen. */
-        fun fromName(name: String?): TodaySection =
-            entries.firstOrNull { it.name == name } ?: BOTH
-    }
-}
+import java.time.LocalDate
 
 /**
- * Today: the schedule and the rolling to-do, on demand.
+ * The To-Do tile: the rolling to-do, read-write. Tap ticks, long-press (with a
+ * confirm) drops, and the round + opens the field that adds. Writes are accepted
+ * anywhere: live they go straight to Alfred, and away from home they queue
+ * on-device ([ChalkboardSync]) and show as snapshot + pending edits until a flush
+ * lands them. Today's schedule isn't here — the Week screen covers it.
  *
- * Outside the alarm entirely — no NFC gate, no dismiss timer. The schedule is a
- * glance surface; the rolling to-do is read-write: tap ticks, long-press (with a
- * confirm) drops, and the field below adds. Writes are accepted anywhere: live
- * they go straight to Alfred, and away from home they queue on-device
- * ([ChalkboardSync]) and show as snapshot + pending edits until a flush lands
- * them. The alarm-flow content screen keeps [ChalkboardRenderer] and stays
- * strictly read-only; it reminds during wake-up, it never edits.
- *
- * [ARG_SECTION] narrows it to a single feed, which is how the home tiles open it:
- * one screen per tile. Both feeds are still fetched either way — they share a
- * refresh, the cost is one extra request, and it keeps the caches warm for the
- * alarm's own content screens.
+ * [TodayViewModel] still fetches the schedule alongside: one extra request that
+ * keeps the cache warm for the alarm's own schedule screen.
  */
-class TodayFragment : Fragment() {
+class RollingTodoFragment : Fragment() {
 
-    private var _binding: FragmentTodayBinding? = null
+    private var _binding: FragmentRollingTodoBinding? = null
     private val binding get() = _binding!!
 
     private val viewModel: TodayViewModel by viewModels {
@@ -66,10 +49,6 @@ class TodayFragment : Fragment() {
             AlfredRepository(requireContext()),
             ChalkboardSync.getInstance(requireContext())
         )
-    }
-
-    private val section: TodaySection by lazy {
-        TodaySection.fromName(arguments?.getString(ARG_SECTION))
     }
 
     private val todoAdapter by lazy {
@@ -84,25 +63,29 @@ class TodayFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentTodayBinding.inflate(inflater, container, false)
+        _binding = FragmentRollingTodoBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // A tile opens a single feed; BOTH is only the fallback for a missing/unknown arg.
-        binding.sectionSchedule.isVisible = section != TodaySection.CHALKBOARD
-        binding.sectionChalkboard.isVisible = section != TodaySection.SCHEDULE
-        binding.sectionDivider.isVisible = section == TodaySection.BOTH
+        bindScreenTitle(binding.titleBar, R.string.todo_title)
 
         binding.swipeRefresh.setOnRefreshListener { viewModel.refresh() }
 
         binding.rvChalkboard.layoutManager = LinearLayoutManager(requireContext())
         binding.rvChalkboard.adapter = todoAdapter
-        // Writes are offered everywhere now — offline they queue rather than send.
+        binding.rvChalkboard.addItemDecoration(
+            MaterialDividerItemDecoration(requireContext(), LinearLayoutManager.VERTICAL).apply {
+                dividerColor = MaterialColors.getColor(binding.root, R.attr.colorSurface2)
+                isLastItemDecorated = false
+            }
+        )
+        // Writes are offered everywhere — offline they queue rather than send.
         todoAdapter.writable = true
         binding.btnChalkboardConflictDismiss.setOnClickListener { viewModel.dismissFailed() }
+
+        binding.fabAddTodo.setOnClickListener { openAdd() }
         binding.btnChalkboardAdd.setOnClickListener { submitAdd() }
         binding.etChalkboardAdd.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -121,10 +104,33 @@ class TodayFragment : Fragment() {
         }
     }
 
-    /** Adds what's in the field. Empty or whitespace-only input is ignored, not sent. */
+    /** The + opens the add field, focused with the keyboard up. */
+    private fun openAdd() {
+        binding.rowChalkboardAdd.isVisible = true
+        binding.fabAddTodo.hide()
+        binding.etChalkboardAdd.requestFocus()
+        requireContext().getSystemService<InputMethodManager>()
+            ?.showSoftInput(binding.etChalkboardAdd, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun closeAdd() {
+        requireContext().getSystemService<InputMethodManager>()
+            ?.hideSoftInputFromWindow(binding.etChalkboardAdd.windowToken, 0)
+        binding.etChalkboardAdd.clearFocus()
+        binding.rowChalkboardAdd.isVisible = false
+        binding.fabAddTodo.show()
+    }
+
+    /**
+     * Adds what's in the field and keeps it open for the next one. Empty or
+     * whitespace-only input is never sent — Add on an empty field closes it.
+     */
     private fun submitAdd() {
         val text = binding.etChalkboardAdd.text?.toString().orEmpty()
-        if (text.isBlank()) return
+        if (text.isBlank()) {
+            closeAdd()
+            return
+        }
         viewModel.addItem(text)
         binding.etChalkboardAdd.setText("")
     }
@@ -153,41 +159,20 @@ class TodayFragment : Fragment() {
 
     private fun render(state: TodayViewModel.TodayState) {
         binding.swipeRefresh.isRefreshing = state.loading
-        renderSchedule(state.schedule)
-        renderChalkboard(state)
-    }
-
-    private fun renderSchedule(result: AlfredResult<List<ScheduleTaskDto>>?) {
-        val tasks = sectionData(
-            result = result,
-            note = binding.tvScheduleNote,
-            body = binding.tvScheduleBody,
-            staleText = R.string.schedule_stale,
-            loadingText = R.string.schedule_loading,
-            unavailableText = R.string.schedule_unavailable
-        ) ?: return
-
-        val groups = DailySchedule.group(tasks)
-        binding.tvScheduleBody.text = if (groups.isEmpty()) {
-            getString(R.string.schedule_empty)
-        } else {
-            ScheduleRenderer.format(requireContext(), groups)
-        }
-    }
-
-    private fun renderChalkboard(state: TodayViewModel.TodayState) {
         val result = state.chalkboard
         val queued = state.pending.filterNot { it.failed }
         val failed = state.pending.filter { it.failed }
 
-        // The queued-count line and the conflict notice: the honest rendering of
-        // "what you see isn't all in the vault yet / didn't all make it".
-        binding.tvChalkboardPending.isVisible = queued.isNotEmpty()
-        if (queued.isNotEmpty()) {
-            binding.tvChalkboardPending.text = resources.getQuantityString(
-                R.plurals.chalkboard_pending_count, queued.size, queued.size
-            )
-        }
+        // The sync line: a saved copy, and/or edits not in the vault yet.
+        val sync = listOfNotNull(
+            getString(R.string.chalkboard_stale).takeIf { result is AlfredResult.Stale },
+            resources.getQuantityString(R.plurals.chalkboard_pending_count, queued.size, queued.size)
+                .takeIf { queued.isNotEmpty() }
+        )
+        binding.syncLine.root.isVisible = sync.isNotEmpty()
+        binding.syncLine.tvSyncText.text = sync.joinToString(" · ")
+
+        // The conflict notice: queued changes that didn't make it.
         binding.rowChalkboardConflict.isVisible = failed.isNotEmpty()
         if (failed.isNotEmpty()) {
             binding.tvChalkboardConflict.text = resources.getQuantityString(
@@ -196,8 +181,7 @@ class TodayFragment : Fragment() {
         }
 
         // Writes are accepted everywhere; the hint says where they're going.
-        // Only a first load with the outcome still unknown keeps the plain hint.
-        binding.tilChalkboardAdd.hint = getString(
+        binding.etChalkboardAdd.hint = getString(
             if (result is AlfredResult.Stale || result is AlfredResult.Unavailable) {
                 R.string.chalkboard_offline_hint
             } else {
@@ -205,15 +189,10 @@ class TodayFragment : Fragment() {
             }
         )
 
-        binding.tvChalkboardNote.visibility = View.GONE
         val base: List<ChalkboardTaskDto>? = when (result) {
             null -> null
             is AlfredResult.Fresh -> result.data
-            is AlfredResult.Stale -> {
-                binding.tvChalkboardNote.visibility = View.VISIBLE
-                binding.tvChalkboardNote.text = getString(R.string.chalkboard_stale)
-                result.data
-            }
+            is AlfredResult.Stale -> result.data
             AlfredResult.Unavailable -> null
         }
 
@@ -223,6 +202,7 @@ class TodayFragment : Fragment() {
             binding.rvChalkboard.isVisible = false
             binding.tvChalkboardBody.text =
                 getString(if (result == null) R.string.chalkboard_loading else R.string.chalkboard_unavailable)
+            renderStats(emptyList(), known = false)
             todoAdapter.submitList(emptyList())
             return
         }
@@ -233,49 +213,26 @@ class TodayFragment : Fragment() {
         if (items.isEmpty()) {
             binding.tvChalkboardBody.text = getString(R.string.chalkboard_empty)
         }
+        renderStats(items, known = true)
         todoAdapter.submitList(items)
     }
 
-    /**
-     * The states both sections share: not fetched yet, unreachable with nothing
-     * cached, or data (marked stale when it came from the cache). Returns the data
-     * to render, or null when the section has already been given its message —
-     * which is what keeps one feed's failure from touching the other.
-     */
-    private fun <T> sectionData(
-        result: AlfredResult<List<T>>?,
-        note: TextView,
-        body: TextView,
-        staleText: Int,
-        loadingText: Int,
-        unavailableText: Int
-    ): List<T>? {
-        note.visibility = View.GONE
-        return when (result) {
-            null -> {
-                body.text = getString(loadingText)
-                null
-            }
-            is AlfredResult.Fresh -> result.data
-            is AlfredResult.Stale -> {
-                note.visibility = View.VISIBLE
-                note.text = getString(staleText)
-                result.data
-            }
-            AlfredResult.Unavailable -> {
-                body.text = getString(unavailableText)
-                null
-            }
+    /** OPEN n and OLDEST n days; dashes until there's a list to count. */
+    private fun renderStats(items: List<RollingTodoItem>, known: Boolean) {
+        if (!known) {
+            binding.tvOpenCount.setText(R.string.todo_stat_unknown)
+            binding.tvOldest.setText(R.string.todo_stat_unknown)
+            return
         }
+        binding.tvOpenCount.text = items.count { !it.done }.toString()
+        val oldest = RollingTodo.oldestOpenAgeDays(items, LocalDate.now())
+        binding.tvOldest.text = oldest?.let {
+            resources.getQuantityString(R.plurals.todo_oldest_days, it.toInt(), it.toInt())
+        } ?: getString(R.string.todo_stat_unknown)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    companion object {
-        /** A [TodaySection] name. Absent or unknown shows both feeds. */
-        const val ARG_SECTION = "section"
     }
 }

@@ -12,8 +12,8 @@
         android:label="@string/title_home"
         tools:layout="@layout/fragment_tiles">
         <action
-            android:id="@+id/action_tiles_to_today"
-            app:destination="@id/todayFragment" />
+            android:id="@+id/action_tiles_to_todo"
+            app:destination="@id/rollingTodoFragment" />
         <action
             android:id="@+id/action_tiles_to_week"
             app:destination="@id/weekScheduleFragment" />
@@ -114,18 +114,12 @@
         android:label="@string/alarm_tab_pin"
         tools:layout="@layout/fragment_alarm_pin" />
 
-    <!-- One destination, narrowed by TodayFragment.ARG_SECTION: each home tile opens
-         a single feed. -->
+    <!-- The To-Do tile: the rolling to-do, read-write. -->
     <fragment
-        android:id="@+id/todayFragment"
-        android:name="com.personalmorningalarm.ui.TodayFragment"
-        android:label="@string/today_screen_title"
-        tools:layout="@layout/fragment_today">
-        <argument
-            android:name="section"
-            android:defaultValue="BOTH"
-            app:argType="string" />
-    </fragment>
+        android:id="@+id/rollingTodoFragment"
+        android:name="com.personalmorningalarm.ui.RollingTodoFragment"
+        android:label="@string/todo_title"
+        tools:layout="@layout/fragment_rolling_todo" />
 
     <!-- Shopping Lists tile: discovery menu + create, then one screen per list. -->
     <fragment
