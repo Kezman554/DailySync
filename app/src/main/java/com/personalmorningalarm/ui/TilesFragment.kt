@@ -1,6 +1,5 @@
 package com.personalmorningalarm.ui
 
-import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,7 +7,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
-import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -17,8 +15,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
-import com.google.android.material.color.MaterialColors
-import com.google.android.material.R as MaterialR
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.DayAgenda
 import com.personalmorningalarm.data.model.RollingTodoItem
@@ -30,7 +26,6 @@ import com.personalmorningalarm.data.remote.PresenceRepository
 import com.personalmorningalarm.data.remote.PresenceResult
 import com.personalmorningalarm.data.remote.dataOrNull
 import com.personalmorningalarm.databinding.FragmentTilesBinding
-import com.personalmorningalarm.databinding.ItemScheduleColumnBinding
 import com.personalmorningalarm.util.MarkdownRenderer
 import kotlinx.coroutines.launch
 import java.time.LocalTime
@@ -131,40 +126,8 @@ class TilesFragment : Fragment() {
     private fun renderSchedule(result: AlfredResult<DayAgenda>?) {
         val agenda = result?.dataOrNull()
         val columns = agenda?.let { HomeTiles.scheduleColumns(it, LocalTime.now()) }.orEmpty()
-        binding.scheduleStrip.removeAllViews()
         binding.scheduleScroll.isVisible = columns.isNotEmpty()
-        columns.forEachIndexed { index, column ->
-            val item = ItemScheduleColumnBinding.inflate(layoutInflater, binding.scheduleStrip, true)
-            if (index < columns.lastIndex) {
-                item.root.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    marginEnd = resources.getDimensionPixelSize(R.dimen.schedule_column_gap)
-                }
-            }
-            item.bar.backgroundTintList = ColorStateList.valueOf(
-                color(if (column.current) MaterialR.attr.colorPrimary else R.attr.colorSurface2)
-            )
-            item.tvPeriod.setText(ScheduleRenderer.periodHeading(column.period))
-            item.tvPeriod.setTextColor(
-                color(if (column.current) MaterialR.attr.colorPrimary else MaterialR.attr.colorOnSurfaceVariant)
-            )
-            val shown = column.entries.take(SCHEDULE_PREVIEW)
-            val more = column.entries.size - shown.size
-            item.tvTasks.text = buildString {
-                append(shown.joinToString("\n"))
-                if (more > 0) append("\n").append(getString(R.string.tiles_schedule_more, more))
-            }
-        }
-
-        // When the strip scrolls, make sure the current period starts in view.
-        val currentIndex = columns.indexOfFirst { it.current }
-        binding.scheduleScroll.post {
-            val scroll = _binding?.scheduleScroll ?: return@post
-            val current = _binding?.scheduleStrip?.getChildAt(currentIndex)
-            scroll.scrollTo(
-                if (current != null && current.right > scroll.width) current.right - scroll.width else 0,
-                0
-            )
-        }
+        ScheduleStrip.render(binding.scheduleStrip, binding.scheduleScroll, columns)
 
         val note = when {
             result == null -> getString(R.string.schedule_loading)
@@ -232,17 +195,10 @@ class TilesFragment : Fragment() {
         binding.btnSignIn.isVisible = !open
     }
 
-    private fun color(attr: Int): Int = MaterialColors.getColor(binding.root, attr)
-
     private fun hairlineHeight(): Int = resources.getDimensionPixelSize(R.dimen.hairline)
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    private companion object {
-        /** Tasks shown per schedule column before "+N more". */
-        const val SCHEDULE_PREVIEW = 3
     }
 }

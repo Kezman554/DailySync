@@ -22,6 +22,7 @@ import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.view.WindowManager
+import android.widget.LinearLayout
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -39,19 +40,25 @@ import com.personalmorningalarm.challenge.ShakeChallenge
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
 import com.personalmorningalarm.data.entity.AlarmEvent
-import com.personalmorningalarm.data.entity.StretchExercise
+import com.personalmorningalarm.data.entity.ChalkboardVerb
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
 import com.personalmorningalarm.data.model.ContentType
 import com.personalmorningalarm.data.model.FamilyCalendar
 import com.personalmorningalarm.data.model.FamilyEvent
 import com.personalmorningalarm.data.model.MorningGoal
 import com.personalmorningalarm.data.model.RollingTodo
+import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.data.model.ScheduleTaskDto
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.AlfredWriteResult
+import com.personalmorningalarm.data.remote.ChalkboardSync
 import com.personalmorningalarm.databinding.ActivityAlarmDismissalBinding
+import com.personalmorningalarm.databinding.ItemAlarmStretchRowBinding
+import com.personalmorningalarm.databinding.ItemAlarmTodoRowBinding
 import com.personalmorningalarm.service.AlarmService
 import com.personalmorningalarm.service.CountdownService
+import com.personalmorningalarm.util.MarkdownRenderer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -94,8 +101,10 @@ class AlarmDismissalActivity : AppCompatActivity() {
     private var contentScreenManager: ContentScreenManager? = null
     private var gapsShown = 0
     private var showingContent = false
-    private var stretchTimer: CountDownTimer? = null
-    private var contentDismissTimer: CountDownTimer? = null
+    /** The running timer of whichever content step is up (quote, stretch, schedule, to-do). */
+    private var stepTimer: CountDownTimer? = null
+    /** Which stretch the stretch list was last drawn for (-1: not drawn). */
+    private var stretchRowsShown = -1
     private var showingUnlockHint = false
 
     private val keyguardManager: KeyguardManager by lazy {
@@ -119,15 +128,15 @@ class AlarmDismissalActivity : AppCompatActivity() {
     private var sequenceLength = DEFAULT_SEQUENCE_LENGTH
     private var morningGoal = MorningGoal.EXERCISE
 
-    // Active stretch routine's exercises, stepped through on the stretch screen.
-    private var stretchExercises: List<StretchExercise> = emptyList()
-    private var stretchIndex = 0
+    /** When this alarm session started (it fired), for the done screen's "Up in". */
+    private var alarmStartMs = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         showWhenLockedAndTurnScreenOn()
 
         isSessionActive = true
+        alarmStartMs = SystemClock.elapsedRealtime()
         // Hardware volume buttons adjust the alarm stream while the alarm sounds, so
         // the user can turn Stage 1 down while shaking. AlarmService resets the stream
         // to the app-set level on the next fire.
@@ -157,6 +166,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
             onComplete = { onShakeComplete() }
         }
         renderStage1()
+        binding.continueRing.makeSmall()
 
         binding.btnStopAlarm.setOnClickListener {
             AlarmService.stop(this)
@@ -196,8 +206,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        stretchTimer?.cancel()
-        contentDismissTimer?.cancel()
+        stepTimer?.cancel()
         binding.root.removeCallbacks(dismissRunnable)
         runCatching { unregisterReceiver(countdownExpiredReceiver) }
         isSessionActive = false
@@ -446,21 +455,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
         CountdownService.pause(this)
         binding.content.visibility = View.GONE
         binding.contentPanel.visibility = View.VISIBLE
-        binding.contentAuthor.visibility = View.GONE
-        binding.contentNote.visibility = View.GONE
-        binding.contentTimer.visibility = View.GONE
-        binding.tvStretchProgress.visibility = View.GONE
-        binding.contentListScroll.visibility = View.GONE
-        binding.contentBody.visibility = View.VISIBLE
-        stretchTimer?.cancel()
-        // Reset the Continue control: enabled by default (the quote screen locks it).
-        contentDismissTimer?.cancel()
-        binding.tvContinueCountdown.visibility = View.GONE
-        binding.btnContinue.animate().cancel()
-        binding.btnContinue.scaleX = 1f
-        binding.btnContinue.scaleY = 1f
-        setContinueEnabled(true)
-        binding.btnContinue.setOnClickListener { onContentContinue() }
+        resetContentPanel()
 
         when (type) {
             ContentType.QUOTE -> showQuoteContent()
@@ -471,121 +466,228 @@ class AlarmDismissalActivity : AppCompatActivity() {
         Log.d(TAG, "Content screen shown: $type")
     }
 
+    /** Back to a blank frame: every screen-specific block hidden, Continue reset. */
+    private fun resetContentPanel() {
+        stepTimer?.cancel()
+        stepTimer = null
+        with(binding) {
+            tvContentTitle.isVisible = false
+            tvContentSubtitle.isVisible = false
+            contentNote.isVisible = false
+            contentAuthor.isVisible = false
+            stretchRingArea.isVisible = false
+            stretchList.isVisible = false
+            stretchList.removeAllViews()
+            scheduleCard.isVisible = false
+            todoList.isVisible = false
+            todoList.removeAllViews()
+            contentScroll.scrollTo(0, 0)
+            btnContinue.animate().cancel()
+            btnContinue.scaleX = 1f
+            btnContinue.scaleY = 1f
+            btnContinue.setOnClickListener { onContentContinue() }
+        }
+        stretchRowsShown = -1
+        setBody(null)
+    }
+
+    /**
+     * The scrolling block's main text: the quote itself at 36sp bold, or a one-line
+     * state ("Checking with Alfred…", "Nothing scheduled today") in secondary text.
+     * Null hides it.
+     */
+    private fun setBody(text: CharSequence?, quote: Boolean = false) {
+        binding.contentBody.isVisible = text != null
+        binding.contentBody.text = text
+        binding.contentBody.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (quote) QUOTE_SP else STATUS_SP)
+        binding.contentBody.setTextColor(
+            color(if (quote) MaterialR.attr.colorOnSurface else MaterialR.attr.colorOnSurfaceVariant)
+        )
+    }
+
+    /**
+     * The timed Continue shared by every timed step: the button shows from the
+     * start but stays disabled (surface 2, secondary text) while the 56dp ring
+     * beside it fills in accent and counts the seconds down; when it's full the
+     * ring turns positive with a ✓ and Continue enables with the accent fill.
+     */
+    private fun startTimedContinue(durationMs: Long) {
+        binding.continueTimer.isVisible = true
+        binding.btnContinue.isEnabled = false
+        binding.continueRing.setProgress(0f)
+        renderContinueSeconds(durationMs)
+        stepTimer = object : CountDownTimer(durationMs, TICK_MS) {
+            override fun onTick(msLeft: Long) {
+                binding.continueRing.setProgress(1f - msLeft.toFloat() / durationMs)
+                renderContinueSeconds(msLeft)
+            }
+
+            override fun onFinish() {
+                binding.continueRing.setComplete()
+                binding.tvContinueSeconds.setText(R.string.status_done)
+                binding.tvContinueSeconds.setTextColor(color(R.attr.colorPositive))
+                enableContinue()
+            }
+        }.start()
+    }
+
+    private fun renderContinueSeconds(msLeft: Long) {
+        binding.tvContinueSeconds.text =
+            getString(R.string.content_continue_seconds, ceil(msLeft / 1000.0).toInt())
+        binding.tvContinueSeconds.setTextColor(color(MaterialR.attr.colorPrimary))
+    }
+
+    /** Continue becomes tappable, with a brief scale pop so the change is noticed. */
+    private fun enableContinue() {
+        binding.btnContinue.isEnabled = true
+        binding.btnContinue.animate()
+            .scaleX(1.04f).scaleY(1.04f).setDuration(150L)
+            .withEndAction {
+                binding.btnContinue.animate().scaleX(1f).scaleY(1f).setDuration(150L).start()
+            }
+            .start()
+    }
+
     private fun showQuoteContent() {
-        binding.contentHeading.text = getString(R.string.content_quote_heading)
+        binding.tvContentLabel.setText(R.string.content_quote_heading)
         lifecycleScope.launch {
             val quote = repository.getRandomQuote()
-            binding.contentBody.text = quote?.quoteText.orEmpty()
+            setBody(quote?.quoteText?.let { "“$it”" }.orEmpty(), quote = true)
             val author = quote?.author
             if (!author.isNullOrBlank()) {
                 binding.contentAuthor.visibility = View.VISIBLE
                 binding.contentAuthor.text = getString(R.string.quote_author_format, author)
             }
         }
-        startContentDismissLock() // make the user sit with the quote before continuing
+        startTimedContinue(CONTENT_DISMISS_LOCK_MS) // sit with the quote before continuing
     }
 
+    /** One stretch in the session: what to do, and for how long. */
+    private data class StretchStep(val name: String, val instructions: String?, val seconds: Int)
+
     /**
-     * Locks the Continue button for [CONTENT_DISMISS_LOCK_MS], counting down next to
-     * it, then re-enables it with a pop. Generic so other content screens can reuse
-     * it; the stretch screen has its own timer and doesn't call this.
+     * The stretch: one timer for the whole session, the 210dp ring counting it down
+     * (mm:ss over "of 5:00"), and the list underneath marking which stretch is up.
+     * Continue is gated by the big ring, so the small timer hides here. With no
+     * routine set, the built-in suggestions share the configured stretch time.
      */
-    private fun startContentDismissLock() {
-        setContinueEnabled(false)
-        binding.tvContinueCountdown.visibility = View.VISIBLE
-        contentDismissTimer = object : CountDownTimer(CONTENT_DISMISS_LOCK_MS, 1000L) {
-            override fun onTick(msLeft: Long) {
-                val secs = ceil(msLeft / 1000.0).toInt()
-                binding.tvContinueCountdown.text = getString(R.string.content_dismiss_seconds, secs)
+    private fun showStretchContent() {
+        binding.tvContentLabel.setText(R.string.content_stretch_heading)
+        binding.continueTimer.isVisible = false
+        binding.btnContinue.isEnabled = false
+        binding.stretchRingArea.isVisible = true
+        binding.stretchRing.setProgress(0f)
+        binding.stretchList.isVisible = true
+        val gap = gapsShown
+        lifecycleScope.launch {
+            val routine = repository.getStretchRoutineForGoal(morningGoal)
+            val exercises = routine?.let { repository.getExercisesForRoutine(it.id) }.orEmpty()
+            val steps = if (exercises.isEmpty()) {
+                Log.d(TAG, "Stretch: no routine/exercises — using the suggestions")
+                val names = getString(R.string.stretch_suggestions).lines()
+                    .map { it.removePrefix("•").trim() }
+                    .filter { it.isNotEmpty() }
+                val each = (stretchDurationMinutes * 60 / names.size.coerceAtLeast(1)).coerceAtLeast(1)
+                names.map { StretchStep(it, null, each) }
+            } else {
+                Log.d(TAG, "Stretch routine '${routine?.name}', ${exercises.size} exercises")
+                exercises.map { StretchStep(it.name, it.instructions, it.durationSeconds.coerceAtLeast(1)) }
             }
+            if (!showingContent || gapsShown != gap) return@launch
+            runStretch(steps)
+        }
+    }
+
+    private fun runStretch(steps: List<StretchStep>) {
+        val totalSeconds = steps.sumOf { it.seconds }
+        val totalMs = totalSeconds * 1000L
+        binding.tvStretchOf.text = getString(R.string.content_stretch_of, CountdownService.formatTime(totalSeconds))
+        renderStretch(steps, msLeft = totalMs, totalMs = totalMs)
+        stepTimer = object : CountDownTimer(totalMs, TICK_MS) {
+            override fun onTick(msLeft: Long) = renderStretch(steps, msLeft, totalMs)
 
             override fun onFinish() {
-                binding.tvContinueCountdown.visibility = View.GONE
-                setContinueEnabled(true)
-                // Visual cue that it's now tappable: a brief scale pop.
-                binding.btnContinue.animate()
-                    .scaleX(1.1f).scaleY(1.1f).setDuration(150L)
-                    .withEndAction {
-                        binding.btnContinue.animate().scaleX(1f).scaleY(1f).setDuration(150L).start()
-                    }
-                    .start()
+                binding.stretchRing.setComplete()
+                binding.tvStretchTime.setText(R.string.status_done)
+                binding.tvStretchTime.setTextColor(color(R.attr.colorPositive))
+                binding.tvContentLabel.text = getString(R.string.content_stretch_label, steps.size, steps.size)
+                renderStretchList(steps, current = steps.size)
+                enableContinue()
             }
         }.start()
     }
 
-    /** Enables/disables Continue and greys it out while disabled. */
-    private fun setContinueEnabled(enabled: Boolean) {
-        binding.btnContinue.isEnabled = enabled
-        binding.btnContinue.alpha = if (enabled) 1f else 0.4f
+    private fun renderStretch(steps: List<StretchStep>, msLeft: Long, totalMs: Long) {
+        binding.stretchRing.setProgress(1f - msLeft.toFloat() / totalMs)
+        binding.tvStretchTime.text = CountdownService.formatTime(ceil(msLeft / 1000.0).toInt())
+        binding.tvStretchTime.setTextColor(color(MaterialR.attr.colorPrimary))
+        // Which stretch is up: the first whose end hasn't been reached yet.
+        val elapsedSeconds = (totalMs - msLeft) / 1000L
+        var end = 0L
+        val current = steps.indexOfFirst { end += it.seconds; elapsedSeconds < end }.let {
+            if (it < 0) steps.lastIndex else it
+        }
+        binding.tvContentLabel.text = getString(R.string.content_stretch_label, current + 1, steps.size)
+        renderStretchList(steps, current)
     }
 
-    private fun showStretchContent() {
-        binding.contentHeading.text = getString(R.string.content_stretch_heading)
-        binding.contentTimer.visibility = View.VISIBLE
-        // Load the active routine for this morning, then step through its exercises.
-        lifecycleScope.launch {
-            val routine = repository.getStretchRoutineForGoal(morningGoal)
-            stretchExercises = routine?.let { repository.getExercisesForRoutine(it.id) } ?: emptyList()
-            stretchIndex = 0
-            if (stretchExercises.isEmpty()) {
-                Log.d(TAG, "Stretch: no routine/exercises — falling back to suggestions")
-                showStretchFallback()
-            } else {
-                Log.d(TAG, "Stretch routine '${routine?.name}', ${stretchExercises.size} exercises")
-                showCurrentStretch()
+    /**
+     * Done stretches ✓ in positive with secondary text, the current one ● in accent
+     * and bold (with its instructions), upcoming ones ○. Rebuilt only when the
+     * current stretch changes.
+     */
+    private fun renderStretchList(steps: List<StretchStep>, current: Int) {
+        if (current == stretchRowsShown) return
+        stretchRowsShown = current
+        val list = binding.stretchList
+        list.removeAllViews()
+        steps.forEachIndexed { i, step ->
+            if (i > 0) {
+                list.addView(
+                    View(this, null, 0, R.style.DailySync_Hairline),
+                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, resources.getDimensionPixelSize(R.dimen.hairline))
+                )
+            }
+            val row = ItemAlarmStretchRowBinding.inflate(layoutInflater, list, true)
+            row.tvName.text = step.name
+            when {
+                i < current -> {
+                    row.tvMark.setText(R.string.status_done)
+                    row.tvMark.setTextColor(color(R.attr.colorPositive))
+                    row.tvName.setTextColor(color(MaterialR.attr.colorOnSurfaceVariant))
+                    row.tvName.setTypeface(row.tvName.typeface, android.graphics.Typeface.NORMAL)
+                }
+                i == current -> {
+                    row.tvMark.setText(R.string.status_current)
+                    row.tvMark.setTextColor(color(MaterialR.attr.colorPrimary))
+                    row.tvName.setTextColor(color(MaterialR.attr.colorOnSurface))
+                    row.tvName.setTypeface(row.tvName.typeface, android.graphics.Typeface.BOLD)
+                    row.tvInstructions.isVisible = !step.instructions.isNullOrBlank()
+                    row.tvInstructions.text = step.instructions
+                }
+                else -> {
+                    row.tvMark.setText(R.string.status_pending)
+                    row.tvMark.setTextColor(color(MaterialR.attr.colorOnSurfaceVariant))
+                    row.tvName.setTextColor(color(MaterialR.attr.colorOnSurface))
+                }
             }
         }
     }
 
-    /** Shows the current stretch (name, instructions, per-stretch countdown). */
-    private fun showCurrentStretch() {
-        val exercise = stretchExercises[stretchIndex]
-        binding.contentHeading.text = exercise.name
-        binding.tvStretchProgress.visibility = View.VISIBLE
-        binding.tvStretchProgress.text =
-            getString(R.string.stretch_progress, stretchIndex + 1, stretchExercises.size)
-        binding.contentBody.text = exercise.instructions
-        binding.contentTimer.visibility = View.VISIBLE
-        stretchTimer?.cancel()
-        stretchTimer = object : CountDownTimer(exercise.durationSeconds * 1000L, 1000L) {
-            override fun onTick(msLeft: Long) {
-                binding.contentTimer.text = CountdownService.formatTime((msLeft / 1000L).toInt())
-            }
-            override fun onFinish() = advanceStretch()
-        }.start()
-    }
-
-    /** Moves to the next stretch, or ends the stretch screen after the last one. */
-    private fun advanceStretch() {
-        stretchIndex++
-        if (stretchIndex < stretchExercises.size) showCurrentStretch()
-        else onContentContinue()
-    }
-
-    /** Fallback when no routine is configured: the old single-timer suggestion list. */
-    private fun showStretchFallback() {
-        binding.contentHeading.text = getString(R.string.content_stretch_heading)
-        binding.contentBody.text = getString(R.string.stretch_suggestions)
-        binding.contentTimer.visibility = View.VISIBLE
-        val stretchMs = stretchDurationMinutes * 60 * 1000L
-        stretchTimer = object : CountDownTimer(stretchMs, 1000L) {
-            override fun onTick(msLeft: Long) {
-                binding.contentTimer.text = CountdownService.formatTime((msLeft / 1000L).toInt())
-            }
-            override fun onFinish() = onContentContinue() // auto-advance when timer ends
-        }.start()
-    }
-
     /**
-     * Today's schedule from Alfred. The dismiss lock starts now rather than when
-     * Alfred answers: a slow or absent Alfred must not lengthen the morning, and
-     * the fetch can't fail in a way that strands this screen — the worst case is
-     * "Schedule unavailable" and Continue frees up on schedule either way.
+     * Today's schedule from Alfred: the date, any all-day markers, and the same
+     * period strip as Home. The timed Continue starts now rather than when Alfred
+     * answers: a slow or absent Alfred must not lengthen the morning, and the fetch
+     * can't fail in a way that strands this screen — the worst case is "Schedule
+     * unavailable" and Continue frees up on schedule either way.
      */
     private fun showDailyScheduleContent() {
-        binding.contentHeading.text = getString(R.string.content_schedule_heading)
-        binding.contentBody.text = getString(R.string.schedule_loading)
-        startContentDismissLock()
+        binding.tvContentLabel.setText(R.string.content_schedule_heading)
+        binding.tvContentTitle.isVisible = true
+        binding.tvContentTitle.text =
+            LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMM", Locale.getDefault()))
+        setBody(getString(R.string.schedule_loading))
+        startTimedContinue(CONTENT_DISMISS_LOCK_MS)
 
         // The gap this screen belongs to. If Alfred answers after the user has moved
         // on, the answer belongs to a screen that's gone — drop it rather than paint
@@ -659,7 +761,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 Log.d(TAG, "Daily schedule: Alfred unreachable and nothing cached")
                 // The calendar can still carry the morning on its own.
                 if (events.isEmpty()) {
-                    binding.contentBody.text = getString(R.string.schedule_unavailable)
+                    setBody(getString(R.string.schedule_unavailable))
                     return
                 }
                 emptyList()
@@ -667,29 +769,34 @@ class AlarmDismissalActivity : AppCompatActivity() {
         }
 
         val agenda = FamilyCalendar.agenda(tasks, events)
-        if (agenda.isEmpty) {
-            binding.contentBody.text = getString(R.string.schedule_empty)
+        // All-day markers belong to no period: they describe the day ("WFH day").
+        val dayType = agenda.allDay.joinToString(" · ") { it.summary }
+        binding.tvContentSubtitle.isVisible = dayType.isNotEmpty()
+        binding.tvContentSubtitle.text = dayType
+
+        val columns = HomeTiles.scheduleColumns(agenda, LocalTime.now())
+        if (columns.isEmpty()) {
+            binding.scheduleCard.isVisible = false
+            setBody(getString(R.string.schedule_empty))
             return
         }
-        binding.contentBody.visibility = View.GONE
-        binding.contentListScroll.visibility = View.VISIBLE
-        binding.tvContentList.text = ScheduleRenderer.format(
-            this,
-            agenda,
-            MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorPrimary)
-        )
+        setBody(null)
+        binding.scheduleCard.isVisible = true
+        ScheduleStrip.render(binding.scheduleStrip, binding.scheduleScroll, columns)
         Log.d(TAG, "Daily schedule: ${agenda.groups.size} groups, ${tasks.size} tasks (stale=${result is AlfredResult.Stale})")
     }
 
     /**
-     * The rolling to-do from Alfred. Same shape as the schedule screen: the dismiss
-     * lock starts now, not when Alfred answers, so a slow or absent Alfred can't
-     * lengthen the morning or strand the screen.
+     * The rolling to-do from Alfred, as positive checkboxes. Same shape as the
+     * schedule screen: the timed Continue starts now, not when Alfred answers, so
+     * a slow or absent Alfred can't lengthen the morning or strand the screen.
      */
     private fun showChalkboardContent() {
-        binding.contentHeading.text = getString(R.string.content_chalkboard_heading)
-        binding.contentBody.text = getString(R.string.chalkboard_loading)
-        startContentDismissLock()
+        binding.tvContentLabel.setText(R.string.content_chalkboard_heading)
+        binding.tvContentTitle.isVisible = true
+        binding.tvContentTitle.setText(R.string.content_todo_title)
+        setBody(getString(R.string.chalkboard_loading))
+        startTimedContinue(CONTENT_DISMISS_LOCK_MS)
 
         val gap = gapsShown
         lifecycleScope.launch {
@@ -713,30 +820,72 @@ class AlarmDismissalActivity : AppCompatActivity() {
             is AlfredResult.Stale -> result.data
             AlfredResult.Unavailable -> {
                 Log.d(TAG, "Chalkboard: Alfred unreachable and nothing cached")
-                binding.contentBody.text = getString(R.string.chalkboard_unavailable)
+                setBody(getString(R.string.chalkboard_unavailable))
                 return
             }
         }
 
-        val items = RollingTodo.items(tasks)
+        // Still to do only — ticked items wait for the overnight sweep.
+        val items = RollingTodo.items(tasks).filterNot { it.done }
         if (items.isEmpty()) {
-            binding.contentBody.text = getString(R.string.chalkboard_empty)
+            setBody(getString(R.string.chalkboard_empty))
             return
         }
-        binding.contentBody.visibility = View.GONE
-        binding.contentListScroll.visibility = View.VISIBLE
-        binding.tvContentList.text = ChalkboardRenderer.format(
-            items,
-            MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSurfaceVariant)
-        )
-        Log.d(TAG, "Chalkboard: ${items.size} items (stale=${result is AlfredResult.Stale})")
+        setBody(null)
+        val list = binding.todoList
+        list.isVisible = true
+        list.removeAllViews()
+        items.forEachIndexed { i, item ->
+            if (i > 0) {
+                list.addView(
+                    View(this, null, 0, R.style.DailySync_Hairline),
+                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, resources.getDimensionPixelSize(R.dimen.hairline))
+                )
+            }
+            val row = ItemAlarmTodoRowBinding.inflate(layoutInflater, list, true)
+            row.cbItem.text = MarkdownRenderer.render(item.task)
+            // Pre-line cached items have nothing to target a tick at.
+            row.cbItem.isEnabled = item.line != null
+            row.cbItem.setOnCheckedChangeListener { box, checked ->
+                if (!checked) return@setOnCheckedChangeListener
+                box.isEnabled = false // a tick is final here, as on the Today screen
+                box.paintFlags = box.paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+                box.setTextColor(color(MaterialR.attr.colorOnSurfaceVariant))
+                tickTodo(item, fresh = result is AlfredResult.Fresh)
+            }
+        }
+        Log.d(TAG, "Chalkboard: ${items.size} open items (stale=${result is AlfredResult.Stale})")
+    }
+
+    /**
+     * Ticks a rolling to-do item through to Alfred, the same two ways the Today
+     * screen does: straight to the API while the list is fresh, into the offline
+     * queue (flushed when Alfred is back) when it's a saved copy or the write
+     * finds Alfred gone.
+     */
+    private fun tickTodo(item: RollingTodoItem, fresh: Boolean) {
+        val line = item.line ?: return
+        lifecycleScope.launch {
+            if (!fresh) {
+                ChalkboardSync.getInstance(applicationContext).enqueue(ChalkboardVerb.TICK, item.task, line)
+                Log.d(TAG, "Chalkboard tick queued (saved copy on screen)")
+                return@launch
+            }
+            when (alfredRepository.tickChalkboardItem(line)) {
+                AlfredWriteResult.Done -> Log.d(TAG, "Chalkboard tick landed")
+                is AlfredWriteResult.StaleTarget ->
+                    Log.d(TAG, "Chalkboard tick: the list had changed on Alfred — not ticked")
+                AlfredWriteResult.Unreachable -> {
+                    ChalkboardSync.getInstance(applicationContext).enqueue(ChalkboardVerb.TICK, item.task, line)
+                    Log.d(TAG, "Chalkboard tick didn't land — queued")
+                }
+            }
+        }
     }
 
     private fun onContentContinue() {
-        stretchTimer?.cancel()
-        stretchTimer = null
-        contentDismissTimer?.cancel()
-        contentDismissTimer = null
+        stepTimer?.cancel()
+        stepTimer = null
         showingContent = false
         binding.contentPanel.visibility = View.GONE
         binding.content.visibility = View.VISIBLE
@@ -744,8 +893,14 @@ class AlarmDismissalActivity : AppCompatActivity() {
         showCheckpoint()
     }
 
+    /**
+     * The done screen: "FRI 16 OCT · ALARM FINISHED", Great job!, how long it took
+     * from the alarm firing (Up in), the tags (Tags) and the streak, a full ring
+     * with a ✓, and "Start the day" to close the alarm.
+     */
     private fun onStage2Complete() {
         val seconds = ((SystemClock.elapsedRealtime() - stage2StartMs) / 1000L).toInt()
+        val upInSeconds = ((SystemClock.elapsedRealtime() - alarmStartMs) / 1000L).toInt()
         stage = STAGE_DONE
         // Keep reader mode engaged (taps now ignored, since stage != STAGE_2) until
         // the activity pauses — otherwise a lingering chip gets grabbed by the
@@ -753,43 +908,64 @@ class AlarmDismissalActivity : AppCompatActivity() {
         CountdownService.stop(this)
         clearAlarmNotifications()
 
-        // Base success screen; the streak fills in once it's computed.
         binding.tvTimeLeft.isVisible = false
-        binding.tvStageLabel.setText(R.string.alarm_stage2_done_label)
+        binding.tvStageLabel.text = getString(
+            R.string.alarm_done_label,
+            LocalDate.now().format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.getDefault()))
+        )
         binding.tvBigLabel.isVisible = false
-        setBig(getString(R.string.success_title), FALLBACK_TITLE_SP)
+        setBig(getString(R.string.success_title), DONE_TITLE_SP)
         binding.noticeWrongTag.isVisible = false
         binding.btnConfirm.visibility = View.GONE
-        binding.tvNote.isVisible = false
         binding.infoCard.isVisible = false
-        binding.statsRow.isVisible = false
+
+        binding.statsRow.isVisible = true
+        binding.tvStat1Label.setText(R.string.alarm_stat_up_in)
+        binding.tvStat1Value.text = CountdownService.formatTime(upInSeconds)
+        binding.tvStat1Value.setTextColor(color(MaterialR.attr.colorOnSurface))
+        val tags = checkpointManager?.total ?: 0
+        binding.stat2.isVisible = tags > 0
+        binding.tvStat2Label.setText(R.string.alarm_stat_tags)
+        binding.tvStat2Value.text = getString(R.string.alarm_stat_tags_value, tags, tags)
+        binding.tvStat2Value.setTextColor(color(R.attr.colorPositive))
+        binding.stat3.isVisible = false
+
         binding.ring.isVisible = true
-        val total = checkpointManager?.total ?: 1
-        binding.ring.setSegments(total, total)
+        binding.ring.setComplete()
         binding.ringCentre.isVisible = true
-        binding.ivRingIcon.isVisible = false
-        setRingText(goalReminder(), RING_HINT_SP)
+        binding.ivRingIcon.setImageResource(R.drawable.ic_done_check)
+        binding.ivRingIcon.contentDescription = getString(R.string.alarm_all_done)
+        binding.ivRingIcon.layoutParams = binding.ivRingIcon.layoutParams.apply {
+            val size = resources.getDimensionPixelSize(R.dimen.done_check_size)
+            width = size
+            height = size
+        }
+        binding.ivRingIcon.isVisible = true
+        binding.tvRingText.isVisible = false
+        binding.tvNote.isVisible = true
+        binding.tvNote.text = goalReminder()
+
+        binding.btnStopAlarm.isVisible = false
+        binding.btnStartDay.isVisible = true
+        binding.btnStartDay.setOnClickListener {
+            binding.root.removeCallbacks(dismissRunnable)
+            dismissToHome()
+        }
 
         lifecycleScope.launch {
             recordStage2Success(seconds)
             val streak = repository.getCurrentStreak()
-            binding.statsRow.isVisible = true
-            binding.stat2.isVisible = false
-            binding.tvStat1Label.setText(R.string.alarm_stat_streak)
-            binding.tvStat1Value.text = resources.getQuantityString(R.plurals.alarm_streak_days, streak, streak)
-            binding.tvStat1Value.setTextColor(color(R.attr.colorPositive))
-            Log.d(TAG, "Stage 2 success — streak now $streak")
+            binding.stat3.isVisible = true
+            binding.tvStat3Value.text = getString(
+                R.string.alarm_stat_streak_value,
+                resources.getQuantityString(R.plurals.alarm_streak_days, streak, streak)
+            )
+            Log.d(TAG, "Stage 2 success — streak now $streak, up in ${upInSeconds}s")
         }
 
-        // Auto-dismiss after 5s. Tap-to-dismiss only activates after a short grace
-        // period so a stray touch right after the final tag doesn't skip the screen.
-        binding.root.postDelayed(dismissRunnable, SUCCESS_SCREEN_MS)
-        binding.root.postDelayed({
-            binding.root.setOnClickListener {
-                binding.root.removeCallbacks(dismissRunnable)
-                dismissToHome()
-            }
-        }, TAP_GRACE_MS)
+        // "Start the day" is the way out; this only stops a forgotten phone keeping
+        // its screen on (FLAG_KEEP_SCREEN_ON) indefinitely.
+        binding.root.postDelayed(dismissRunnable, DONE_SCREEN_TIMEOUT_MS)
     }
 
     private suspend fun recordStage2Success(seconds: Int) {
@@ -970,8 +1146,10 @@ class AlarmDismissalActivity : AppCompatActivity() {
          *  fixed-duration screens). Stretch is excluded — it uses its own duration. */
         private const val CONTENT_DISMISS_LOCK_MS = 15_000L
         private const val SUCCESS_DELAY_MS = 1200L
-        private const val SUCCESS_SCREEN_MS = 5000L
-        private const val TAP_GRACE_MS = 1500L
+        /** The done screen closes itself after this if "Start the day" isn't tapped. */
+        private const val DONE_SCREEN_TIMEOUT_MS = 120_000L
+        /** Timer granularity, so the rings move smoothly rather than in 1s steps. */
+        private const val TICK_MS = 100L
         private const val WRONG_PULSE_MS = 150L
         private const val WOBBLE_MS = 500L
 
@@ -979,6 +1157,9 @@ class AlarmDismissalActivity : AppCompatActivity() {
         private const val FALLBACK_TITLE_SP = 40f
         private const val RING_TEXT_SP = 22f
         private const val RING_HINT_SP = 16f
+        private const val DONE_TITLE_SP = 60f
+        private const val QUOTE_SP = 36f
+        private const val STATUS_SP = 18f
 
         private const val READER_FLAGS =
             NfcAdapter.FLAG_READER_NFC_A or

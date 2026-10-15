@@ -12,18 +12,21 @@ import com.personalmorningalarm.R
 import kotlin.math.min
 
 /**
- * The alarm screens' ring, two ways:
- *  - [setProgress]: one arc from the top, accent on a card-surface track (Stage 1 shake).
+ * The alarm screens' rings, two ways:
+ *  - [setProgress]: one arc from the top on a track (Stage 1 shake, timers). The arc
+ *    is accent while running and turns positive once [setComplete] says so.
  *  - [setSegments]: the circle split into one arc per checkpoint, done ones in the
  *    positive colour, the rest in surface 2 (Stage 2).
- * Round caps, a 14dp stroke; colours come from the theme so light mode follows.
+ * Round caps. The 210dp rings use a 14dp stroke on the card-surface track; the
+ * 56dp Continue timer uses [makeSmall] (4dp on surface 2). Colours come from the
+ * theme so light mode follows.
  */
 class ProgressRingView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
-    private val stroke = resources.displayMetrics.density * STROKE_DP
+    private var stroke = resources.displayMetrics.density * STROKE_DP
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -33,18 +36,36 @@ class ProgressRingView @JvmOverloads constructor(
     private val oval = RectF()
 
     private val accent = MaterialColors.getColor(this, MaterialR.attr.colorPrimary)
-    private val track = MaterialColors.getColor(this, MaterialR.attr.colorSurface)
+    private var track = MaterialColors.getColor(this, MaterialR.attr.colorSurface)
     private val positive = MaterialColors.getColor(this, R.attr.colorPositive)
     private val pending = MaterialColors.getColor(this, R.attr.colorSurface2)
 
     private var segments = 0
     private var done = 0
     private var progress = 0f
+    private var complete = false
 
-    /** Continuous mode: [fraction] of the circle filled, 0..1. */
+    /** The small Continue-timer ring: a 4dp stroke on a surface-2 track. */
+    fun makeSmall() {
+        stroke = resources.displayMetrics.density * SMALL_STROKE_DP
+        paint.strokeWidth = stroke
+        track = pending
+        invalidate()
+    }
+
+    /** Continuous mode: [fraction] of the circle filled, 0..1, in accent. */
     fun setProgress(fraction: Float) {
         segments = 0
+        complete = false
         progress = fraction.coerceIn(0f, 1f)
+        invalidate()
+    }
+
+    /** Continuous mode, finished: the whole ring in the positive colour. */
+    fun setComplete() {
+        segments = 0
+        complete = true
+        progress = 1f
         invalidate()
     }
 
@@ -67,7 +88,7 @@ class ProgressRingView @JvmOverloads constructor(
             paint.color = track
             canvas.drawArc(oval, 0f, 360f, false, paint)
             if (progress > 0f) {
-                paint.color = accent
+                paint.color = if (complete) positive else accent
                 canvas.drawArc(oval, START, 360f * progress, false, paint)
             }
             return
@@ -88,6 +109,7 @@ class ProgressRingView @JvmOverloads constructor(
 
     private companion object {
         const val STROKE_DP = 14f
+        const val SMALL_STROKE_DP = 4f
         const val START = -90f
         const val GAP_DEGREES = 4f
     }

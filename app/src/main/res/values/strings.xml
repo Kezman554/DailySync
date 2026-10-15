@@ -56,7 +56,6 @@
 
     <!-- Content screens -->
     <string name="content_continue">Continue</string>
-    <string name="content_dismiss_seconds">%1$ds</string>
     <string name="content_quote_heading">Take a moment</string>
     <string name="content_stretch_heading">Stretch it out</string>
     <string name="quote_author_format">— %1$s</string>
@@ -289,6 +288,20 @@
     <string name="wrong_tag_notice_unregistered">That tag isn\'t registered. %1$s is next.</string>
     <string name="nuclear_label">Nuclear alarm · you didn\'t finish in time</string>
 
+    <!-- Alarm content screens and the done screen -->
+    <string name="content_stretch_label">Stretch it out · %1$d of %2$d</string>
+    <string name="content_stretch_of">of %1$s</string>
+    <string name="content_todo_title">Anything for today?</string>
+    <string name="content_continue_seconds">%1$ds</string>
+    <string name="content_continue_unlocks">Continue unlocks when the timer finishes</string>
+    <string name="alarm_done_label">%1$s · alarm finished</string>
+    <string name="alarm_stat_up_in">Up in</string>
+    <string name="alarm_stat_tags">Tags</string>
+    <string name="alarm_stat_tags_value">%1$d / %2$d</string>
+    <string name="alarm_stat_streak_value">↗ %1$s</string>
+    <string name="alarm_start_the_day">Start the day</string>
+    <string name="alarm_all_done">All done</string>
+
     <!-- Alarm tab (HomeFragment) -->
     <string name="home_alarm_enabled">Alarm on</string>
     <string name="home_goal_exercise">Exercise</string>
@@ -387,7 +400,6 @@
     <string name="stretch_move_down">Move down</string>
     <string name="stretch_delete_title">Delete stretch?</string>
     <string name="stretch_delete_message">Remove “%1$s” from this routine?</string>
-    <string name="stretch_progress">Stretch %1$d of %2$d</string>
 
     <!-- Quote management -->
     <string name="manage_quotes">Manage quotes</string>

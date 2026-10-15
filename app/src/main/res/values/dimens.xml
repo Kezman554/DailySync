@@ -4,4 +4,6 @@
     <!-- Home tiles -->
     <dimen name="schedule_column_gap">8dp</dimen>
     <dimen name="todo_item_gap">10dp</dimen>
+    <!-- Alarm done screen -->
+    <dimen name="done_check_size">64dp</dimen>
 </resources>

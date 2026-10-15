@@ -1551,3 +1551,32 @@
     paths, no history writes) that was removed before commit. Still to do by hand:
     shake through, real wrong tag, full checkpoints, a Stage 2 timeout
   - Light-mode note: black on the light error red is ~3.8:1 (Submit)
+
+2026-10-15  Alarm content screens + done screen restyled
+  - Content panel rebuilt as one frame: label (+ 44sp title for schedule / to-do),
+    the screen's block in a scroll, then the timed Continue - a 56dp full-width
+    button, disabled (surface 2) until the step's timer ends, with a 56dp 4dp ring
+    beside it counting the seconds and turning positive with a tick. The AL label
+    row and time-left chip stay up ("Between taps · k of m")
+  - Quote: TAKE A MOMENT, quote 36sp bold in curly quotes, author, 15s timer
+  - Stretch: one timer for the whole session; 210dp ring (mm:ss over "of 2:45"),
+    list marking done / current (with its instructions) / to come. Continue now
+    waits for the ring - it used to be skippable at any time and auto-advanced at
+    the end. No routine: the five built-in suggestions share the 5/10 min setting
+  - Schedule: date 44sp, all-day calendar markers as the secondary line (the API
+    has no "day type"; a WFH all-day event is where that lives), the Home period
+    strip (now shared: ScheduleStrip, used by TilesFragment too), stale note kept
+  - Rolling to-do: "Anything for today?", open items as positive checkboxes; a
+    tick goes to Alfred like the Today screen does (offline queue when the list is
+    a saved copy or Alfred is gone). Not ticked during testing - it's the real list
+  - Done: "THU 15 OCT · ALARM FINISHED", Great job! 60sp, Up in (from the alarm
+    firing) / Tags / Streak, full positive ring with a drawn tick, goal reminder,
+    "Start the day" closes it. The old 5s auto-close + tap-anywhere is gone; a 2min
+    safety close stays so a forgotten phone doesn't keep its screen on
+  - Verified on the A32 in dark and light with all four content types on: each
+    screen via a temporary debug hook (removed before commit; no history writes),
+    quote timer to completion, a full 2:45 stretch run to the tick, done screen,
+    "Start the day" back to Home. Theme left on Dark, 06:30 armed
+  - Unit tests 290 green; one run hit an intermittent Dispatchers.Main race in
+    ViewModelTestSupport teardown (SettingsViewModelTest), clean on two reruns -
+    worth hardening the harness
