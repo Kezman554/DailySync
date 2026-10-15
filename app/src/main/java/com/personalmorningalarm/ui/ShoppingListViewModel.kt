@@ -11,6 +11,7 @@ import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.data.remote.ShoppingWriteResult
+import com.personalmorningalarm.data.remote.map
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -172,12 +173,6 @@ class ShoppingListViewModel(
     private suspend fun reconcile() {
         val result = alfred.getShoppingList(listId)
         _state.value = _state.value.copy(result = result.map { it.items.orEmpty() })
-    }
-
-    private fun <T, R> AlfredResult<T>.map(transform: (T) -> R): AlfredResult<R> = when (this) {
-        is AlfredResult.Fresh -> AlfredResult.Fresh(transform(data))
-        is AlfredResult.Stale -> AlfredResult.Stale(transform(data), cachedAtMillis)
-        AlfredResult.Unavailable -> AlfredResult.Unavailable
     }
 
     private companion object {

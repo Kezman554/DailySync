@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home, below the shared header (activity_main): the Daily Schedule card, then a
+  two-column bento. TilesFragment fills the live content; the coming-soon tiles
+  are inert.
+-->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -9,103 +13,344 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="24dp">
 
-        <!-- Live tiles -->
+        <!-- Daily Schedule: today's periods as a strip of columns -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_schedule"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="18dp"
+                android:paddingVertical="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_tile_calendar" />
+
+                    <TextView
+                        style="@style/DailySync.TileTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:text="@string/tile_daily_schedule" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tiles_schedule_week"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Columns share the width; when they can't each have their
+                     minimum (item_schedule_column) the strip scrolls instead of
+                     breaking words mid-way -->
+                <HorizontalScrollView
+                    android:id="@+id/schedule_scroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:fadingEdgeLength="40dp"
+                    android:fillViewport="true"
+                    android:requiresFadingEdge="horizontal"
+                    android:scrollbars="none"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <LinearLayout
+                        android:id="@+id/schedule_strip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:baselineAligned="false"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
+
+                <TextView
+                    android:id="@+id/tv_schedule_note"
+                    style="@style/DailySync.TileSubtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    tools:text="Checking with Alfred…" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Bento: To-Do (tall) beside Shopping over Inbox -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
-            <include
-                android:id="@+id/tile_daily_schedule"
-                layout="@layout/item_tile"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_todo"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1" />
+                android:layout_height="match_parent"
+                android:layout_weight="1">
 
-            <include
-                android:id="@+id/tile_rolling_todo"
-                layout="@layout/item_tile"
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_tile_todo" />
+
+                    <TextView
+                        style="@style/DailySync.TileTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/tiles_todo" />
+
+                    <!-- First open items, hairline above each (TilesFragment) -->
+                    <LinearLayout
+                        android:id="@+id/todo_items"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:orientation="vertical" />
+
+                    <TextView
+                        android:id="@+id/tv_todo_note"
+                        style="@style/DailySync.TileSubtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:visibility="gone"
+                        tools:text="Nothing to do" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Matches the To-Do tile's height; the two cards share it -->
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1" />
+                android:layout_height="match_parent"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_shopping"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:minHeight="110dp"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_tile_shopping" />
+
+                        <Space
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:minHeight="8dp" />
+
+                        <TextView
+                            style="@style/DailySync.TileTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/tiles_shopping" />
+
+                        <!-- "name · 9 left": wrap_content, so only the name ever
+                             shrinks (and ellipsizes); the count always shows -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tv_shopping_name"
+                                style="@style/DailySync.TileSubtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                tools:text="Alfred tech" />
+
+                            <TextView
+                                android:id="@+id/tv_shopping_count"
+                                style="@style/DailySync.TileSubtitle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:maxLines="1"
+                                tools:text=" · 9 left" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_inbox"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="10dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:minHeight="110dp"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_tile_inbox" />
+
+                        <Space
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:minHeight="8dp" />
+
+                        <TextView
+                            style="@style/DailySync.TileTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/tile_inbox" />
+
+                        <TextView
+                            style="@style/DailySync.TileSubtitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/tiles_inbox_subtitle" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
         </LinearLayout>
 
-        <!-- Shopping Lists (live) + KitchenSync (coming soon) -->
+        <!-- Kitchen Sign-in: wide -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_sign_in"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="14dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="14dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_tile_sign_in" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/DailySync.TileTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tile_kitchen_sign_in" />
+
+                    <TextView
+                        android:id="@+id/tv_sign_in_status"
+                        style="@style/DailySync.TileSubtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        tools:text="Wall board locked" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_sign_in"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minHeight="0dp"
+                    android:paddingHorizontal="16dp"
+                    android:text="@string/presence_sign_in"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Coming soon: dashed outline, inert (no click listener at all) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
+            android:baselineAligned="false"
             android:orientation="horizontal">
 
-            <include
-                android:id="@+id/tile_shopping_lists"
-                layout="@layout/item_tile"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1" />
-
-            <include
+            <LinearLayout
                 android:id="@+id/tile_kitchen_sync"
-                layout="@layout/item_tile"
+                style="@style/DailySync.ComingSoonTile"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1" />
+                android:layout_weight="1">
 
-        </LinearLayout>
+                <TextView
+                    style="@style/DailySync.ComingSoonTitle"
+                    android:text="@string/tile_kitchen_sync" />
 
-        <!-- Inbox (live) + Kanban (coming soon) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal">
+                <TextView
+                    style="@style/DailySync.ComingSoonNote"
+                    android:text="@string/tile_coming_soon" />
+            </LinearLayout>
 
-            <include
-                android:id="@+id/tile_inbox"
-                layout="@layout/item_tile"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1" />
-
-            <include
+            <LinearLayout
                 android:id="@+id/tile_kanban"
-                layout="@layout/item_tile"
+                style="@style/DailySync.ComingSoonTile"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1" />
+                android:layout_marginStart="10dp"
+                android:layout_weight="1">
 
-        </LinearLayout>
+                <TextView
+                    style="@style/DailySync.ComingSoonTitle"
+                    android:text="@string/tile_kanban" />
 
-        <!-- Kitchen Sign-in (live). Half width, like every other tile. -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal">
-
-            <include
-                android:id="@+id/tile_kitchen_sign_in"
-                layout="@layout/item_tile"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1" />
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1" />
-
+                <TextView
+                    style="@style/DailySync.ComingSoonNote"
+                    android:text="@string/tile_coming_soon" />
+            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>

@@ -28,13 +28,29 @@
             android:orientation="horizontal"
             android:paddingStart="4dp">
 
-            <TextView
-                android:id="@+id/tv_header_date"
-                style="@style/DailySync.ScreenTitle"
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                tools:text="Thursday 15 Oct" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_header_date"
+                    style="@style/DailySync.ScreenTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="Thursday 15 Oct" />
+
+                <!-- Home only: the next alarm, or "Alarm off" -->
+                <TextView
+                    android:id="@+id/tv_header_alarm"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    tools:text="● Alarm 06:30 tomorrow" />
+            </LinearLayout>
 
             <ImageButton
                 android:id="@+id/btn_settings"

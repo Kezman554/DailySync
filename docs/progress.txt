@@ -1443,3 +1443,27 @@
     truncates. Verified tabs, cog -> Settings -> back, Alarm -> back -> Home,
     Light and Dark, and the Background running row flipping via
     dumpsys deviceidle whitelist +/- (restored afterwards; appearance back to Dark)
+
+2026-10-15  Home restyle: schedule strip, bento tiles, alarm status line
+  - Header (Home only): positive dot + "Alarm 06:30 tomorrow" from the saved
+    config (today/tomorrow by the same rule AlarmScheduler arms with), or
+    "Alarm off" in secondary text
+  - Daily Schedule card: one column per period with something today (vault plan
+    + timed family-calendar events, "17:30 Cubs"), Early..Evening then Anytime
+    last; current period's bar + label in accent. Max 3 tasks per column, then
+    "+N more". Columns have a 96dp minimum and the strip scrolls sideways (fading
+    edge, current period scrolled into view) rather than breaking words. All-day
+    events are left out (they belong to no period). Card or strip opens the week
+  - Bento: To-Do (first three open items under hairlines, offline queue merged),
+    Shopping (first list with items left, "name · N left" - only the name
+    ellipsizes), Inbox, Kitchen Sign-in (status + accent "Sign in" pill, hidden
+    once someone is signed in), KitchenSync/Kanban dashed and inert
+  - TilesViewModel fetches all feeds together on each start; HomeTiles holds the
+    pure logic (HomeTilesTest). AlfredResult.map/dataOrNull now shared in
+    AlfredResult.kt (ShoppingListViewModel's private copy removed). item_tile gone
+  - Verified on the A32, dark and light: live data; Anytime via a read-only proxy
+    to live Alfred that appended an ungrouped (and an afternoon) task, reached
+    through adb reverse with alfred_host pointed at it - prefs and alfred_cache
+    restored byte-identical afterwards (sha256 checked). Alarm off -> "Alarm off";
+    back on -> re-armed for 2026-10-16 06:30 (dumpsys alarm). Every tile opens its
+    screen; coming-soon tiles do nothing. Unit tests 288 green

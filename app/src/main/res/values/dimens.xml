@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="hairline">1dp</dimen>
+    <!-- Home tiles -->
+    <dimen name="schedule_column_gap">8dp</dimen>
+    <dimen name="todo_item_gap">10dp</dimen>
+</resources>

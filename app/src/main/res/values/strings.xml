@@ -157,8 +157,29 @@
 
     <!-- Home tile grid -->
     <string name="tile_daily_schedule">Daily Schedule</string>
-    <string name="tile_rolling_todo">Rolling To-Do</string>
-    <string name="tile_shopping_lists">Shopping Lists</string>
+    <string name="tiles_todo">To-Do</string>
+    <string name="tiles_shopping">Shopping</string>
+
+    <!-- Home tiles -->
+    <string name="tiles_alarm_on">Alarm %1$s %2$s</string>
+    <string name="tiles_alarm_today">today</string>
+    <string name="tiles_alarm_tomorrow">tomorrow</string>
+    <string name="tiles_alarm_off">Alarm off</string>
+    <string name="tiles_schedule_week">Week</string>
+    <string name="tiles_schedule_more">+%1$d more</string>
+    <string name="tiles_todo_loading">Checking…</string>
+    <string name="tiles_todo_empty">Nothing to do</string>
+    <string name="tiles_todo_unavailable">To-do unavailable</string>
+    <string name="tiles_shopping_left"> · %1$d left</string>
+    <string name="tiles_shopping_done">Nothing left to buy</string>
+    <string name="tiles_shopping_unavailable">Lists unavailable</string>
+    <string name="tiles_inbox_subtitle">Capture a thought</string>
+    <string name="tiles_sign_in_locked">Wall board locked</string>
+    <string name="tiles_sign_in_open">Signed in</string>
+    <string name="tiles_sign_in_open_as">Signed in as %1$s</string>
+    <string name="tiles_sign_in_unreachable">Dashboard unreachable</string>
+    <string name="tiles_sign_in_checking">Checking…</string>
+
     <string name="tile_inbox">Inbox</string>
     <string name="tile_kitchen_sync">KitchenSync</string>
     <string name="tile_kanban">Kanban</string>

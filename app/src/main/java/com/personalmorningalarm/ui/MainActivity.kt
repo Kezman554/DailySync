@@ -3,19 +3,26 @@ package com.personalmorningalarm.ui
 import android.net.ConnectivityManager
 import android.net.Network
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.getSystemService
+import androidx.core.text.inSpans
 import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.navOptions
+import com.google.android.material.color.MaterialColors
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
+import com.personalmorningalarm.data.entity.AlarmConfig
 import com.personalmorningalarm.data.remote.ChalkboardSync
 import com.personalmorningalarm.data.remote.InboxSync
 import com.personalmorningalarm.data.remote.ShoppingSync
@@ -26,6 +33,7 @@ import com.personalmorningalarm.util.NotificationPermissionHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -33,6 +41,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
+
+    /** Latest saved alarm, for the Home header's status line. */
+    private var alarmConfig: AlarmConfig? = null
 
     /** Guards against stacking a second dialog when onStart runs again. */
     private var notificationDialogShown = false
@@ -82,7 +93,20 @@ class MainActivity : AppCompatActivity() {
             binding.header.isVisible = id == R.id.tilesFragment || id == R.id.homeFragment
             binding.pillHome.isSelected = id == R.id.tilesFragment
             binding.pillAlarm.isSelected = id == R.id.homeFragment
+            binding.tvHeaderAlarm.isVisible = id == R.id.tilesFragment
             renderHeaderDate()
+            renderHeaderAlarm()
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                AlarmRepository(AppDatabase.getInstance(applicationContext))
+                    .observeCurrentConfig()
+                    .collect { config ->
+                        alarmConfig = config
+                        renderHeaderAlarm()
+                    }
+            }
         }
     }
 
@@ -101,6 +125,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Home's status line under the date: a positive dot and "Alarm 06:30
+     * tomorrow" when armed, "Alarm off" in secondary text when not. Re-rendered on
+     * every config change, start and screen change, so "today" rolls to
+     * "tomorrow" once the time passes.
+     */
+    private fun renderHeaderAlarm() {
+        val next = HomeTiles.nextAlarm(alarmConfig, LocalDateTime.now())
+        val view = binding.tvHeaderAlarm
+        if (next == null) {
+            view.text = getString(R.string.tiles_alarm_off)
+            view.setTextColor(color(com.google.android.material.R.attr.colorOnSurfaceVariant))
+            return
+        }
+        val line = getString(
+            R.string.tiles_alarm_on,
+            next.time.format(ALARM_TIME_FORMAT),
+            getString(if (next.tomorrow) R.string.tiles_alarm_tomorrow else R.string.tiles_alarm_today)
+        )
+        view.setTextColor(color(com.google.android.material.R.attr.colorOnSurface))
+        view.text = SpannableStringBuilder()
+            .inSpans(ForegroundColorSpan(color(R.attr.colorPositive))) { append("\u25CF") }
+            .append("  ")
+            .append(line)
+    }
+
+    private fun color(attr: Int): Int = MaterialColors.getColor(binding.root, attr)
+
+    /**
      * Flushes queued offline to-do/shopping writes when a network comes up while the
      * app is in the foreground — the "walked back into home WiFi with the app open"
      * case. Registered onStart, gone onStop: event-driven only, no background
@@ -117,6 +169,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         renderHeaderDate()
+        renderHeaderAlarm()
 
         // Re-checked on every launch, not once: the grant can vanish under the app
         // (a reinstall resets it, and the user can revoke it in system settings),
@@ -255,5 +308,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "PMA"
         private val HEADER_DATE_FORMAT = DateTimeFormatter.ofPattern("EEEE d MMM", Locale.getDefault())
+        private val ALARM_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
     }
 }

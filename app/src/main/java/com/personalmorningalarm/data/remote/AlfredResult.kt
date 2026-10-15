@@ -15,3 +15,17 @@ sealed interface AlfredResult<out T> {
     /** Alfred was unreachable and nothing was cached — the screen shows its fallback. */
     data object Unavailable : AlfredResult<Nothing>
 }
+
+/** The data, fresh or cached; null when Alfred gave nothing. */
+fun <T> AlfredResult<T>.dataOrNull(): T? = when (this) {
+    is AlfredResult.Fresh -> data
+    is AlfredResult.Stale -> data
+    AlfredResult.Unavailable -> null
+}
+
+/** Transforms the data, keeping whether it was fresh or cached (and when). */
+fun <T, R> AlfredResult<T>.map(transform: (T) -> R): AlfredResult<R> = when (this) {
+    is AlfredResult.Fresh -> AlfredResult.Fresh(transform(data))
+    is AlfredResult.Stale -> AlfredResult.Stale(transform(data), cachedAtMillis)
+    AlfredResult.Unavailable -> AlfredResult.Unavailable
+}
