@@ -1422,3 +1422,24 @@
     round 2); progress bar and title text carry the stage as before. Code colours
     (to-do dates, calendar rows, nuclear ticks) now resolve theme attributes
   - Build + unit tests green. Not yet walked on the A32 (no device attached)
+
+2026-10-15  Navigation: bottom bar gone, shared header, Settings regrouped
+  - activity_main: shared header for Home (tiles) and Alarm - date title (26sp
+    bold), 44dp cog (Lucide "settings" outline, ISC in docs/licenses), Home | Alarm
+    pills (36dp, isSelected drives fill + label). Hidden on every other screen.
+    Pills navigate like the old bar (single top, save/restore state, back from
+    Alarm lands on Home); bottom_nav_menu, ic_home, ic_alarm removed
+  - Settings: back arrow + title; Appearance as a Light / Dark / System segmented
+    control; Alfred card (value in accent, help in secondary); Alarm health card -
+    Enabled (positive) / Restricted (text) with the explanation and fix button
+    shown only while a check fails. NFC, content, sounds, Stage 2 and PIN stay
+    below in cards until session AK moves them to the Alarm tab
+  - Theme fixes found on device: android:textColorPrimary/Secondary now follow
+    the roles (M3 ships fixed greys); light-mode status/nav bar icons dark
+    (bool light_system_bars); button labels bold via the widget styles, because a
+    theme-level fontFamily makes AppCompat drop the weight a textAppearance sets
+    (so the M3 title/label 500 from the theme session doesn't take effect either)
+  - A32 (360dp wide): "Kitchen dashboard" label wraps so the address never
+    truncates. Verified tabs, cog -> Settings -> back, Alarm -> back -> Home,
+    Light and Dark, and the Background running row flipping via
+    dumpsys deviceidle whitelist +/- (restored afterwards; appearance back to Dark)

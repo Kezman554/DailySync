@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">DailySync</string>
 
-    <!-- Bottom navigation destinations -->
+    <!-- Header pills and screen titles -->
     <string name="title_home">Home</string>
     <string name="title_alarm">Alarm</string>
     <string name="title_settings">Settings</string>

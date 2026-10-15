@@ -15,8 +15,8 @@ import com.personalmorningalarm.databinding.ItemTileBinding
 
 /**
  * The app's landing screen: a grid of tiles, one per thing you might want at a
- * glance. The alarm now lives one slot along in the bottom bar — this is where
- * the app opens.
+ * glance. The alarm sits beside it under the header's Home | Alarm pills — this
+ * is where the app opens.
  */
 class TilesFragment : Fragment() {
 
