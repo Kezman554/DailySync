@@ -13,8 +13,8 @@ import com.personalmorningalarm.util.VaultText
 
 /**
  * One shopping list's editable rows. Mirrors [RollingTodoAdapter] — tap ticks
- * (bought), long-press drops (no longer wanted) — minus the date line, since
- * shopping items aren't dated.
+ * (bought), long-press drops (no longer wanted) — minus the date, since shopping
+ * items aren't dated. Each row splits the vault line into a bold name and a note.
  */
 class ShoppingItemAdapter(
     private val onTick: (ShoppingItem) -> Unit,
@@ -33,12 +33,15 @@ class ShoppingItemAdapter(
 
         fun bind(item: ShoppingItem) {
             binding.cbShopping.isChecked = item.done
-            binding.tvShoppingTask.text = VaultText.render(item.task)
+            // Two lines: the name in bold, then whatever followed " — " as the note.
+            binding.tvShoppingTask.text = VaultText.render(item.name)
             binding.tvShoppingTask.paintFlags = if (item.done) {
                 binding.tvShoppingTask.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             } else {
                 binding.tvShoppingTask.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
             }
+            binding.tvShoppingNote.isVisible = item.note != null
+            binding.tvShoppingNote.text = item.note?.let(VaultText::render)
             binding.tvShoppingPending.isVisible = item.pending
             binding.root.alpha = if (item.done) DONE_ALPHA else 1f
 

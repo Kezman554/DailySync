@@ -89,15 +89,18 @@ class ProgressRingView @JvmOverloads constructor(
             canvas.drawArc(oval, 0f, 360f, false, paint)
             if (progress > 0f) {
                 paint.color = if (complete) positive else accent
-                canvas.drawArc(oval, START, 360f * progress, false, paint)
+                // Nearly full, the round caps would leave a notch where the ends
+                // almost meet; once the gap is under a cap's width, close the circle.
+                val gap = 360f * (1f - progress)
+                val sweep = if (gap < capDegrees()) 360f else 360f * progress
+                canvas.drawArc(oval, START, sweep, false, paint)
             }
             return
         }
 
         // Equal arcs with a gap between neighbours. Round caps reach half the stroke
         // past each end, so the gap in degrees allows for both caps.
-        val radius = oval.width() / 2f
-        val capDegrees = Math.toDegrees((stroke / radius).toDouble()).toFloat()
+        val capDegrees = capDegrees()
         val slot = 360f / segments
         val sweep = if (segments == 1) 360f else (slot - capDegrees - GAP_DEGREES).coerceAtLeast(1f)
         for (i in 0 until segments) {
@@ -106,6 +109,10 @@ class ProgressRingView @JvmOverloads constructor(
             canvas.drawArc(oval, start, sweep, false, paint)
         }
     }
+
+    /** The angle both round caps together reach past an arc's ends. */
+    private fun capDegrees(): Float =
+        Math.toDegrees((stroke / (oval.width() / 2f)).toDouble()).toFloat()
 
     private companion object {
         const val STROKE_DP = 14f

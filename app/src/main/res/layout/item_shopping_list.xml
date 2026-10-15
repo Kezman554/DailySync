@@ -1,30 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One row of the shopping list-picker menu. -->
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- One list on the Shopping grid: the icon badge, the name, and "9 left" or
+     "All done". The New list tile reuses it with a dashed outline. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
-    android:clickable="true"
-    android:focusable="true"
-    android:orientation="vertical"
-    android:paddingVertical="12dp">
+    style="@style/DailySync.GridTile">
+
+    <ImageView
+        android:id="@+id/iv_shopping_list_badge"
+        style="@style/DailySync.IconBadge"
+        android:src="@drawable/ic_list" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
 
     <TextView
         android:id="@+id/tv_shopping_list_title"
+        style="@style/DailySync.TileTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="?attr/textAppearanceBodyLarge"
-        tools:text="Fitness Equipment — Rolling Buy List" />
+        android:ellipsize="end"
+        android:maxLines="1"
+        tools:text="Alfred tech" />
 
     <TextView
         android:id="@+id/tv_shopping_list_count"
+        style="@style/DailySync.TileSubtitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        tools:text="2 left of 2" />
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        tools:text="9 left" />
 
 </LinearLayout>

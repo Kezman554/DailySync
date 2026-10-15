@@ -11,8 +11,11 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.divider.MaterialDividerItemDecoration
 import com.google.android.material.snackbar.Snackbar
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.ShoppingItem
@@ -25,7 +28,8 @@ import com.personalmorningalarm.databinding.FragmentShoppingListBinding
 import kotlinx.coroutines.launch
 
 /**
- * One shopping list: add, tap-to-tick, long-press-to-drop — behaving exactly like
+ * One shopping list, its name as the title with "n left" beside it: add (the bar
+ * docked at the bottom), tap-to-tick, long-press-to-drop — behaving exactly like
  * the rolling to-do's [RollingTodoFragment] editing, just scoped to one list instead of
  * one chalkboard. Writes are accepted anywhere; offline they queue through the
  * shared [ShoppingSync] outbox and show as snapshot + pending edits.
@@ -65,11 +69,18 @@ class ShoppingListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        requireActivity().title = listTitle
+        binding.titleBar.tvScreenTitle.text = ShoppingList.shortTitle(listTitle)
+        binding.titleBar.btnBack.setOnClickListener { findNavController().navigateUp() }
 
         binding.swipeRefresh.setOnRefreshListener { viewModel.refresh() }
         binding.rvShoppingItems.layoutManager = LinearLayoutManager(requireContext())
         binding.rvShoppingItems.adapter = itemAdapter
+        binding.rvShoppingItems.addItemDecoration(
+            MaterialDividerItemDecoration(requireContext(), LinearLayoutManager.VERTICAL).apply {
+                dividerColor = MaterialColors.getColor(binding.root, R.attr.colorSurface2)
+                isLastItemDecorated = false
+            }
+        )
 
         binding.btnShoppingConflictDismiss.setOnClickListener { viewModel.dismissFailed() }
         binding.btnShoppingAdd.setOnClickListener { submitAdd() }
@@ -121,12 +132,15 @@ class ShoppingListFragment : Fragment() {
         val queued = state.pending.filterNot { it.failed }
         val failed = state.pending.filter { it.failed }
 
-        binding.tvShoppingPendingCount.isVisible = queued.isNotEmpty()
-        if (queued.isNotEmpty()) {
-            binding.tvShoppingPendingCount.text = resources.getQuantityString(
-                R.plurals.chalkboard_pending_count, queued.size, queued.size
-            )
-        }
+        // The sync line: a saved copy, and/or edits not in the vault yet.
+        val sync = listOfNotNull(
+            getString(R.string.schedule_stale).takeIf { state.result is AlfredResult.Stale },
+            resources.getQuantityString(R.plurals.chalkboard_pending_count, queued.size, queued.size)
+                .takeIf { queued.isNotEmpty() }
+        )
+        binding.syncLine.root.isVisible = sync.isNotEmpty()
+        binding.syncLine.tvSyncText.text = sync.joinToString(" · ")
+
         binding.rowShoppingConflict.isVisible = failed.isNotEmpty()
         if (failed.isNotEmpty()) {
             binding.tvShoppingConflict.text = resources.getQuantityString(
@@ -134,7 +148,7 @@ class ShoppingListFragment : Fragment() {
             ) + failed.joinToString(separator = "") { "\n• ${it.text}" }
         }
 
-        binding.tilShoppingAdd.hint = getString(
+        binding.etShoppingAdd.hint = getString(
             if (state.result is AlfredResult.Stale || state.result is AlfredResult.Unavailable) {
                 R.string.shopping_offline_hint
             } else {
@@ -142,15 +156,10 @@ class ShoppingListFragment : Fragment() {
             }
         )
 
-        binding.tvShoppingNote.isVisible = false
         val base: List<ShoppingItemDto>? = when (val result = state.result) {
             null -> null
             is AlfredResult.Fresh -> result.data
-            is AlfredResult.Stale -> {
-                binding.tvShoppingNote.isVisible = true
-                binding.tvShoppingNote.text = getString(R.string.schedule_stale)
-                result.data
-            }
+            is AlfredResult.Stale -> result.data
             AlfredResult.Unavailable -> null
         }
 
@@ -160,11 +169,14 @@ class ShoppingListFragment : Fragment() {
             binding.rvShoppingItems.isVisible = false
             binding.tvShoppingBody.text =
                 getString(if (state.result == null) R.string.shopping_menu_loading else R.string.shopping_list_unavailable)
+            binding.titleBar.tvScreenMeta.isVisible = false
             itemAdapter.submitList(emptyList())
             return
         }
 
         val items = ShoppingList.merged(base.orEmpty(), state.pending)
+        binding.titleBar.tvScreenMeta.isVisible = true
+        binding.titleBar.tvScreenMeta.text = getString(R.string.shopping_left, items.count { !it.done })
         binding.rvShoppingItems.isVisible = items.isNotEmpty()
         binding.tvShoppingBody.isVisible = items.isEmpty()
         if (items.isEmpty()) {

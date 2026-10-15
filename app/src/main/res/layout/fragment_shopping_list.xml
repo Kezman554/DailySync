@@ -1,134 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  One shopping list: the name with "9 left", the sync line, the items in one card
+  (tap ticks, long-press drops), and the add bar docked at the bottom. Writes go
+  straight to Alfred, or queue on the phone when it's unreachable.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/swipe_refresh"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="12dp">
 
-    <!-- NestedScrollView, not ScrollView: a wrap_content RecyclerView inside a
-         plain ScrollView gets mis-measured and truncates the list (Card AF lesson). -->
-    <androidx.core.widget.NestedScrollView
+    <!-- Title, with "n left" on the right -->
+    <include
+        android:id="@+id/title_bar"
+        layout="@layout/view_screen_title" />
+
+    <!-- Saved copy / changes waiting to sync -->
+    <include
+        android:id="@+id/sync_line"
+        layout="@layout/view_sync_line" />
+
+    <!-- Queued changes that could never sync (this list moved on). Persistent,
+         not a snackbar: the flush may happen while the user is elsewhere. -->
+    <LinearLayout
+        android:id="@+id/row_shopping_conflict"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_notice_error"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="6dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="4dp"
+        android:visibility="gone"
+        tools:visibility="visible">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/tv_shopping_conflict"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_weight="1"
+            android:textColor="?attr/colorError"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="1 change couldn’t sync — the list had moved on:\n• Dip bars" />
 
-            <TextView
-                android:id="@+id/tv_shopping_note"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:visibility="gone"
-                tools:text="Saved copy — Alfred unreachable"
-                tools:visibility="visible" />
+        <Button
+            android:id="@+id/btn_shopping_conflict_dismiss"
+            style="@style/Widget.DailySync.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/chalkboard_conflict_dismiss" />
+    </LinearLayout>
 
-            <!-- Offline queue count for this list — "2 changes waiting to sync". -->
-            <TextView
-                android:id="@+id/tv_shopping_pending_count"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:textColor="?attr/colorPrimary"
-                android:visibility="gone"
-                tools:text="2 changes waiting to sync"
-                tools:visibility="visible" />
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_weight="1">
 
-            <!-- Queued changes that could never sync (this list moved on). Persistent,
-                 not a snackbar: the flush may happen while the user is elsewhere. -->
+        <!-- NestedScrollView, not ScrollView: a wrap_content RecyclerView inside a
+             plain ScrollView gets mis-measured and truncates the list (Card AF lesson). -->
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
             <LinearLayout
-                android:id="@+id/row_shopping_conflict"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone"
-                tools:visibility="visible">
+                android:orientation="vertical">
 
+                <!-- Status messages only (loading / empty / unavailable) -->
                 <TextView
-                    android:id="@+id/tv_shopping_conflict"
-                    android:layout_width="0dp"
+                    android:id="@+id/tv_shopping_body"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textAppearance="?attr/textAppearanceLabelMedium"
-                    android:textColor="?attr/colorError"
-                    tools:text="1 change couldn’t sync — the list had moved on:\n• Dip bars" />
+                    android:paddingHorizontal="4dp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="Checking with Alfred…" />
 
-                <Button
-                    android:id="@+id/btn_shopping_conflict_dismiss"
-                    style="@style/Widget.DailySync.Button.TextButton"
-                    android:layout_width="wrap_content"
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_shopping_items"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/chalkboard_conflict_dismiss" />
-
+                    android:background="@drawable/bg_card"
+                    android:nestedScrollingEnabled="false"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="2dp"
+                    android:visibility="gone"
+                    tools:itemCount="3"
+                    tools:listitem="@layout/item_shopping_item"
+                    tools:visibility="visible" />
             </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-            <!-- Status messages only (loading / empty / unavailable); the list
-                 itself lives in the RecyclerView below. -->
-            <TextView
-                android:id="@+id/tv_shopping_body"
+    <!-- Add bar, docked. Offline it queues rather than sends, per the hint. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="12dp">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_shopping_add"
+            style="@style/DailySync.PillInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_shopping_add"
+                style="@style/DailySync.PillInputField"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:lineSpacingMultiplier="1.15"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
-                tools:text="Checking with Alfred…" />
+                android:hint="@string/shopping_add_hint"
+                android:imeOptions="actionDone"
+                android:inputType="textCapSentences"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_shopping_items"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:visibility="gone"
-                tools:itemCount="3"
-                tools:listitem="@layout/item_shopping_item"
-                tools:visibility="visible" />
+        <Button
+            android:id="@+id/btn_shopping_add"
+            style="@style/DailySync.PillButton"
+            android:layout_marginStart="8dp"
+            android:text="@string/chalkboard_add_action" />
+    </LinearLayout>
 
-            <!-- Add row. Offline it queues rather than sends, per the hint below. -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/til_shopping_add"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="@string/shopping_add_hint">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/et_shopping_add"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:imeOptions="actionDone"
-                        android:inputType="textCapSentences"
-                        android:maxLines="1" />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <Button
-                    android:id="@+id/btn_shopping_add"
-                    style="@style/Widget.DailySync.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/chalkboard_add_action" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-    </androidx.core.widget.NestedScrollView>
-
-</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+</LinearLayout>

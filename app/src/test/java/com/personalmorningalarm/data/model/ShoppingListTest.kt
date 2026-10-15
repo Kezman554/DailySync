@@ -24,6 +24,35 @@ class ShoppingListTest {
     )
 
     @Test
+    fun `short title drops what follows the spaced dash`() {
+        assertEquals("Fitness Equipment", ShoppingList.shortTitle("Fitness Equipment — Rolling Buy List"))
+        assertEquals("Alfred tech", ShoppingList.shortTitle("Alfred tech"))
+        assertEquals(" — odd", ShoppingList.shortTitle(" — odd"))
+    }
+
+    @Test
+    fun `name and note split at the first spaced dash`() {
+        val item = ShoppingItem(task = "Dip bars — after 2+ months — ~£40")
+
+        assertEquals("Dip bars", item.name)
+        assertEquals("after 2+ months — ~£40", item.note)
+    }
+
+    @Test
+    fun `an item with no spaced dash is all name, no note`() {
+        val plain = ShoppingItem(task = "Pi Zero 2W")
+        val hyphenated = ShoppingItem(task = "Pi-hole—spare SD")
+        val trailing = ShoppingItem(task = "Short USB cable — ")
+
+        assertEquals("Pi Zero 2W", plain.name)
+        assertNull(plain.note)
+        assertEquals("Pi-hole—spare SD", hyphenated.name)
+        assertNull(hyphenated.note)
+        assertEquals("Short USB cable", trailing.name)
+        assertNull(trailing.note)
+    }
+
+    @Test
     fun `keeps API order`() {
         val items = ShoppingList.items(listOf(item("Dip bars"), item("Cable pulley"), item("HDMI cable")))
 

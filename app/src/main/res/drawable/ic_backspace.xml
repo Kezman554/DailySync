@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Keypad delete: a backspace key, stroke icon in the text colour. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="26dp"
+    android:height="26dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M21,5H9l-6,7 6,7h12a1,1 0,0 0,1 -1V6a1,1 0,0 0,-1 -1zM16,9.5l-5,5M11,9.5l5,5"
+        android:strokeWidth="1.8"
+        android:strokeColor="?attr/colorOnSurface"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -1,97 +1,252 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  Kitchen Sign-in (the Sign-in tile). Signed out: "Enter your PIN", a dot per digit,
+  a 3x4 keypad and Sign in (the dashboard's PIN has no fixed length, so nothing
+  auto-submits). Signed in: who, and a ring counting down to the session lapsing.
+  Every action is live against the dashboard; nothing is ever queued.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/swipe_refresh"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="12dp">
 
-    <androidx.core.widget.NestedScrollView
+    <include
+        android:id="@+id/title_bar"
+        layout="@layout/view_screen_title" />
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-        <LinearLayout
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_height="match_parent"
+            android:fillViewport="true">
 
-            <!-- Session state, read live from the dashboard every time the screen
-                 starts: it may have been opened at the wall, or lapsed. -->
-            <TextView
-                android:id="@+id/tv_presence_status"
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceHeadlineSmall"
-                tools:text="Signed in as nick" />
+                android:layout_height="wrap_content">
 
-            <TextView
-                android:id="@+id/tv_presence_detail"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                tools:text="Lapses in 4:12 unless the screen is used" />
+                <!-- Signed out (or not known yet): the keypad -->
+                <LinearLayout
+                    android:id="@+id/group_signed_out"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    tools:visibility="visible">
 
-            <!-- PIN entry. saveEnabled=false keeps the typed PIN out of the saved
-                 instance state, so the phone holds no copy past the attempt. -->
-            <LinearLayout
-                android:id="@+id/row_presence_sign_in"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:gravity="bottom"
-                android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tv_signed_out_label"
+                        style="@style/DailySync.AlarmLabel"
+                        android:layout_marginTop="18dp"
+                        android:gravity="center"
+                        tools:text="Kitchen screen · signed out" />
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/til_presence_pin"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="@string/presence_pin_hint">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="@string/presence_enter_pin"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="26sp"
+                        android:textStyle="bold" />
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/et_presence_pin"
+                    <!-- One accent dot per digit entered, added in code. Fixed height
+                         so the keypad doesn't move as the first digit lands. -->
+                    <LinearLayout
+                        android:id="@+id/pin_dots"
+                        android:layout_width="wrap_content"
+                        android:layout_height="16dp"
+                        android:layout_marginTop="24dp"
+                        android:gravity="center"
+                        android:orientation="horizontal" />
+
+                    <!-- Wrong PIN, locked out, unreachable: in the error colour -->
+                    <TextView
+                        android:id="@+id/tv_presence_message"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:imeOptions="actionDone"
-                        android:importantForAutofill="no"
-                        android:inputType="numberPassword"
-                        android:maxLines="1"
-                        android:saveEnabled="false" />
+                        android:layout_marginTop="16dp"
+                        android:gravity="center"
+                        android:minHeight="20dp"
+                        android:paddingHorizontal="8dp"
+                        android:textColor="?attr/colorError"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="Wrong PIN — not signed in" />
 
-                </com.google.android.material.textfield.TextInputLayout>
+                    <GridLayout
+                        android:id="@+id/keypad"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:columnCount="3">
 
-                <Button
-                    android:id="@+id/btn_presence_sign_in"
-                    style="@style/Widget.DailySync.Button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/presence_sign_in" />
+                        <Button android:id="@+id/key_1" style="@style/DailySync.KeypadKey" android:layout_margin="6dp" android:text="1" />
+                        <Button android:id="@+id/key_2" style="@style/DailySync.KeypadKey" android:layout_margin="6dp" android:text="2" />
+                        <Button android:id="@+id/key_3" style="@style/DailySync.KeypadKey" android:layout_margin="6dp" android:text="3" />
+                        <Button android:id="@+id/key_4" style="@style/DailySync.KeypadKey" android:layout_margin="6dp" android:text="4" />
+                        <Button android:id="@+id/key_5" style="@style/DailySync.KeypadKey" android:layout_margin="6dp" android:text="5" />
+                        <Button android:id="@+id/key_6" style="@style/DailySync.KeypadKey" android:layout_margin="6dp" android:text="6" />
+                        <Button android:id="@+id/key_7" style="@style/DailySync.KeypadKey" android:layout_margin="6dp" android:text="7" />
+                        <Button android:id="@+id/key_8" style="@style/DailySync.KeypadKey" android:layout_margin="6dp" android:text="8" />
+                        <Button android:id="@+id/key_9" style="@style/DailySync.KeypadKey" android:layout_margin="6dp" android:text="9" />
 
-            </LinearLayout>
+                        <Space
+                            android:layout_width="64dp"
+                            android:layout_height="64dp"
+                            android:layout_margin="6dp" />
 
-            <Button
-                android:id="@+id/btn_presence_sign_out"
-                style="@style/Widget.DailySync.Button.Outlined"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/presence_sign_out"
-                android:visibility="gone"
-                tools:visibility="visible" />
+                        <Button android:id="@+id/key_0" style="@style/DailySync.KeypadKey" android:layout_margin="6dp" android:text="0" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="@string/presence_help"
-                android:textAppearance="?attr/textAppearanceBodySmall" />
+                        <!-- Delete: tap removes a digit, long-press clears them all -->
+                        <Button
+                            android:id="@+id/key_delete"
+                            style="@style/DailySync.KeypadDelete"
+                            android:layout_margin="6dp"
+                            android:contentDescription="@string/presence_delete"
+                            app:icon="@drawable/ic_backspace" />
+                    </GridLayout>
 
-        </LinearLayout>
+                    <Button
+                        android:id="@+id/btn_presence_sign_in"
+                        style="@style/DailySync.BigButton"
+                        android:layout_width="228dp"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/presence_sign_in" />
 
-    </androidx.core.widget.NestedScrollView>
+                    <Space
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:minHeight="24dp" />
 
-</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center"
+                        android:lineSpacingMultiplier="1.3"
+                        android:paddingHorizontal="4dp"
+                        android:text="@string/presence_help"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textFontWeight="600"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- Signed in: who, and the time left on the session -->
+                <LinearLayout
+                    android:id="@+id/group_signed_in"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="4dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        style="@style/DailySync.AlarmLabel"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/presence_label" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:letterSpacing="-0.03"
+                        android:text="@string/presence_signed_in_title"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="52sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_open_as"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="?attr/colorPositive"
+                        android:textFontWeight="600"
+                        android:textSize="15sp"
+                        tools:text="● Your board is open as nick" />
+
+                    <Space
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:minHeight="24dp" />
+
+                    <FrameLayout
+                        android:id="@+id/ring_group"
+                        android:layout_width="210dp"
+                        android:layout_height="210dp"
+                        android:layout_gravity="center_horizontal">
+
+                        <com.personalmorningalarm.ui.ProgressRingView
+                            android:id="@+id/ring_lapse"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical"
+                            android:paddingHorizontal="28dp">
+
+                            <TextView
+                                android:id="@+id/tv_lapse_time"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:letterSpacing="-0.03"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="48sp"
+                                android:textStyle="bold"
+                                tools:text="4:12" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="@string/presence_until_lapse"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </FrameLayout>
+
+                    <Space
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:minHeight="24dp" />
+                </LinearLayout>
+            </FrameLayout>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- Shown whenever a session might be open, "can't tell" included, so an
+         unreachable read never hides the way to try closing it. -->
+    <Button
+        android:id="@+id/btn_presence_sign_out"
+        style="@style/Widget.DailySync.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="@string/presence_sign_out"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="16sp"
+        android:visibility="gone"
+        app:strokeColor="?attr/colorOutline"
+        tools:visibility="visible" />
+
+</LinearLayout>

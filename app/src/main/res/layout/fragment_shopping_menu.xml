@@ -1,111 +1,114 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  Shopping (the Shopping tile): every list as a tile in a two-column grid, and a
+  dashed New list tile that opens the create field. Creating needs a live Alfred,
+  so the tile says so and stands down when it isn't reachable.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/swipe_refresh"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="12dp">
 
-    <androidx.core.widget.NestedScrollView
+    <include
+        android:id="@+id/title_bar"
+        layout="@layout/view_screen_title" />
+
+    <!-- Saved copy — Alfred unreachable -->
+    <include
+        android:id="@+id/sync_line"
+        layout="@layout/view_sync_line" />
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_weight="1">
 
-        <LinearLayout
+        <!-- NestedScrollView, not ScrollView: a wrap_content RecyclerView inside a
+             plain ScrollView gets mis-measured and truncates the list. -->
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <!-- Per-screen status (e.g. showing a cached copy, or unreachable). -->
-            <TextView
-                android:id="@+id/tv_shopping_menu_note"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:visibility="gone"
-                tools:text="Saved copy — Alfred unreachable"
-                tools:visibility="visible" />
-
-            <!-- Loading / empty / unavailable message; the list itself is the RecyclerView below. -->
-            <TextView
-                android:id="@+id/tv_shopping_menu_body"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodyLarge"
-                tools:text="Checking with Alfred…" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_shopping_lists"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false"
-                android:visibility="gone"
-                tools:itemCount="3"
-                tools:listitem="@layout/item_shopping_list"
-                tools:visibility="visible" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginVertical="16dp"
-                android:background="?attr/colorOutlineVariant" />
-
-            <!-- New-list affordance. Online-only: disabled quietly when Alfred isn't reachable. -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:text="@string/shopping_new_list_heading"
-                android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-            <TextView
-                android:id="@+id/tv_shopping_new_list_hint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="@string/shopping_new_list_needs_alfred"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:textColor="?attr/colorError"
-                android:visibility="gone"
-                tools:visibility="visible" />
+            android:layout_height="match_parent">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:orientation="vertical">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/til_shopping_new_list"
-                    android:layout_width="0dp"
+                <!-- Status messages only (loading / empty / unavailable) -->
+                <TextView
+                    android:id="@+id/tv_shopping_menu_body"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="@string/shopping_new_list_hint">
+                    android:layout_marginBottom="8dp"
+                    android:paddingHorizontal="4dp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="Checking with Alfred…" />
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/et_shopping_new_list"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:imeOptions="actionDone"
-                        android:inputType="textCapWords"
-                        android:maxLines="1" />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <Button
-                    android:id="@+id/btn_shopping_new_list"
-                    style="@style/Widget.DailySync.Button.TextButton"
-                    android:layout_width="wrap_content"
+                <!-- The tiles' 5dp margins make the 10dp gutters; the negative
+                     margin keeps the outer edges on the screen column. -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_shopping_lists"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/shopping_new_list_action" />
+                    android:layout_marginHorizontal="-5dp"
+                    android:nestedScrollingEnabled="false"
+                    tools:itemCount="4"
+                    tools:listitem="@layout/item_shopping_list" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:paddingHorizontal="4dp"
+                    android:text="@string/shopping_food_note"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textFontWeight="600"
+                    android:textSize="13sp" />
             </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-        </LinearLayout>
+    <!-- The create field, opened by the New list tile (and closed by an empty Create) -->
+    <LinearLayout
+        android:id="@+id/row_shopping_new_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingVertical="12dp"
+        android:visibility="gone"
+        tools:visibility="visible">
 
-    </androidx.core.widget.NestedScrollView>
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_shopping_new_list"
+            style="@style/DailySync.PillInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
 
-</androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_shopping_new_list"
+                style="@style/DailySync.PillInputField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/shopping_new_list_hint"
+                android:imeOptions="actionDone"
+                android:inputType="textCapWords"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Button
+            android:id="@+id/btn_shopping_new_list"
+            style="@style/DailySync.PillButton"
+            android:layout_marginStart="8dp"
+            android:text="@string/shopping_new_list_action" />
+    </LinearLayout>
+
+</LinearLayout>

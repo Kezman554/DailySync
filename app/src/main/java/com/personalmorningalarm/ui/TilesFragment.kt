@@ -17,6 +17,7 @@ import androidx.navigation.fragment.findNavController
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.DayAgenda
 import com.personalmorningalarm.data.model.RollingTodoItem
+import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
@@ -168,7 +169,7 @@ class TilesFragment : Fragment() {
             result == null -> getString(R.string.tiles_todo_loading)
             lists == null -> getString(R.string.tiles_shopping_unavailable)
             active == null -> getString(R.string.tiles_shopping_done)
-            else -> active.title!!.trim()
+            else -> ShoppingList.shortTitle(active.title!!.trim())
         }
         binding.tvShoppingCount.isVisible = active != null
         binding.tvShoppingCount.text = active?.let { getString(R.string.tiles_shopping_left, it.unticked ?: 0) }

@@ -587,6 +587,73 @@
         <item name="iconSize">22dp</item>
     </style>
 
+    <!-- Accent-fill pill with a black label beside a pill input (Add, Create) -->
+    <style name="DailySync.PillButton" parent="Widget.DailySync.Button">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <!-- A 128dp tile in a two-column grid (shopping lists): card surface -->
+    <style name="DailySync.GridTile" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">128dp</item>
+        <item name="android:layout_margin">5dp</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:padding">16dp</item>
+        <item name="android:background">@drawable/bg_card</item>
+        <item name="android:foreground">@drawable/fg_card_ripple</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- The 40dp icon badge at the top of a grid tile -->
+    <style name="DailySync.IconBadge" parent="">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:scaleType">center</item>
+        <item name="android:background">@drawable/bg_icon_badge</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
+    <!-- Kitchen sign-in keypad: a 64dp round key on the card surface -->
+    <style name="DailySync.KeypadKey" parent="Widget.DailySync.Button">
+        <item name="android:layout_width">64dp</item>
+        <item name="android:layout_height">64dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:padding">0dp</item>
+        <item name="backgroundTint">?attr/colorSurface</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textSize">24sp</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">0dp</item>
+        <item name="iconTint">?attr/colorOnSurface</item>
+    </style>
+
+    <!-- The keypad's delete key: same footprint, no fill -->
+    <style name="DailySync.KeypadDelete" parent="Widget.DailySync.Button.TextButton">
+        <item name="android:layout_width">64dp</item>
+        <item name="android:layout_height">64dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:padding">0dp</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">0dp</item>
+        <item name="iconSize">26dp</item>
+        <item name="iconTint">?attr/colorOnSurface</item>
+    </style>
+
     <!-- Week footer "‹ Wed 14" / "Fri 16 ›" links -->
     <style name="DailySync.WeekFooterLink" parent="">
         <item name="android:layout_width">wrap_content</item>

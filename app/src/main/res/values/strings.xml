@@ -85,7 +85,7 @@
     <string name="chalkboard_add_hint">Add to the list</string>
     <string name="chalkboard_add_action">Add</string>
     <string name="chalkboard_read_only_hint">Alfred unreachable</string>
-    <string name="chalkboard_offline_hint">Add to the list (offline — will sync)</string>
+    <string name="chalkboard_offline_hint">Add offline — syncs later</string>
     <string name="chalkboard_item_pending">Waiting to sync</string>
     <string name="chalkboard_saved_offline">Saved on the phone — will sync when Alfred is reachable</string>
     <string name="chalkboard_conflict_dismiss">Dismiss</string>
@@ -103,7 +103,7 @@
     <string name="chalkboard_list_refreshed">The list had changed on Alfred — refreshed</string>
 
     <!-- Shopping Lists tile (Alfred /shopping) -->
-    <string name="shopping_menu_title">Shopping Lists</string>
+    <string name="shopping_menu_title">Shopping</string>
     <string name="shopping_menu_loading">Checking with Alfred…</string>
     <string name="shopping_menu_unavailable">Shopping lists unavailable</string>
     <string name="shopping_menu_empty">No shopping lists yet</string>
@@ -113,12 +113,16 @@
     <string name="shopping_new_list_needs_alfred">Creating a list needs Alfred — try again on home WiFi</string>
     <string name="shopping_new_list_created">“%1$s” created</string>
     <string name="shopping_new_list_conflict">That list already exists</string>
-    <string name="shopping_list_item_count">%1$d left of %2$d</string>
+    <string name="shopping_left">%1$d left</string>
+    <string name="shopping_all_done">All done</string>
+    <string name="shopping_new_list_ready">Create on Alfred</string>
+    <string name="shopping_new_list_offline">Needs Alfred</string>
+    <string name="shopping_food_note">Food lists live in KitchenSync.</string>
 
     <string name="shopping_list_unavailable">List unavailable</string>
     <string name="shopping_list_empty">Nothing on this list — all clear</string>
     <string name="shopping_add_hint">Add to the list</string>
-    <string name="shopping_offline_hint">Add to the list (offline — will sync)</string>
+    <string name="shopping_offline_hint">Add offline — syncs later</string>
     <string name="shopping_drop_title">Drop this item?</string>
     <string name="shopping_drop_message">“%1$s” will be removed as no longer wanted. To mark it bought instead, tap it.</string>
 
@@ -454,18 +458,24 @@
 
     <!-- Kitchen sign-in tile (dashboard /api/presence) — live only, never queued -->
     <string name="presence_title">Kitchen Sign-in</string>
-    <string name="presence_checking">Checking the kitchen screen…</string>
-    <string name="presence_open">Signed in at the kitchen screen</string>
-    <string name="presence_open_as">Signed in at the kitchen screen as %1$s</string>
-    <string name="presence_closed">Nobody signed in at the kitchen screen</string>
-    <string name="presence_lapses_in">Lapses in %1$d:%2$02d unless the screen is used</string>
-    <string name="presence_status_unreachable">Can\'t tell — dashboard unreachable</string>
+    <string name="presence_open">● Your board is open</string>
+    <string name="presence_open_as">● Your board is open as %1$s</string>
+    <string name="presence_lapse_time">%1$d:%2$02d</string>
+    <string name="presence_until_lapse">until it lapses, unless the screen is used</string>
+    <string name="presence_label">Kitchen screen</string>
+    <string name="presence_label_signed_out">Kitchen screen · signed out</string>
+    <string name="presence_label_checking">Kitchen screen · checking…</string>
+    <string name="presence_label_unknown">Kitchen screen · can’t tell</string>
+    <string name="presence_signed_in_title">Signed in</string>
+    <string name="presence_enter_pin">Enter your PIN</string>
+    <string name="presence_delete">Delete</string>
+    <plurals name="presence_digits_entered">
+        <item quantity="one">%d digit entered</item>
+        <item quantity="other">%d digits entered</item>
+    </plurals>
     <string name="presence_unreachable_detail">No answer from %1$s. Check the address in Settings, or that you\'re on home WiFi.</string>
-    <string name="presence_pin_hint">PIN</string>
     <string name="presence_sign_in">Sign in</string>
     <string name="presence_sign_out">Sign out</string>
-    <string name="presence_signed_in">Signed in — your board is open on the kitchen screen</string>
-    <string name="presence_signed_out">Signed out of the kitchen screen</string>
     <string name="presence_wrong_pin">Wrong PIN — not signed in</string>
     <string name="presence_locked_out">Too many wrong PINs — try again shortly</string>
     <string name="presence_locked_out_seconds">Too many wrong PINs — try again in %1$d s</string>

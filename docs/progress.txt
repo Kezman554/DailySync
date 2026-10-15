@@ -1611,3 +1611,41 @@
     queues verified empty in a DB copy - nothing reached the vault. Pill tap jumps
     the pager. Unit tests 292 green. (The inbox dropped from 4 to 3 meanwhile at the
     source - Alfred itself lists 3; nothing in this test deletes captures.)
+
+2026-10-15  Shopping and Kitchen Sign-in screens restyled
+  - Shopping menu: lists as a 2-column grid of 128dp tiles (40dp badge, accent
+    list icon, name, "9 left" or "All done" in positive), a dashed New list
+    tile last that opens a docked create field (empty Create closes it), and
+    "Needs Alfred" + not tappable when the discovery read wasn't fresh. Footnote
+    "Food lists live in KitchenSync." Saved-copy state moved to the sync line
+  - List titles show the part before " — " (ShoppingList.shortTitle) on the
+    grid, the list header and the Home tile: every vault list is "X — Rolling Buy
+    List", which ellipsized every tile. Tested
+  - Inside a list: title with "n left", sync line (saved copy · n waiting),
+    conflict card, items in one card with dividers, each a positive checkbox and
+    two lines - ShoppingItem.name (before the first " — ", bold) and .note (the
+    rest, 12sp secondary). Tested. Add bar docked: pill input + accent "Add" pill
+  - Kitchen Sign-in: keypad replaces the PIN field (64dp round surface keys,
+    delete = backspace, long-press clears). The dashboard PIN has no fixed length
+    so an accent Sign in sends it; dots = one per digit. Digits live in a
+    fragment-local StringBuilder only - cleared after every attempt and onStop,
+    never in VM/saved state. Wrong PIN / lockout / unreachable / not configured
+    show inline under the dots in the error colour; success snackbars dropped
+    (the screen itself changes, and they covered Sign out). Signed in: 52sp
+    "Signed in", "● Your board is open as X" in positive, 210dp ring of time
+    left (full circle = the longest time-left seen this session, since the API
+    only reports time left - a wall touch that extends it refills the ring),
+    outlined Sign out. "Can't tell" state keeps Sign out visible as before
+  - ProgressRingView: a nearly-full arc left a notch between its round caps;
+    now closes the circle once the gap is under a cap's width
+  - Offline hints shortened to "Add offline — syncs later" (to-do and shopping);
+    the old text clipped in the pill field
+  - Verified on the A32, dark and light: created "DailySync test list" on Alfred
+    (left in the vault - there's no delete endpoint), added "Test cable" and
+    "Test adaptor", ticked one; real lists show the name/note split. Wrong PIN
+    against the real dashboard -> inline error (1 attempt). Sign-in/out, lockout
+    and unreachable against a local stand-in dashboard (adb reverse,
+    dashboard_host swapped; prefs + alfred_cache restored byte-identical,
+    sha256 checked) since the kitchen PIN isn't known here. Airplane mode: menu
+    "Saved copy" + "Needs Alfred" tile ignores taps; an add to the test list
+    queued with "Waiting to sync", synced on reconnect. Unit tests 295 green

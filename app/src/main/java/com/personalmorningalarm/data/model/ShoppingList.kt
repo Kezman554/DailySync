@@ -13,7 +13,17 @@ data class ShoppingItem(
     val done: Boolean = false,
     /** Waiting in the offline queue — captured on the phone, not yet in the vault. */
     val pending: Boolean = false
-)
+) {
+    /** The item itself: everything before the first " — " (all of it if there's none). */
+    val name: String get() = task.substringBefore(NOTE_SEPARATOR).trim()
+
+    /** What follows the first " — " (why, when, a rough price), or null if nothing does. */
+    val note: String? get() = task.substringAfter(NOTE_SEPARATOR, "").trim().ifEmpty { null }
+
+    private companion object {
+        const val NOTE_SEPARATOR = " — "
+    }
+}
 
 /**
  * Turns one shopping list's `/shopping/{listId}` items into display-ready rows, and
@@ -21,6 +31,12 @@ data class ShoppingItem(
  * to a single list instead of the one chalkboard.
  */
 object ShoppingList {
+
+    /**
+     * A list's title as a tile or header shows it: the part before " — ", so
+     * "Fitness Equipment — Rolling Buy List" reads "Fitness Equipment".
+     */
+    fun shortTitle(title: String): String = title.substringBefore(" — ").trim().ifEmpty { title }
 
     fun items(items: List<ShoppingItemDto>): List<ShoppingItem> =
         items

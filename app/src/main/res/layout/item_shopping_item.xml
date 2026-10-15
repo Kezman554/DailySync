@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One shopping item row: tap ticks (bought), long-press drops. -->
+<!-- One shopping item: a positive checkbox, the name in bold and, under it, the
+     note (what follows " — " in the vault line). Tap ticks (bought), long-press
+     drops. -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,9 +9,11 @@
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
     android:gravity="top"
+    android:minHeight="52dp"
     android:orientation="horizontal"
-    android:paddingVertical="6dp">
+    android:paddingVertical="10dp">
 
+    <!-- Display only — the row itself is the tap target. -->
     <CheckBox
         android:id="@+id/cb_shopping"
         android:layout_width="wrap_content"
@@ -23,27 +27,43 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
+        android:layout_gravity="center_vertical"
         android:layout_marginStart="8dp"
+        android:layout_weight="1"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/tv_shopping_task"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:lineSpacingMultiplier="1.15"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            tools:text="Dip bars — after 2+ months consistent training ~£40" />
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:text="Dip bars" />
+
+        <TextView
+            android:id="@+id/tv_shopping_note"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:lineSpacingMultiplier="1.1"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textFontWeight="600"
+            android:textSize="12sp"
+            android:visibility="gone"
+            tools:text="after 2+ months consistent training ~£40"
+            tools:visibility="visible" />
 
         <!-- Only on items still waiting in the offline queue. -->
         <TextView
             android:id="@+id/tv_shopping_pending"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
             android:text="@string/chalkboard_item_pending"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
             android:textColor="?attr/colorPrimary"
-            android:textStyle="italic"
+            android:textSize="12sp"
+            android:textStyle="bold|italic"
             android:visibility="gone"
             tools:visibility="visible" />
 
