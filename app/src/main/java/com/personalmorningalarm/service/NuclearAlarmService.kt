@@ -210,7 +210,7 @@ class NuclearAlarmService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.nuclear_notification_title))
             .setContentText(getString(R.string.nuclear_notification_text))
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_dailysync)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOngoing(true) // can't be swiped away while the FGS runs

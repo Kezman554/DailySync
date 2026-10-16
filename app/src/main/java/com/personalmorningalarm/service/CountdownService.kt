@@ -139,7 +139,7 @@ class CountdownService : Service() {
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.countdown_notification_title))
             .setContentText(formatTime(seconds))
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_dailysync)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(appPendingIntent())

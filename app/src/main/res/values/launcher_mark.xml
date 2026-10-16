@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The one source drawing for the "Bento D round" launcher mark: the Home screen's
+  tiles shaped into a D. Every icon variant draws these paths and colours and
+  nothing else:
+    drawable/ic_launcher_background.xml   black ground + cyan glow
+    drawable/ic_launcher_foreground.xml   the mark in colour (also the splash icon)
+    drawable/ic_launcher_monochrome.xml   the mark in one colour (themed icons, 13+)
+    drawable/ic_stat_dailysync.xml        the mark cropped to 24dp (notifications)
+    mipmap-anydpi-v26/ic_launcher(_round).xml  the adaptive icons combining them
+
+  Geometry is in the 108x108 adaptive-icon viewport; launchers show roughly the
+  centre 72x72. The upright is a 17x46 rect at (31,31), r4.5. The curve is three
+  30-wide rects at x52 (r4) clipped to the half circle of radius 23 centred on
+  (55,54): tiles of 13, 12 and 13 high with 4-unit gaps.
+
+  The colours are deliberately defined here only, never in values-night: the icon
+  is the same whatever mode the phone is in.
+-->
+<resources>
+    <string name="launcher_mark_upright" translatable="false">M35.5,31 H43.5 A4.5,4.5 0 0 1 48,35.5 V72.5 A4.5,4.5 0 0 1 43.5,77 H35.5 A4.5,4.5 0 0 1 31,72.5 V35.5 A4.5,4.5 0 0 1 35.5,31 Z</string>
+    <string name="launcher_mark_curve_clip" translatable="false">M52,31 H55 A23,23 0 0 1 55,77 H52 Z</string>
+    <string name="launcher_mark_tile_top" translatable="false">M56,31 H78 A4,4 0 0 1 82,35 V40 A4,4 0 0 1 78,44 H56 A4,4 0 0 1 52,40 V35 A4,4 0 0 1 56,31 Z</string>
+    <string name="launcher_mark_tile_middle" translatable="false">M56,48 H78 A4,4 0 0 1 82,52 V56 A4,4 0 0 1 78,60 H56 A4,4 0 0 1 52,56 V52 A4,4 0 0 1 56,48 Z</string>
+    <string name="launcher_mark_tile_bottom" translatable="false">M56,64 H78 A4,4 0 0 1 82,68 V73 A4,4 0 0 1 78,77 H56 A4,4 0 0 1 52,73 V68 A4,4 0 0 1 56,64 Z</string>
+    <string name="launcher_ground_path" translatable="false">M0,0 H108 V108 H0 Z</string>
+
+    <!-- Icon ground, and the splash ground behind the mark -->
+    <color name="launcher_ground">#FF000000</color>
+    <!-- Glow centred ~80% across, 15% down: accent fill at 30%, gone by 70% of the width -->
+    <color name="launcher_glow_core">#4D00A6E0</color>
+    <color name="launcher_glow_inner">#2600A6E0</color>
+    <color name="launcher_glow_outer">#0D00A6E0</color>
+    <color name="launcher_glow_edge">#0000A6E0</color>
+    <!-- The upright and the first two tiles: the accent fill -->
+    <color name="launcher_mark">#FF00A6E0</color>
+    <!-- The last tile: done -->
+    <color name="launcher_mark_done">#FF57D64B</color>
+    <!-- Monochrome layer: launchers tint it, so only its alpha matters -->
+    <color name="launcher_mark_mono">#FFFFFFFF</color>
+</resources>

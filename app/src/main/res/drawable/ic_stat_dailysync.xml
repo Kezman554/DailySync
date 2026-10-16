@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notification small icon: the monochrome mark cropped from the 108 viewport to its 47x46 bounds plus a margin (viewport 52 = 2dp padding at 24dp), centred on (54.5,54). Source: values/launcher_mark.xml -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="52"
+    android:viewportHeight="52">
+    <group
+        android:translateX="-28.5"
+        android:translateY="-28">
+        <path
+            android:fillColor="@color/launcher_mark_mono"
+            android:pathData="@string/launcher_mark_upright" />
+        <group>
+            <clip-path android:pathData="@string/launcher_mark_curve_clip" />
+            <path
+                android:fillColor="@color/launcher_mark_mono"
+                android:pathData="@string/launcher_mark_tile_top" />
+            <path
+                android:fillColor="@color/launcher_mark_mono"
+                android:pathData="@string/launcher_mark_tile_middle" />
+            <path
+                android:fillColor="@color/launcher_mark_mono"
+                android:pathData="@string/launcher_mark_tile_bottom" />
+        </group>
+    </group>
+</vector>

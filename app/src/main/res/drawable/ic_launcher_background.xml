@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-icon background: black with the cyan glow. Source: values/launcher_mark.xml -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@color/launcher_ground"
+        android:pathData="@string/launcher_ground_path" />
+    <path android:pathData="@string/launcher_ground_path">
+        <aapt:attr name="android:fillColor">
+            <!-- Centre (86.4, 16.2) = 80% across, 15% down; radius 75.6 = 70% of the width -->
+            <gradient
+                android:type="radial"
+                android:centerX="86.4"
+                android:centerY="16.2"
+                android:gradientRadius="75.6">
+                <item android:offset="0" android:color="@color/launcher_glow_core" />
+                <item android:offset="0.44" android:color="@color/launcher_glow_inner" />
+                <item android:offset="0.78" android:color="@color/launcher_glow_outer" />
+                <item android:offset="1" android:color="@color/launcher_glow_edge" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

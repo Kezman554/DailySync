@@ -743,4 +743,16 @@
         <item name="android:minWidth">0dp</item>
         <item name="android:textSize">22sp</item>
     </style>
+
+    <!--
+      Starting theme for MainActivity (the launcher entry): the launcher mark on
+      black, from values/launcher_mark.xml via the adaptive-icon foreground. The
+      icon drawable is 108dp with the mark inside the centre 72dp, the same
+      safe zone as the launcher. installSplashScreen() swaps in the app theme.
+    -->
+    <style name="Theme.DailySync.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/launcher_ground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.PersonalMorningAlarm</item>
+    </style>
 </resources>

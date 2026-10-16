@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-icon foreground and the splash icon: the mark in colour. Source: values/launcher_mark.xml -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="0"
+        android:translateY="0">
+        <path
+            android:fillColor="@color/launcher_mark"
+            android:pathData="@string/launcher_mark_upright" />
+        <group>
+            <clip-path android:pathData="@string/launcher_mark_curve_clip" />
+            <path
+                android:fillColor="@color/launcher_mark"
+                android:pathData="@string/launcher_mark_tile_top" />
+            <path
+                android:fillColor="@color/launcher_mark"
+                android:pathData="@string/launcher_mark_tile_middle" />
+            <path
+                android:fillColor="@color/launcher_mark_done"
+                android:pathData="@string/launcher_mark_tile_bottom" />
+        </group>
+    </group>
+</vector>

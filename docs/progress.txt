@@ -1684,3 +1684,26 @@
     rescheduled in dumpsys alarm after the force-stop; torch off. Theme left on
     Light - it had been switched from Dark on the phone between sessions.
     Unit tests 295 green
+
+2026-10-16 - Session AP: launcher icon "Bento D round"
+  - Retired the navy-and-gold clock (drawable/ic_launcher.xml deleted). New mark:
+    the Home tiles shaped into a D. One source: values/launcher_mark.xml holds the
+    path data (string resources) and colours; every variant draws only those -
+    ic_launcher_background (black + cyan glow at 80%/15%, 30% -> 0 by 70% width),
+    ic_launcher_foreground (colour mark), ic_launcher_monochrome (themed icons),
+    ic_stat_dailysync (24dp crop for notifications), and the adaptive
+    mipmap-anydpi-v26/ic_launcher + ic_launcher_round. Launcher colours are
+    defined in values only, so the icon doesn't change with night mode
+  - Notifications used the full-colour launcher vector as smallIcon (a white
+    square); the three services now use ic_stat_dailysync
+  - Splash: androidx core-splashscreen 1.0.1, Theme.DailySync.Splash on
+    MainActivity - the foreground mark on launcher_ground (black) on API 26+,
+    installSplashScreen() before super.onCreate
+  - Verified on the A32 (update install, firstInstallTime unchanged, 06:30
+    alarm still scheduled): splash, recents and the One UI Home drawer show the
+    mark. Nick's default launcher (Minimalist) is text-only, so One UI Home was
+    opened directly, not set as default. At launcher size (~1.58 px/unit) the
+    12-unit middle tile renders 19 px and the 4-unit gaps 6 px - clean. Not
+    tested against changed wallpapers: the wallpaper can't be restored over adb,
+    and the icon's ground is opaque, so the gaps always sit on black.
+    Unit tests 295 green
