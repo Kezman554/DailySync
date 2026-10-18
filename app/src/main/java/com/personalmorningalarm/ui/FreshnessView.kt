@@ -156,11 +156,12 @@ object FreshnessView {
 /**
  * Keeps an open Alfred surface honest for as long as it's on screen: re-renders
  * the age every [TICK_MS] so "12 min old" doesn't freeze, and — while the
- * surface wants it ([Freshness.wantsRetry]: a saved copy, or live data an hour
- * old) — asks Alfred again, so the warnings clear themselves once he's back.
+ * surface shows a saved copy ([Freshness.wantsRetry]) — asks Alfred again, so
+ * the warnings clear themselves once he's back.
  *
- * Foreground-only and stale-only: nothing runs when the screen isn't started,
- * and a surface showing live data never polls. Retries are at most every
+ * A deliberate, narrow exception to "nothing polls" (recorded in CLAUDE.md):
+ * nothing runs when the screen isn't started, and a surface showing live data,
+ * however old, never polls. Retries are at most every
  * [RETRY_MS]; when [AlfredReachability] flips to reachable (a queue flush on
  * reconnect, another screen's fetch) the retry comes at once, unless one went
  * out in the last [FLIP_RETRY_GAP_MS] — that gap is what stops a half-working

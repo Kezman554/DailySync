@@ -106,10 +106,12 @@ class FreshnessTest {
     }
 
     @Test
-    fun `a surface retries while saved or an hour old, never while live and current`() {
+    fun `a surface retries only while showing a saved copy`() {
         assertTrue(Freshness.wantsRetry(saved("2026-10-18T06:29:00")))
-        assertTrue(Freshness.wantsRetry(live("2026-10-18T05:00:00")))
+        assertTrue(Freshness.wantsRetry(saved("2026-10-07T07:40:00")))
+        // Live data ages on screen, however old, but is never refetched.
         assertFalse(Freshness.wantsRetry(live("2026-10-18T06:10:00")))
+        assertFalse(Freshness.wantsRetry(live("2026-10-17T21:00:00")))
         assertFalse(Freshness.wantsRetry(null))
     }
 

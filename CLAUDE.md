@@ -64,6 +64,7 @@ MVVM architecture with Repository pattern throughout
 Public repo — never commit credentials, tokens, personal data, public IPs or hostnames, port-forwards, or VPN endpoints
 RFC1918 LAN defaults (192.168.x.x, 10.x.x.x, 172.16-31.x.x) are fine to commit — non-routable, unreachable from outside, and reveal nothing about the network. e.g. the Alfred host default 192.168.1.100:8200
 Foreground services for alarm and countdown reliability
+Nothing polls, with one deliberate, narrow exception (keep it): FreshnessWatch retries Alfred every 60s only while a screen is visible and showing a saved copy, and on reachability returning with a 10s minimum gap — it is what clears stale-data warnings without a restart
 Extensible challenge system — new challenges implement a common interface
 
 ## Design

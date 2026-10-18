@@ -1728,9 +1728,13 @@
     the same verdict the write queues act on (any failed read/transport/5xx =
     unreachable; any answer incl. 404 stale target / 4xx refusal = reachable)
   - FreshnessWatch (foreground-only): re-renders ages every 30 s; while a
-    surface shows a saved copy or hour-old data it retries every 60 s, and at
-    once when reachability flips back (10 s gap stops a half-up Alfred looping).
-    Retries are quiet (no spinner). This is how warnings clear without restart
+    surface shows a saved copy (only) it retries every 60 s, and at once when
+    reachability flips back (10 s gap stops a half-up Alfred looping). Retries
+    are quiet (no spinner). This is how warnings clear without restart; it is
+    recorded in CLAUDE.md as the one deliberate exception to "nothing polls".
+    Red for day-old data and the retry both confirmed by Nick
+  - Phone test planned Thursday, with the phone's Wi-Fi off rather than the
+    Alfred container stopped
   - Surfaces: Home schedule/to-do/shopping tiles, Week (plan or calendar,
     older wins), To-Do, Shopping menu + list, Inbox, and the alarm schedule and
     to-do content screens. The alarm schedule title names the plan's own day

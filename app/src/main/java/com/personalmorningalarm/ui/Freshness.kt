@@ -85,11 +85,12 @@ object Freshness {
         )
 
     /**
-     * Whether an open surface should ask Alfred again: it's showing a saved copy,
-     * or live data that has grown an hour old. This is what lets the warnings
-     * clear themselves once Alfred is back.
+     * Whether an open surface should ask Alfred again: only while it's showing a
+     * saved copy. This is what lets the warnings clear themselves once Alfred is
+     * back. Live data growing old on screen is shown aging, never refetched —
+     * the retry is a narrow exception to "nothing polls" (see CLAUDE.md).
      */
-    fun wantsRetry(age: Age?): Boolean = age != null && (age.saved || age.level >= Level.PROMINENT)
+    fun wantsRetry(age: Age?): Boolean = age?.saved == true
 
     /** The age as a count of one unit, the way a line on screen reads it. */
     sealed interface Span {
