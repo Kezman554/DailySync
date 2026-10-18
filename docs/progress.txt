@@ -1707,3 +1707,33 @@
     tested against changed wallpapers: the wallpaper can't be restored over adb,
     and the icon's ground is opaque, so the gaps always sit on black.
     Unit tests 295 green
+
+2026-10-18 - Session AQ: every Alfred surface shows the age of what it shows
+  - Why: in the August Pi outage the app said "Alfred unreachable" once, then
+    served an eleven-day-old plan as today's under a line that never changed.
+    Caching stays as it was; the silence is what's fixed
+  - Per-endpoint fetch time was already in alfred_cache (time_<endpoint>); now
+    AlfredResult.Fresh carries fetchedAtMillis too (repository clock, the same
+    stamp the cache gets), so live data ages on screen like saved data
+  - ui/Freshness (pure, FreshnessTest): NONE live <5 min; QUIET saved <1 h or
+    live 5-60 min (secondary line); PROMINENT >=1 h, same day (primary line with
+    the time it's from); LOUD fetched on an earlier calendar day, so anything
+    >=24 h (error-outlined notice; on a half-width tile, red text + red card
+    outline). Calendar day, not 24 h: yesterday 21:00 read at 06:00 is LOUD.
+    A saved copy is never NONE; never-fetched has no age and shows no data -
+    the *_unavailable strings now say "not on this phone yet"
+  - Red for LOUD is a deliberate reading of "colorError only for errors": the
+    app failing to get today's data and showing another day's is that error
+  - AlfredReachability: one StateFlow, reported only by AlfredRepository from
+    the same verdict the write queues act on (any failed read/transport/5xx =
+    unreachable; any answer incl. 404 stale target / 4xx refusal = reachable)
+  - FreshnessWatch (foreground-only): re-renders ages every 30 s; while a
+    surface shows a saved copy or hour-old data it retries every 60 s, and at
+    once when reachability flips back (10 s gap stops a half-up Alfred looping).
+    Retries are quiet (no spinner). This is how warnings clear without restart
+  - Surfaces: Home schedule/to-do/shopping tiles, Week (plan or calendar,
+    older wins), To-Do, Shopping menu + list, Inbox, and the alarm schedule and
+    to-do content screens. The alarm schedule title names the plan's own day
+    when it's from an earlier day instead of claiming today
+  - NOT yet verified on device: no A32 attached and no AVD this session.
+    Unit tests 314 green

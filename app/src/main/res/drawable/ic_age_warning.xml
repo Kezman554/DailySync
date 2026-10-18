@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Freshness notice icon for data from an earlier day: a warning triangle.
+     Tinted by FreshnessView. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M12,3.5L2.5,20h19zM12,10v4.5M12,17.2v0.1"
+        android:strokeWidth="2"
+        android:strokeColor="?attr/colorError"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -21,11 +21,13 @@ import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.ShoppingItem
 import com.personalmorningalarm.data.model.ShoppingItemDto
 import com.personalmorningalarm.data.model.ShoppingList
+import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.databinding.FragmentShoppingListBinding
 import kotlinx.coroutines.launch
+import java.time.ZoneId
 
 /**
  * One shopping list, its name as the title with "n left" beside it: add (the bar
@@ -99,6 +101,19 @@ class ShoppingListFragment : Fragment() {
                 launch { viewModel.events.collect(::showEvent) }
             }
         }
+        FreshnessWatch.start(
+            viewLifecycleOwner,
+            render = { renderFreshness(viewModel.state.value) },
+            wantsRetry = { Freshness.wantsRetry(age(viewModel.state.value)) },
+            retry = { viewModel.refresh(quiet = true) }
+        )
+    }
+
+    private fun age(state: ShoppingListViewModel.ShoppingListState): Freshness.Age? =
+        Freshness.of(state.result, System.currentTimeMillis(), ZoneId.systemDefault())
+
+    private fun renderFreshness(state: ShoppingListViewModel.ShoppingListState) {
+        FreshnessView.render(binding.freshness, age(state), AlfredReachability.state.value)
     }
 
     private fun submitAdd() {
@@ -132,9 +147,10 @@ class ShoppingListFragment : Fragment() {
         val queued = state.pending.filterNot { it.failed }
         val failed = state.pending.filter { it.failed }
 
-        // The sync line: a saved copy, and/or edits not in the vault yet.
+        renderFreshness(state)
+
+        // The sync line: edits not in the vault yet. The list's age is FreshnessView's.
         val sync = listOfNotNull(
-            getString(R.string.schedule_stale).takeIf { state.result is AlfredResult.Stale },
             resources.getQuantityString(R.plurals.chalkboard_pending_count, queued.size, queued.size)
                 .takeIf { queued.isNotEmpty() }
         )

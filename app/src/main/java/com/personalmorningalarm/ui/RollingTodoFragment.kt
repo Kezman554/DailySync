@@ -22,12 +22,14 @@ import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
 import com.personalmorningalarm.data.model.RollingTodo
 import com.personalmorningalarm.data.model.RollingTodoItem
+import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ChalkboardSync
 import com.personalmorningalarm.databinding.FragmentRollingTodoBinding
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * The To-Do tile: the rolling to-do, read-write. Tap ticks, long-press (with a
@@ -102,6 +104,19 @@ class RollingTodoFragment : Fragment() {
                 launch { viewModel.events.collect(::showEvent) }
             }
         }
+        FreshnessWatch.start(
+            viewLifecycleOwner,
+            render = { renderFreshness(viewModel.state.value) },
+            wantsRetry = { Freshness.wantsRetry(age(viewModel.state.value)) },
+            retry = { viewModel.refresh(quiet = true) }
+        )
+    }
+
+    private fun age(state: TodayViewModel.TodayState): Freshness.Age? =
+        Freshness.of(state.chalkboard, System.currentTimeMillis(), ZoneId.systemDefault())
+
+    private fun renderFreshness(state: TodayViewModel.TodayState) {
+        FreshnessView.render(binding.freshness, age(state), AlfredReachability.state.value)
     }
 
     /** The + opens the add field, focused with the keyboard up. */
@@ -163,9 +178,10 @@ class RollingTodoFragment : Fragment() {
         val queued = state.pending.filterNot { it.failed }
         val failed = state.pending.filter { it.failed }
 
-        // The sync line: a saved copy, and/or edits not in the vault yet.
+        renderFreshness(state)
+
+        // The sync line: edits not in the vault yet. The list's age is FreshnessView's.
         val sync = listOfNotNull(
-            getString(R.string.chalkboard_stale).takeIf { result is AlfredResult.Stale },
             resources.getQuantityString(R.plurals.chalkboard_pending_count, queued.size, queued.size)
                 .takeIf { queued.isNotEmpty() }
         )

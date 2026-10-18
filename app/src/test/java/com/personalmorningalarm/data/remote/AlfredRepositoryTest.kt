@@ -50,7 +50,8 @@ class AlfredRepositoryTest {
         shoppingWriteResponse: (() -> Response<Unit>)? = null,
         inboxResponse: List<InboxCaptureDto>? = null,
         captureResponse: (() -> Response<Unit>)? = null,
-        calendarResponse: CalendarEventsDto? = null
+        calendarResponse: CalendarEventsDto? = null,
+        clock: () -> Long = System::currentTimeMillis
     ) = AlfredRepository(
         settings,
         cache,
@@ -106,7 +107,8 @@ class AlfredRepositoryTest {
                 private fun shoppingWrite(): Response<Unit> =
                     shoppingWriteResponse?.invoke() ?: throw IOException("Alfred unreachable")
             }
-        }
+        },
+        clock = clock
     )
 
     private val schedule = listOf(ScheduleTaskDto("Gym", "am"), ScheduleTaskDto("Read", null))
@@ -148,6 +150,59 @@ class AlfredRepositoryTest {
         val result = repository(null).getDailySchedule()
 
         assertEquals(newer, (result as AlfredResult.Stale).data)
+    }
+
+    // --- Age: every result knows when its data was fetched, per endpoint ---
+
+    @Test
+    fun `fresh data carries its fetch time, and the saved copy keeps it`() = runBlocking {
+        val fresh = repository(schedule, clock = { 1_000L }).getDailySchedule()
+        assertEquals(1_000L, (fresh as AlfredResult.Fresh).fetchedAtMillis)
+
+        val stale = repository(null, clock = { 9_000L }).getDailySchedule()
+        assertEquals(1_000L, (stale as AlfredResult.Stale).cachedAtMillis)
+    }
+
+    @Test
+    fun `each endpoint keeps its own fetch time`() = runBlocking {
+        repository(schedule, clock = { 1_000L }).getDailySchedule()
+        repository(chalkboardResponse = chalkboard, clock = { 5_000L }).getChalkboard()
+
+        val offline = repository()
+        assertEquals(1_000L, (offline.getDailySchedule() as AlfredResult.Stale).cachedAtMillis)
+        assertEquals(5_000L, (offline.getChalkboard() as AlfredResult.Stale).cachedAtMillis)
+    }
+
+    @Test
+    fun `map keeps the fetch time`() {
+        val mapped = AlfredResult.Fresh(listOf(1, 2), 42L).map { it.size }
+        assertEquals(AlfredResult.Fresh(2, 42L), mapped)
+    }
+
+    // --- Reachability: one switch, moved by reads and by the queue's writes alike ---
+
+    @Test
+    fun `a failed read marks Alfred unreachable, a successful one reachable`() = runBlocking {
+        repository(null).getDailySchedule()
+        assertEquals(AlfredReachability.State.UNREACHABLE, AlfredReachability.state.value)
+
+        repository(schedule).getDailySchedule()
+        assertEquals(AlfredReachability.State.REACHABLE, AlfredReachability.state.value)
+    }
+
+    @Test
+    fun `a write the queue would keep is unreachable, a stale-target 404 is an answer`() = runBlocking {
+        val error = { code: Int -> Response.error<Unit>(code, ResponseBody.create(MediaType.parse("application/json"), "{}")) }
+
+        assertEquals(AlfredWriteResult.Unreachable, repository(writeResponse = { error(503) }).addChalkboardItem("x"))
+        assertEquals(AlfredReachability.State.UNREACHABLE, AlfredReachability.state.value)
+
+        // A 404 whose body isn't the list is still a failed write — but Alfred answered it.
+        repository(writeResponse = { error(404) }).tickChalkboardItem("- [ ] x")
+        assertEquals(AlfredReachability.State.REACHABLE, AlfredReachability.state.value)
+
+        repository().addChalkboardItem("x") // transport failure
+        assertEquals(AlfredReachability.State.UNREACHABLE, AlfredReachability.state.value)
     }
 
     // --- /chalkboard: same fetch(), so it inherits caching and fallback unchanged ---

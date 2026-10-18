@@ -5,17 +5,18 @@ import android.content.Context
 /**
  * Last successful response body per Alfred endpoint, as raw JSON, so a screen can
  * still show something when Alfred is unreachable. One entry per endpoint —
- * a new response replaces the old one.
+ * a new response replaces the old one — each with its own fetch time, so every
+ * surface can say how old its saved copy is.
  */
 class AlfredResponseCache(context: Context) {
 
     private val prefs = context.applicationContext
         .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    fun put(endpoint: String, json: String) {
+    fun put(endpoint: String, json: String, fetchedAtMillis: Long = System.currentTimeMillis()) {
         prefs.edit()
             .putString(bodyKey(endpoint), json)
-            .putLong(timeKey(endpoint), System.currentTimeMillis())
+            .putLong(timeKey(endpoint), fetchedAtMillis)
             .apply()
     }
 

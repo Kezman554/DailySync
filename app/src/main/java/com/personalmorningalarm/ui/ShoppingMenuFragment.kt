@@ -19,10 +19,12 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.snackbar.Snackbar
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.databinding.FragmentShoppingMenuBinding
 import kotlinx.coroutines.launch
+import java.time.ZoneId
 
 /**
  * The shopping-list tile's landing screen: every active list from Alfred's discovery
@@ -77,6 +79,19 @@ class ShoppingMenuFragment : Fragment() {
                 launch { viewModel.events.collect(::showEvent) }
             }
         }
+        FreshnessWatch.start(
+            viewLifecycleOwner,
+            render = { renderFreshness(viewModel.state.value) },
+            wantsRetry = { Freshness.wantsRetry(age(viewModel.state.value)) },
+            retry = { viewModel.refresh(quiet = true) }
+        )
+    }
+
+    private fun age(state: ShoppingMenuViewModel.MenuState): Freshness.Age? =
+        Freshness.of(state.lists, System.currentTimeMillis(), ZoneId.systemDefault())
+
+    private fun renderFreshness(state: ShoppingMenuViewModel.MenuState) {
+        FreshnessView.render(binding.freshness, age(state), AlfredReachability.state.value)
     }
 
     /** The New list tile opens the create field, focused with the keyboard up. */
@@ -136,8 +151,7 @@ class ShoppingMenuFragment : Fragment() {
     private fun render(state: ShoppingMenuViewModel.MenuState) {
         binding.swipeRefresh.isRefreshing = state.loading
 
-        binding.syncLine.root.isVisible = state.lists is AlfredResult.Stale
-        binding.syncLine.tvSyncText.setText(R.string.schedule_stale)
+        renderFreshness(state)
         val lists: List<ShoppingListSummaryDto>? = when (val result = state.lists) {
             null -> null
             is AlfredResult.Fresh -> result.data

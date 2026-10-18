@@ -10,6 +10,7 @@ import com.personalmorningalarm.data.model.WeekSchedule
 import com.personalmorningalarm.data.model.WeekScheduleDto
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +20,9 @@ import java.time.LocalDate
 /**
  * Backs the week schedule screen: one fetch of the whole plan week per screen
  * visit (the ViewModel's lifetime), cached and falling back like every other
- * Alfred feed. Page swipes are pure UI — they never touch the network.
+ * Alfred feed — plus [refresh], which the screen calls only while it's showing
+ * a saved copy (FreshnessWatch). Page swipes are pure UI — they never touch the
+ * network.
  *
  * The family calendar is fetched separately and layered in when it arrives, in a
  * single call covering the whole visible week rather than one per day. The plan is
@@ -44,19 +47,24 @@ class WeekScheduleViewModel(private val alfred: AlfredRepository) : ViewModel() 
                 }
             )
 
-        /** When the shown calendar was fetched, if it's a saved copy rather than live. */
-        val calendarCachedAtMillis: Long?
-            get() = (calendar as? AlfredResult.Stale)?.cachedAtMillis
     }
 
     private val _state = MutableStateFlow(WeekState())
     val state: StateFlow<WeekState> = _state.asStateFlow()
 
+    private var inFlight: Job? = null
+
     init {
-        viewModelScope.launch {
+        refresh()
+    }
+
+    /** Ignored while a fetch is already running. The previous week stays up until the new one lands. */
+    fun refresh() {
+        if (inFlight?.isActive == true) return
+        inFlight = viewModelScope.launch {
             // Never throws — unreachable comes back as Stale or Unavailable.
             val result = alfred.getWeekSchedule()
-            _state.value = WeekState(loading = false, week = result)
+            _state.value = _state.value.copy(loading = false, week = result)
             Log.d(TAG, "Week schedule fetched: ${result.javaClass.simpleName}")
             fetchCalendarFor(result)
         }

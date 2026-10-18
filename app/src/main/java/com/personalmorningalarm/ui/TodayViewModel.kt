@@ -82,13 +82,14 @@ class TodayViewModel(
     }
 
     /** Ignored while a refresh is already running, so repeated pulls don't stack. */
-    fun refresh() {
+    fun refresh(quiet: Boolean = false) {
         if (inFlight?.isActive == true) {
             Log.d(TAG, "Today: refresh already in flight — ignored")
             return
         }
         inFlight = viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true)
+            // A quiet refresh is FreshnessWatch retrying a saved copy: no spinner every minute.
+            if (!quiet) _state.value = _state.value.copy(loading = true)
             // Queued writes go first so the refetch below sees their effect —
             // otherwise the pull that greets home WiFi would show a list the
             // queue is about to change. A no-op when nothing is queued.
@@ -204,7 +205,7 @@ class TodayViewModel(
      */
     private fun applyOptimistically(mutate: (List<ChalkboardTaskDto>) -> List<ChalkboardTaskDto>) {
         val fresh = _state.value.chalkboard as? AlfredResult.Fresh ?: return
-        _state.value = _state.value.copy(chalkboard = AlfredResult.Fresh(mutate(fresh.data)))
+        _state.value = _state.value.copy(chalkboard = fresh.copy(data = mutate(fresh.data)))
     }
 
     private fun runWrite(
@@ -218,7 +219,7 @@ class TodayViewModel(
                 AlfredWriteResult.Done -> if (reconcileOnSuccess) reconcileChalkboard()
                 is AlfredWriteResult.StaleTarget -> {
                     // The current list came back in the same round trip — use it.
-                    _state.value = _state.value.copy(chalkboard = AlfredResult.Fresh(result.current))
+                    _state.value = _state.value.copy(chalkboard = AlfredResult.Fresh(result.current, System.currentTimeMillis()))
                     _events.emit(TodayEvent.LIST_REFRESHED)
                 }
                 AlfredWriteResult.Unreachable -> {

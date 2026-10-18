@@ -63,22 +63,46 @@
     <!-- Daily Schedule content screen (Alfred) -->
     <string name="content_schedule_heading">Today\'s schedule</string>
     <string name="schedule_loading">Checking with Alfred…</string>
-    <string name="schedule_unavailable">Schedule unavailable</string>
+    <string name="schedule_unavailable">No schedule on this phone yet — Alfred unreachable</string>
     <string name="schedule_empty">Nothing scheduled today</string>
-    <string name="schedule_stale">Saved copy — Alfred unreachable</string>
-    <string name="calendar_stale">Family calendar as of %1$s</string>
     <string name="schedule_period_early">Early</string>
     <string name="schedule_period_morning">Morning</string>
     <string name="schedule_period_afternoon">Afternoon</string>
     <string name="schedule_period_evening">Evening</string>
     <string name="schedule_period_ungrouped">Anytime</string>
 
+    <!-- Age of Alfred data on screen (Freshness / FreshnessView). Never-fetched is
+         not here: those surfaces show no data and their *_unavailable text says so -->
+    <string name="freshness_under_minute">under a minute</string>
+    <plurals name="freshness_minutes">
+        <item quantity="one">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+    <plurals name="freshness_hours">
+        <item quantity="one">%d h</item>
+        <item quantity="other">%d h</item>
+    </plurals>
+    <plurals name="freshness_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="freshness_saved_quiet">Saved copy · %1$s old</string>
+    <string name="freshness_live_quiet">Updated %1$s ago</string>
+    <string name="freshness_saved_prominent">Saved copy from %1$s · %2$s old</string>
+    <string name="freshness_live_prominent">Last updated %1$s · %2$s ago</string>
+    <string name="freshness_loud_yesterday">From yesterday, %1$s</string>
+    <string name="freshness_loud_days">From %1$s · %2$s old</string>
+    <string name="freshness_with_reason">%1$s · %2$s</string>
+    <string name="freshness_reason_unreachable">Alfred unreachable</string>
+    <string name="freshness_reason_back">Alfred is back — refreshing…</string>
+    <string name="freshness_loud_saved_detail">Alfred unreachable — this is a saved copy, not today\'s.</string>
+    <string name="freshness_loud_live_detail">Not refreshed since — this isn\'t today\'s.</string>
+
     <!-- Rolling To-Do List content screen (Alfred /chalkboard) -->
     <string name="content_chalkboard_heading">Rolling to-do</string>
     <string name="chalkboard_loading">Checking with Alfred…</string>
-    <string name="chalkboard_unavailable">To-do list unavailable</string>
+    <string name="chalkboard_unavailable">No to-do list on this phone yet — Alfred unreachable</string>
     <string name="chalkboard_empty">Nothing on the list — all clear</string>
-    <string name="chalkboard_stale">Saved copy — Alfred unreachable</string>
 
     <!-- Today screen (on-demand Alfred dashboard, outside the alarm flow) -->
     <!-- Rolling to-do editing (Today screen only — the alarm-flow screen is read-only) -->
@@ -105,7 +129,7 @@
     <!-- Shopping Lists tile (Alfred /shopping) -->
     <string name="shopping_menu_title">Shopping</string>
     <string name="shopping_menu_loading">Checking with Alfred…</string>
-    <string name="shopping_menu_unavailable">Shopping lists unavailable</string>
+    <string name="shopping_menu_unavailable">No shopping lists on this phone yet — Alfred unreachable</string>
     <string name="shopping_menu_empty">No shopping lists yet</string>
     <string name="shopping_new_list_heading">New list</string>
     <string name="shopping_new_list_hint">List name</string>
@@ -119,7 +143,7 @@
     <string name="shopping_new_list_offline">Needs Alfred</string>
     <string name="shopping_food_note">Food lists live in KitchenSync.</string>
 
-    <string name="shopping_list_unavailable">List unavailable</string>
+    <string name="shopping_list_unavailable">This list isn\'t on this phone yet — Alfred unreachable</string>
     <string name="shopping_list_empty">Nothing on this list — all clear</string>
     <string name="shopping_add_hint">Add to the list</string>
     <string name="shopping_offline_hint">Add offline — syncs later</string>
@@ -128,7 +152,7 @@
 
     <!-- Inbox tile (Alfred /inbox) — read-only list, capture-only write -->
     <string name="inbox_title">Inbox</string>
-    <string name="inbox_unavailable">Inbox unavailable</string>
+    <string name="inbox_unavailable">Inbox not on this phone yet — Alfred unreachable</string>
     <string name="inbox_empty">Inbox is clear</string>
     <string name="inbox_capture_hint">Capture a thought</string>
     <string name="inbox_offline_hint">Capture a thought (offline — will sync)</string>
@@ -164,10 +188,10 @@
     <string name="tiles_schedule_more">+%1$d more</string>
     <string name="tiles_todo_loading">Checking…</string>
     <string name="tiles_todo_empty">Nothing to do</string>
-    <string name="tiles_todo_unavailable">To-do unavailable</string>
+    <string name="tiles_todo_unavailable">Never loaded — Alfred unreachable</string>
     <string name="tiles_shopping_left">" · %1$d left"</string>
     <string name="tiles_shopping_done">Nothing left to buy</string>
-    <string name="tiles_shopping_unavailable">Lists unavailable</string>
+    <string name="tiles_shopping_unavailable">Never loaded</string>
     <string name="tiles_inbox_subtitle">Capture a thought</string>
     <string name="tiles_sign_in_locked">Wall board locked</string>
     <string name="tiles_sign_in_open">Signed in</string>

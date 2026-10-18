@@ -50,10 +50,11 @@ class ShoppingMenuViewModel(private val alfred: AlfredRepository) : ViewModel() 
     }
 
     /** Ignored while a refresh is already running, so repeated pulls don't stack. */
-    fun refresh() {
+    fun refresh(quiet: Boolean = false) {
         if (inFlight?.isActive == true) return
         inFlight = viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true)
+            // A quiet refresh is FreshnessWatch retrying a saved copy: no spinner every minute.
+            if (!quiet) _state.value = _state.value.copy(loading = true)
             val result = alfred.getShoppingLists()
             _state.value = MenuState(loading = false, lists = result)
         }

@@ -19,6 +19,7 @@ import com.personalmorningalarm.data.model.DayAgenda
 import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ChalkboardSync
@@ -29,6 +30,7 @@ import com.personalmorningalarm.databinding.FragmentTilesBinding
 import com.personalmorningalarm.util.MarkdownRenderer
 import kotlinx.coroutines.launch
 import java.time.LocalTime
+import java.time.ZoneId
 
 /**
  * The app's landing screen, under the shared header: a Daily Schedule card with
@@ -109,9 +111,16 @@ class TilesFragment : Fragment() {
                     renderTodos(state.todos)
                     renderShopping(state.shopping)
                     renderSignIn(state.presence)
+                    renderFreshness(state)
                 }
             }
         }
+        FreshnessWatch.start(
+            viewLifecycleOwner,
+            render = { renderFreshness(viewModel.state.value) },
+            wantsRetry = { ages(viewModel.state.value).any(Freshness::wantsRetry) },
+            retry = viewModel::refresh
+        )
     }
 
     override fun onStart() {
@@ -130,7 +139,6 @@ class TilesFragment : Fragment() {
             result == null -> getString(R.string.schedule_loading)
             agenda == null -> getString(R.string.schedule_unavailable)
             columns.isEmpty() -> getString(R.string.schedule_empty)
-            result is AlfredResult.Stale -> getString(R.string.schedule_stale)
             else -> null
         }
         binding.tvScheduleNote.isVisible = note != null
@@ -173,6 +181,28 @@ class TilesFragment : Fragment() {
         }
         binding.tvShoppingCount.isVisible = active != null
         binding.tvShoppingCount.text = active?.let { getString(R.string.tiles_shopping_left, it.unticked ?: 0) }
+    }
+
+    /** Schedule (plan or calendar, whichever is older), to-do, shopping — each its own endpoint's age. */
+    private fun ages(state: TilesViewModel.TilesState): List<Freshness.Age?> {
+        val now = System.currentTimeMillis()
+        val zone = ZoneId.systemDefault()
+        // A calendar only matters when there's a plan for it to sit in.
+        val calendar = Freshness.of(state.calendar, now, zone).takeIf { state.schedule?.dataOrNull() != null }
+        return listOf(
+            Freshness.worst(Freshness.of(state.schedule, now, zone), calendar),
+            Freshness.of(state.todos, now, zone),
+            Freshness.of(state.shopping, now, zone)
+        )
+    }
+
+    /** Ages on the tiles themselves — readable from Home without opening anything. */
+    private fun renderFreshness(state: TilesViewModel.TilesState) {
+        val reach = AlfredReachability.state.value
+        val (schedule, todos, shopping) = ages(state)
+        FreshnessView.render(binding.scheduleFreshness, schedule, reach)
+        FreshnessView.render(binding.todoFreshness, todos, reach, compact = true, card = binding.cardTodo)
+        FreshnessView.render(binding.shoppingFreshness, shopping, reach, compact = true, card = binding.cardShopping)
     }
 
     private fun renderSignIn(result: PresenceResult?) {

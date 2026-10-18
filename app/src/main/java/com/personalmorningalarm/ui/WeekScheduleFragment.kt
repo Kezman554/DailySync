@@ -20,11 +20,11 @@ import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.WeekDay
 import com.personalmorningalarm.data.model.WeekSchedule
 import com.personalmorningalarm.data.model.WeekScheduleDto
+import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.databinding.FragmentWeekScheduleBinding
 import kotlinx.coroutines.launch
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -80,10 +80,15 @@ class WeekScheduleFragment : Fragment() {
                 viewModel.state.collect(::render)
             }
         }
+        FreshnessWatch.start(
+            viewLifecycleOwner,
+            render = { renderFreshness(viewModel.state.value) },
+            wantsRetry = { Freshness.wantsRetry(weekAge(viewModel.state.value)) },
+            retry = viewModel::refresh
+        )
     }
 
     private fun render(state: WeekScheduleViewModel.WeekState) {
-        setSyncLine(null)
         // The calendar is layered onto whatever the plan renders — it is never the
         // reason a week fails to show.
         dayAdapter.setEvents(state.eventsByDate)
@@ -91,31 +96,21 @@ class WeekScheduleFragment : Fragment() {
             null -> showStatus(R.string.schedule_loading)
             AlfredResult.Unavailable -> showStatus(R.string.schedule_unavailable)
             is AlfredResult.Fresh -> showWeek(result.data)
-            is AlfredResult.Stale -> {
-                setSyncLine(getString(R.string.schedule_stale))
-                showWeek(result.data)
-            }
+            is AlfredResult.Stale -> showWeek(result.data)
         }
-        showCalendarNote(state)
+        renderFreshness(state)
     }
 
-    private fun setSyncLine(text: String?) {
-        binding.syncLine.root.isVisible = text != null
-        binding.syncLine.tvSyncText.text = text
+    /** The plan's age, or the calendar's when that is the older of the two. */
+    private fun weekAge(state: WeekScheduleViewModel.WeekState): Freshness.Age? {
+        val now = System.currentTimeMillis()
+        val zone = ZoneId.systemDefault()
+        return Freshness.worst(Freshness.of(state.week, now, zone), Freshness.of(state.calendar, now, zone))
     }
 
-    /**
-     * A saved calendar says so quietly. The plan's own "Alfred unreachable" line
-     * wins when both are stale — it already says the same thing, louder.
-     */
-    private fun showCalendarNote(state: WeekScheduleViewModel.WeekState) {
-        if (binding.syncLine.root.isVisible) return
-        val cachedAt = state.calendarCachedAtMillis ?: return
-        setSyncLine(getString(R.string.calendar_stale, formatAsOf(cachedAt)))
+    private fun renderFreshness(state: WeekScheduleViewModel.WeekState) {
+        FreshnessView.render(binding.freshness, weekAge(state), AlfredReachability.state.value)
     }
-
-    private fun formatAsOf(millis: Long): String =
-        AS_OF_FORMAT.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
 
     private fun showWeek(dto: WeekScheduleDto) {
         val today = LocalDate.now()
@@ -210,8 +205,6 @@ class WeekScheduleFragment : Fragment() {
     }
 
     private companion object {
-        val AS_OF_FORMAT: DateTimeFormatter =
-            DateTimeFormatter.ofPattern("d MMM, HH:mm", Locale.getDefault())
         val PILL_DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE", Locale.getDefault())
         val PILL_DESCRIPTION_FORMAT: DateTimeFormatter =
             DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.getDefault())

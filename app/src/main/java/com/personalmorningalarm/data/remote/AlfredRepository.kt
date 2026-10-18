@@ -26,13 +26,19 @@ import java.time.LocalDate
  * which adds the behaviour each Alfred screen needs: on success the response is
  * cached; when Alfred is unreachable the cached response is served instead, and
  * only if there's nothing cached does the caller get [AlfredResult.Unavailable].
+ * Every result carries when its data was fetched, cached or not.
+ *
+ * Every call also tells [AlfredReachability] whether Alfred answered — the same
+ * unreachable verdict the offline write queues act on, so there is one answer to
+ * "can we see Alfred" across the app.
  *
  * Alfred being down is an ordinary morning, not an error — no call here throws.
  */
 class AlfredRepository(
     private val settings: AlfredSettings,
     private val cache: AlfredResponseCache,
-    private val serviceProvider: (AlfredSettings) -> AlfredApiService = AlfredClient::service
+    private val serviceProvider: (AlfredSettings) -> AlfredApiService = AlfredClient::service,
+    private val clock: () -> Long = System::currentTimeMillis
 ) {
 
     constructor(context: Context) : this(
@@ -125,6 +131,7 @@ class AlfredRepository(
     suspend fun createShoppingList(name: String): ShoppingCreateResult = withContext(Dispatchers.IO) {
         try {
             val response = serviceProvider(settings).createShoppingList(ShoppingCreateRequest(name))
+            reportAnswer(response.isSuccessful || response.code() == 409)
             when {
                 response.isSuccessful -> {
                     val body = response.body()
@@ -145,6 +152,7 @@ class AlfredRepository(
             throw cancellation
         } catch (e: Exception) {
             Log.d(TAG, "Alfred unreachable for create shopping list (${e.javaClass.simpleName})")
+            reportAnswer(false)
             ShoppingCreateResult.Unreachable
         }
     }
@@ -177,6 +185,7 @@ class AlfredRepository(
     suspend fun captureToInbox(text: String): InboxWriteResult = withContext(Dispatchers.IO) {
         try {
             val response = serviceProvider(settings).capture(capturePlainText(text))
+            reportAnswer(response.isSuccessful || response.code() in 400..499)
             when {
                 response.isSuccessful -> InboxWriteResult.Done
                 response.code() in 400..499 -> {
@@ -192,6 +201,7 @@ class AlfredRepository(
             throw cancellation
         } catch (e: Exception) {
             Log.d(TAG, "Alfred unreachable for inbox capture (${e.javaClass.simpleName})")
+            reportAnswer(false)
             InboxWriteResult.Unreachable
         }
     }
@@ -207,6 +217,7 @@ class AlfredRepository(
     ): AlfredWriteResult = withContext(Dispatchers.IO) {
         try {
             val response = request(serviceProvider(settings))
+            reportAnswer(response.isSuccessful || response.code() == 404)
             when {
                 response.isSuccessful -> AlfredWriteResult.Done
                 response.code() == 404 -> staleTarget(verb, response)
@@ -219,6 +230,7 @@ class AlfredRepository(
             throw cancellation
         } catch (e: Exception) {
             Log.d(TAG, "Alfred unreachable for chalkboard $verb (${e.javaClass.simpleName})")
+            reportAnswer(false)
             AlfredWriteResult.Unreachable
         }
     }
@@ -241,7 +253,7 @@ class AlfredRepository(
             return AlfredWriteResult.Unreachable
         }
         Log.d(TAG, "Chalkboard $verb hit a stale line — resynced ${current.size} items")
-        cache.put(ENDPOINT_CHALKBOARD, gson.toJson(current))
+        cache.put(ENDPOINT_CHALKBOARD, gson.toJson(current), clock())
         return AlfredWriteResult.StaleTarget(current)
     }
 
@@ -253,6 +265,7 @@ class AlfredRepository(
     ): ShoppingWriteResult = withContext(Dispatchers.IO) {
         try {
             val response = request(serviceProvider(settings))
+            reportAnswer(response.isSuccessful || response.code() == 404)
             when {
                 response.isSuccessful -> ShoppingWriteResult.Done
                 response.code() == 404 -> staleShoppingTarget(listId, verb, response)
@@ -265,6 +278,7 @@ class AlfredRepository(
             throw cancellation
         } catch (e: Exception) {
             Log.d(TAG, "Alfred unreachable for shopping $verb (${e.javaClass.simpleName})")
+            reportAnswer(false)
             ShoppingWriteResult.Unreachable
         }
     }
@@ -296,7 +310,11 @@ class AlfredRepository(
         } catch (e: Exception) {
             null
         }
-        cache.put(shoppingListEndpoint(listId), gson.toJson(ShoppingListDetailDto(list = previousList, items = current)))
+        cache.put(
+            shoppingListEndpoint(listId),
+            gson.toJson(ShoppingListDetailDto(list = previousList, items = current)),
+            clock()
+        )
         return ShoppingWriteResult.StaleTarget(current)
     }
 
@@ -311,15 +329,28 @@ class AlfredRepository(
     ): AlfredResult<T> = withContext(Dispatchers.IO) {
         try {
             val data = request(serviceProvider(settings))
-            cache.put(endpoint, gson.toJson(data))
-            AlfredResult.Fresh(data)
+            val fetchedAt = clock()
+            cache.put(endpoint, gson.toJson(data), fetchedAt)
+            reportAnswer(true)
+            AlfredResult.Fresh(data, fetchedAt)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (e: Exception) {
+            // Any failed read — no route, timeout, an HTTP error, a body we can't
+            // parse — leaves the screen on its saved copy, so it counts as
+            // unreachable the same way a failed write does.
             Log.d(TAG, "Alfred unreachable for $endpoint (${e.javaClass.simpleName}) — trying cache")
+            reportAnswer(false)
             readCache(endpoint, type)
         }
     }
+
+    /**
+     * Whether Alfred answered, for [AlfredReachability]. "Answered" matches what
+     * the write paths treat as not-unreachable: a 404 stale target or a 4xx
+     * refusal is Alfred reading the request and replying.
+     */
+    private fun reportAnswer(answered: Boolean) = AlfredReachability.report(answered)
 
     private fun <T : Any> readCache(endpoint: String, type: Type): AlfredResult<T> {
         val cached = cache.get(endpoint) ?: return AlfredResult.Unavailable

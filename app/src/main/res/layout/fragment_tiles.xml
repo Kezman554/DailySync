@@ -89,6 +89,14 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     tools:text="Checking with Alfred…" />
+
+                <!-- How old the plan (and calendar) shown above is -->
+                <include
+                    android:id="@+id/schedule_freshness"
+                    layout="@layout/view_freshness"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -141,6 +149,13 @@
                         android:layout_marginTop="10dp"
                         android:visibility="gone"
                         tools:text="Nothing to do" />
+
+                    <include
+                        android:id="@+id/todo_freshness"
+                        layout="@layout/view_freshness"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -209,6 +224,13 @@
                                 android:maxLines="1"
                                 tools:text=" · 9 left" />
                         </LinearLayout>
+
+                        <include
+                            android:id="@+id/shopping_freshness"
+                            layout="@layout/view_freshness"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 

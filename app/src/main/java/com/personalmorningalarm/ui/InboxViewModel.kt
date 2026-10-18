@@ -69,10 +69,11 @@ class InboxViewModel(
         refresh()
     }
 
-    fun refresh() {
+    fun refresh(quiet: Boolean = false) {
         if (inFlight?.isActive == true) return
         inFlight = viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true)
+            // A quiet refresh is FreshnessWatch retrying a saved copy: no spinner every minute.
+            if (!quiet) _state.value = _state.value.copy(loading = true)
             // Queued captures go first, same as the other tiles' refresh, so the
             // refetch below sees them as real files.
             if (sync.hasPending()) sync.flush()

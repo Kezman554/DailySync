@@ -386,18 +386,14 @@
             tools:text="WFH day"
             tools:visibility="visible" />
 
-        <!-- Status line: a saved copy shown because Alfred is unreachable -->
-        <TextView
-            android:id="@+id/content_note"
+        <!-- How old the schedule or to-do is (FreshnessView). Read half awake, so a
+             saved copy from an earlier day gets the full error-outlined notice -->
+        <include
+            android:id="@+id/content_freshness"
+            layout="@layout/view_freshness"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textFontWeight="600"
-            android:textSize="14sp"
-            android:visibility="gone"
-            tools:text="Saved copy — Alfred unreachable"
-            tools:visibility="visible" />
+            android:layout_marginTop="8dp" />
 
         <ScrollView
             android:id="@+id/content_scroll"

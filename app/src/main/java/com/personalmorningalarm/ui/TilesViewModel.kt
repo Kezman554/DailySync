@@ -46,6 +46,8 @@ class TilesViewModel(
 
     data class TilesState(
         val schedule: AlfredResult<DayAgenda>? = null,
+        /** The calendar layered into [schedule], kept for its age alone — the card shows the older of the two. */
+        val calendar: AlfredResult<*>? = null,
         val todos: AlfredResult<List<RollingTodoItem>>? = null,
         val shopping: AlfredResult<List<ShoppingListSummaryDto>>? = null,
         val presence: PresenceResult? = null
@@ -56,6 +58,7 @@ class TilesViewModel(
     val state: StateFlow<TilesState> = combine(fetched, sync.queue) { f, pending ->
         TilesState(
             schedule = f.schedule,
+            calendar = f.calendar,
             todos = f.chalkboard?.map { RollingTodo.merged(it, pending) },
             shopping = f.shopping,
             presence = f.presence
@@ -75,11 +78,13 @@ class TilesViewModel(
                 val shopping = async { alfred.getShoppingLists() }
                 val signIn = async { presence.status() }
 
-                val events = FamilyCalendar.byDate(calendar.await().dataOrNull())[date].orEmpty()
+                val calendarResult = calendar.await()
+                val events = FamilyCalendar.byDate(calendarResult.dataOrNull())[date].orEmpty()
                 fetched.value = Fetched(
                     // The calendar is optional: with Alfred's plan unavailable there's
                     // no schedule to show, but a missing calendar just means vault only.
                     schedule = schedule.await().map { FamilyCalendar.agenda(it, events) },
+                    calendar = calendarResult,
                     chalkboard = chalkboard.await(),
                     shopping = shopping.await(),
                     presence = signIn.await()
@@ -91,6 +96,7 @@ class TilesViewModel(
 
     private data class Fetched(
         val schedule: AlfredResult<DayAgenda>? = null,
+        val calendar: AlfredResult<*>? = null,
         val chalkboard: AlfredResult<List<ChalkboardTaskDto>>? = null,
         val shopping: AlfredResult<List<ShoppingListSummaryDto>>? = null,
         val presence: PresenceResult? = null

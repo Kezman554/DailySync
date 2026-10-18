@@ -73,10 +73,11 @@ class ShoppingListViewModel(
         refresh()
     }
 
-    fun refresh() {
+    fun refresh(quiet: Boolean = false) {
         if (inFlight?.isActive == true) return
         inFlight = viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true)
+            // A quiet refresh is FreshnessWatch retrying a saved copy: no spinner every minute.
+            if (!quiet) _state.value = _state.value.copy(loading = true)
             // Queued writes for every list go first, same as the rolling to-do's
             // refresh, so the refetch below sees their effect.
             if (sync.hasPending()) sync.flush()
@@ -145,7 +146,7 @@ class ShoppingListViewModel(
 
     private fun applyOptimistically(mutate: (List<ShoppingItemDto>) -> List<ShoppingItemDto>) {
         val fresh = _state.value.result as? AlfredResult.Fresh ?: return
-        _state.value = _state.value.copy(result = AlfredResult.Fresh(mutate(fresh.data)))
+        _state.value = _state.value.copy(result = fresh.copy(data = mutate(fresh.data)))
     }
 
     private fun runWrite(
@@ -158,7 +159,7 @@ class ShoppingListViewModel(
             when (val result = write()) {
                 ShoppingWriteResult.Done -> if (reconcileOnSuccess) reconcile()
                 is ShoppingWriteResult.StaleTarget -> {
-                    _state.value = _state.value.copy(result = AlfredResult.Fresh(result.current))
+                    _state.value = _state.value.copy(result = AlfredResult.Fresh(result.current, System.currentTimeMillis()))
                     _events.emit(ShoppingEvent.LIST_REFRESHED)
                 }
                 ShoppingWriteResult.Unreachable -> {

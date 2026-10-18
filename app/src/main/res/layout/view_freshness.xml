@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- How old the Alfred data above or below it is. FreshnessView sets everything:
+     gone when live, a quiet line, a primary line, or an error-outlined notice for
+     data from an earlier day. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:visibility="gone"
+    tools:visibility="visible">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/iv_freshness_icon"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_age" />
+
+        <TextView
+            android:id="@+id/tv_freshness_headline"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            tools:text="Saved copy · 12 min old · Alfred unreachable" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_freshness_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="14sp"
+        android:textFontWeight="600"
+        android:visibility="gone"
+        tools:text="Alfred unreachable — this is a saved copy, not today's." />
+</LinearLayout>

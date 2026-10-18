@@ -49,6 +49,7 @@ import com.personalmorningalarm.data.model.MorningGoal
 import com.personalmorningalarm.data.model.RollingTodo
 import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.data.model.ScheduleTaskDto
+import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.AlfredWriteResult
@@ -61,8 +62,10 @@ import com.personalmorningalarm.service.CountdownService
 import com.personalmorningalarm.util.MarkdownRenderer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.ceil
@@ -473,7 +476,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
         with(binding) {
             tvContentTitle.isVisible = false
             tvContentSubtitle.isVisible = false
-            contentNote.isVisible = false
+            contentFreshness.root.isVisible = false
             contentAuthor.isVisible = false
             stretchRingArea.isVisible = false
             stretchList.isVisible = false
@@ -684,8 +687,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
     private fun showDailyScheduleContent() {
         binding.tvContentLabel.setText(R.string.content_schedule_heading)
         binding.tvContentTitle.isVisible = true
-        binding.tvContentTitle.text =
-            LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMM", Locale.getDefault()))
+        binding.tvContentTitle.text = LocalDate.now().format(contentDateFormat())
         setBody(getString(R.string.schedule_loading))
         startTimedContinue(CONTENT_DISMISS_LOCK_MS)
 
@@ -705,6 +707,18 @@ class AlarmDismissalActivity : AppCompatActivity() {
     }
 
     /**
+     * The age of what's on the content screen, from every feed it was built from —
+     * the oldest wins. No watch or retry here: the screen lives for one timed step.
+     */
+    private fun renderContentAge(vararg results: AlfredResult<*>?): Freshness.Age? {
+        val now = System.currentTimeMillis()
+        val zone = ZoneId.systemDefault()
+        val age = Freshness.worst(*results.map { Freshness.of(it, now, zone) }.toTypedArray())
+        FreshnessView.render(binding.contentFreshness, age, AlfredReachability.state.value)
+        return age
+    }
+
+    /**
      * Adds today's family calendar to the schedule already on screen. Deliberately
      * a second pass: the vault plan is rendered before this runs and stands on its
      * own, so a calendar that is slow, unreachable or malformed simply doesn't
@@ -714,8 +728,10 @@ class AlarmDismissalActivity : AppCompatActivity() {
         schedule: AlfredResult<List<ScheduleTaskDto>>,
         gap: Int
     ) {
+        var calendar: AlfredResult<*>? = null
         val events = try {
             val result = alfredRepository.getCalendarDay(LocalDate.now())
+            calendar = result
             FamilyCalendar.byDate(
                 when (result) {
                     is AlfredResult.Fresh -> result.data
@@ -731,28 +747,35 @@ class AlarmDismissalActivity : AppCompatActivity() {
             Log.w(TAG, "Family calendar failed — showing the vault schedule alone", e)
             emptyList()
         }
+        if (!showingContent || gapsShown != gap) {
+            Log.d(TAG, "Family calendar arrived after the screen moved on — dropped")
+            return
+        }
+        // A saved calendar with nothing on today is still a claim about today, so
+        // its age counts even when there's nothing to layer.
+        if (schedule !is AlfredResult.Unavailable) renderContentAge(schedule, calendar)
         if (events.isEmpty()) {
             // Logged explicitly: "nothing on today" and "the calendar broke" look
             // identical on screen, and only the log can tell them apart afterwards.
             Log.d(TAG, "Family calendar: nothing on today — vault schedule shown alone")
             return
         }
-        if (!showingContent || gapsShown != gap) {
-            Log.d(TAG, "Family calendar arrived after the screen moved on — dropped")
-            return
-        }
-        renderSchedule(schedule, events)
+        renderSchedule(schedule, events, calendar)
         Log.d(TAG, "Family calendar: ${events.size} events layered onto today's schedule")
     }
 
     private fun renderSchedule(
         result: AlfredResult<List<ScheduleTaskDto>>,
-        events: List<FamilyEvent> = emptyList()
+        events: List<FamilyEvent> = emptyList(),
+        calendar: AlfredResult<*>? = null
     ) {
-        if (result is AlfredResult.Stale) {
-            binding.contentNote.visibility = View.VISIBLE
-            binding.contentNote.text = getString(R.string.schedule_stale)
-        }
+        val age = renderContentAge(result, calendar)
+        // The 44sp date is the first thing read. A plan saved on an earlier day is
+        // that day's plan, so the title names that day rather than claiming today.
+        val planDay = Freshness.of(result, System.currentTimeMillis(), ZoneId.systemDefault())
+            ?.takeIf { it.daysAgo >= 1 }
+            ?.let { Instant.ofEpochMilli(it.fetchedAtMillis).atZone(ZoneId.systemDefault()).toLocalDate() }
+        binding.tvContentTitle.text = (planDay ?: LocalDate.now()).format(contentDateFormat())
 
         val tasks = when (result) {
             is AlfredResult.Fresh -> result.data
@@ -783,7 +806,11 @@ class AlarmDismissalActivity : AppCompatActivity() {
         setBody(null)
         binding.scheduleCard.isVisible = true
         ScheduleStrip.render(binding.scheduleStrip, binding.scheduleScroll, columns)
-        Log.d(TAG, "Daily schedule: ${agenda.groups.size} groups, ${tasks.size} tasks (stale=${result is AlfredResult.Stale})")
+        Log.d(
+            TAG,
+            "Daily schedule: ${agenda.groups.size} groups, ${tasks.size} tasks " +
+                "(stale=${result is AlfredResult.Stale}, age=${age?.level}, planDay=$planDay)"
+        )
     }
 
     /**
@@ -791,6 +818,9 @@ class AlarmDismissalActivity : AppCompatActivity() {
      * schedule screen: the timed Continue starts now, not when Alfred answers, so
      * a slow or absent Alfred can't lengthen the morning or strand the screen.
      */
+    private fun contentDateFormat(): DateTimeFormatter =
+        DateTimeFormatter.ofPattern("EEEE d MMM", Locale.getDefault())
+
     private fun showChalkboardContent() {
         binding.tvContentLabel.setText(R.string.content_chalkboard_heading)
         binding.tvContentTitle.isVisible = true
@@ -810,10 +840,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
     }
 
     private fun renderChalkboard(result: AlfredResult<List<ChalkboardTaskDto>>) {
-        if (result is AlfredResult.Stale) {
-            binding.contentNote.visibility = View.VISIBLE
-            binding.contentNote.text = getString(R.string.chalkboard_stale)
-        }
+        val age = renderContentAge(result)
 
         val tasks = when (result) {
             is AlfredResult.Fresh -> result.data
@@ -854,7 +881,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 tickTodo(item, fresh = result is AlfredResult.Fresh)
             }
         }
-        Log.d(TAG, "Chalkboard: ${items.size} open items (stale=${result is AlfredResult.Stale})")
+        Log.d(TAG, "Chalkboard: ${items.size} open items (stale=${result is AlfredResult.Stale}, age=${age?.level})")
     }
 
     /**

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Freshness notice for data from an earlier day: card surface, a heavier
+     error-colour outline than the wrong-tag notice so it can't be skimmed past. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="14dp" />
+    <solid android:color="?attr/colorSurface" />
+    <stroke android:width="2dp" android:color="?attr/colorError" />
+</shape>

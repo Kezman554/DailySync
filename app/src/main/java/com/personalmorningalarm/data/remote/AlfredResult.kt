@@ -6,10 +6,13 @@ package com.personalmorningalarm.data.remote
  */
 sealed interface AlfredResult<out T> {
 
-    /** Fetched from Alfred just now. */
-    data class Fresh<T>(val data: T) : AlfredResult<T>
+    /**
+     * Fetched from Alfred at [fetchedAtMillis]. Live when it arrived, but it ages
+     * like anything else if the screen stays open — see Freshness.
+     */
+    data class Fresh<T>(val data: T, val fetchedAtMillis: Long) : AlfredResult<T>
 
-    /** Alfred was unreachable; this is the last response it gave, [cachedAtMillis] ago. */
+    /** Alfred was unreachable; this is the last response it gave, fetched at [cachedAtMillis]. */
     data class Stale<T>(val data: T, val cachedAtMillis: Long) : AlfredResult<T>
 
     /** Alfred was unreachable and nothing was cached — the screen shows its fallback. */
@@ -25,7 +28,7 @@ fun <T> AlfredResult<T>.dataOrNull(): T? = when (this) {
 
 /** Transforms the data, keeping whether it was fresh or cached (and when). */
 fun <T, R> AlfredResult<T>.map(transform: (T) -> R): AlfredResult<R> = when (this) {
-    is AlfredResult.Fresh -> AlfredResult.Fresh(transform(data))
+    is AlfredResult.Fresh -> AlfredResult.Fresh(transform(data), fetchedAtMillis)
     is AlfredResult.Stale -> AlfredResult.Stale(transform(data), cachedAtMillis)
     AlfredResult.Unavailable -> AlfredResult.Unavailable
 }

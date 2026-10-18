@@ -15,11 +15,13 @@ import com.google.android.material.snackbar.Snackbar
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.Inbox
 import com.personalmorningalarm.data.model.InboxCaptureDto
+import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.InboxSync
 import com.personalmorningalarm.databinding.FragmentInboxBinding
 import kotlinx.coroutines.launch
+import java.time.ZoneId
 
 /**
  * The Inbox tile: the vault's current `0-inbox/` captures, and a box to add another.
@@ -69,6 +71,19 @@ class InboxFragment : Fragment() {
                 launch { viewModel.events.collect(::showEvent) }
             }
         }
+        FreshnessWatch.start(
+            viewLifecycleOwner,
+            render = { renderFreshness(viewModel.state.value) },
+            wantsRetry = { Freshness.wantsRetry(age(viewModel.state.value)) },
+            retry = { viewModel.refresh(quiet = true) }
+        )
+    }
+
+    private fun age(state: InboxViewModel.InboxState): Freshness.Age? =
+        Freshness.of(state.result, System.currentTimeMillis(), ZoneId.systemDefault())
+
+    private fun renderFreshness(state: InboxViewModel.InboxState) {
+        FreshnessView.render(binding.freshness, age(state), AlfredReachability.state.value)
     }
 
     private fun submitCapture() {
@@ -93,9 +108,10 @@ class InboxFragment : Fragment() {
         val queued = state.pending.filterNot { it.failed }
         val refused = state.pending.filter { it.failed }
 
-        // The sync line: a saved copy, and/or captures not in the vault yet.
+        renderFreshness(state)
+
+        // The sync line: captures not in the vault yet. The inbox's age is FreshnessView's.
         val sync = listOfNotNull(
-            getString(R.string.schedule_stale).takeIf { state.result is AlfredResult.Stale },
             resources.getQuantityString(R.plurals.inbox_pending_count, queued.size, queued.size)
                 .takeIf { queued.isNotEmpty() }
         )

@@ -17,10 +17,13 @@
         android:id="@+id/title_bar"
         layout="@layout/view_screen_title" />
 
-    <!-- A saved copy (Alfred or the calendar unreachable) -->
+    <!-- How old the Alfred data below is (FreshnessView) -->
     <include
-        android:id="@+id/sync_line"
-        layout="@layout/view_sync_line" />
+        android:id="@+id/freshness"
+        layout="@layout/view_freshness"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" />
 
     <!-- One pill per plan day: abbreviation over date. WeekScheduleFragment fills it. -->
     <LinearLayout
