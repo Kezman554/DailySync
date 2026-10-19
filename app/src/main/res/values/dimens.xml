@@ -10,7 +10,7 @@
     <dimen name="freshness_card_stroke">2dp</dimen>
     <!-- Alarm done screen -->
     <dimen name="done_check_size">64dp</dimen>
-    <!-- Kitchen sign-in PIN dots -->
+    <!-- Home Hub sign-in PIN dots -->
     <dimen name="pin_dot_size">16dp</dimen>
     <dimen name="pin_dot_gap">18dp</dimen>
 </resources>

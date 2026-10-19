@@ -622,7 +622,7 @@
         <item name="android:importantForAccessibility">no</item>
     </style>
 
-    <!-- Kitchen sign-in keypad: a 64dp round key on the card surface -->
+    <!-- Home Hub sign-in keypad: a 64dp round key on the card surface -->
     <style name="DailySync.KeypadKey" parent="Widget.DailySync.Button">
         <item name="android:layout_width">64dp</item>
         <item name="android:layout_height">64dp</item>

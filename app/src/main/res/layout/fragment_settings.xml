@@ -43,7 +43,7 @@
                 android:text="@string/theme_system" />
         </LinearLayout>
 
-        <!-- Alfred Vault API and the kitchen dashboard -->
+        <!-- Alfred Vault API and the Home Hub dashboard -->
         <TextView
             style="@style/DailySync.GroupLabel"
             android:text="@string/alfred_section_title" />

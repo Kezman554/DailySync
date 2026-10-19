@@ -1759,3 +1759,14 @@
     checked in both themes with existing data. NOT yet checked: a long and a
     **bold** item in today's plan on the Home tile, and the alarm schedule screen
     (needs a vault edit and a real alarm run)
+
+2026-10-19 - Session AS: "Kitchen Sign-in" becomes "Home Hub Sign-in"
+  - A conservatory screen is planned, so the sign-in takes the system's name,
+    not the room's. Text only: tile, screen title, status line ("Home Hub ·
+    signed out" etc., was "Kitchen screen"), Settings dashboard label, dialog
+    title and help. Resource IDs, classes and /api/presence untouched
+  - ScheduleRenderer.format and its 8 tests deleted (no callers since 2733cac);
+    the object keeps periodHeading. Grouping and calendar merge stay covered by
+    DailyScheduleTest and FamilyCalendarTest
+  - Unit tests 620 green. On the A32, light and dark: tile title fits on one
+    line beside the button; sign-in screen title and status read Home Hub

@@ -277,7 +277,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Kitchen Sign-in: wide -->
+        <!-- Home Hub Sign-in: wide -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_sign_in"
             android:layout_width="match_parent"

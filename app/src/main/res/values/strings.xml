@@ -202,7 +202,7 @@
     <string name="tile_inbox">Inbox</string>
     <string name="tile_kitchen_sync">KitchenSync</string>
     <string name="tile_kanban">Kanban</string>
-    <string name="tile_kitchen_sign_in">Kitchen Sign-in</string>
+    <string name="tile_kitchen_sign_in">Home Hub Sign-in</string>
     <string name="tile_coming_soon">Coming soon</string>
     <string name="stretch_suggestions">• Reach for the sky\n• Roll your shoulders back\n• Reach down toward your toes\n• Gentle neck rolls\n• Side stretches, each way</string>
     <string name="goal_exercise">Exercise</string>
@@ -480,16 +480,16 @@
     <string name="stage2_duration_value">%1$d min</string>
     <string name="stage2_duration_dialog_title">Stage 2 time limit (minutes)</string>
 
-    <!-- Kitchen sign-in tile (dashboard /api/presence) — live only, never queued -->
-    <string name="presence_title">Kitchen Sign-in</string>
+    <!-- Home Hub sign-in tile (dashboard /api/presence) — live only, never queued -->
+    <string name="presence_title">Home Hub Sign-in</string>
     <string name="presence_open">● Your board is open</string>
     <string name="presence_open_as">● Your board is open as %1$s</string>
     <string name="presence_lapse_time">%1$d:%2$02d</string>
     <string name="presence_until_lapse">until it lapses, unless the screen is used</string>
-    <string name="presence_label">Kitchen screen</string>
-    <string name="presence_label_signed_out">Kitchen screen · signed out</string>
-    <string name="presence_label_checking">Kitchen screen · checking…</string>
-    <string name="presence_label_unknown">Kitchen screen · can’t tell</string>
+    <string name="presence_label">Home Hub</string>
+    <string name="presence_label_signed_out">Home Hub · signed out</string>
+    <string name="presence_label_checking">Home Hub · checking…</string>
+    <string name="presence_label_unknown">Home Hub · can’t tell</string>
     <string name="presence_signed_in_title">Signed in</string>
     <string name="presence_enter_pin">Enter your PIN</string>
     <string name="presence_delete">Delete</string>
@@ -515,9 +515,9 @@
     <string name="alfred_host_hint">host:port</string>
     <string name="alfred_host_help">Address of the Alfred Vault API on your home network. Port defaults to 8200.</string>
     <string name="alfred_host_invalid">Enter an address like 192.168.1.100:8200</string>
-    <string name="dashboard_host_label">Kitchen dashboard</string>
-    <string name="dashboard_host_dialog_title">Kitchen dashboard address</string>
-    <string name="dashboard_host_help">Address of the kitchen dashboard on your home network — used by Kitchen Sign-in. Port defaults to 8500.</string>
+    <string name="dashboard_host_label">Home Hub dashboard</string>
+    <string name="dashboard_host_dialog_title">Home Hub dashboard address</string>
+    <string name="dashboard_host_help">Address of the Home Hub dashboard on your home network — used by Home Hub Sign-in. Port defaults to 8500.</string>
     <string name="dashboard_host_invalid">Enter an address like 192.168.1.100:8500</string>
 
     <!-- Temporary dev controls -->

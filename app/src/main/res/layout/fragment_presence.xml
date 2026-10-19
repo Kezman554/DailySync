@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Kitchen Sign-in (the Sign-in tile). Signed out: "Enter your PIN", a dot per digit,
+  Home Hub Sign-in (the Sign-in tile). Signed out: "Enter your PIN", a dot per digit,
   a 3x4 keypad and Sign in (the dashboard's PIN has no fixed length, so nothing
   auto-submits). Signed in: who, and a ring counting down to the session lapsing.
   Every action is live against the dashboard; nothing is ever queued.
@@ -47,7 +47,7 @@
                         style="@style/DailySync.AlarmLabel"
                         android:layout_marginTop="18dp"
                         android:gravity="center"
-                        tools:text="Kitchen screen · signed out" />
+                        tools:text="Home Hub · signed out" />
 
                     <TextView
                         android:layout_width="wrap_content"
