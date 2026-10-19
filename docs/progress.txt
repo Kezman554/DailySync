@@ -1770,3 +1770,5 @@
     DailyScheduleTest and FamilyCalendarTest
   - Unit tests 620 green. On the A32, light and dark: tile title fits on one
     line beside the button; sign-in screen title and status read Home Hub
+  - Week row body weight 500 -> 400 so bold phrases stand out more; checked on
+    the A32 in light and dark, including the 55%-alpha past-day card
