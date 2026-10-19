@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One period of a week day: the name in a fixed 96dp column, its tasks in bold. -->
+<!-- One period of a week day: the name in a fixed 96dp column, its tasks at medium
+     weight. Not bold: a task's own **emphasis** is a bold span, and on text that is
+     already 700 it has nowhere heavier to go, so it would vanish. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -23,7 +25,7 @@
         android:layout_weight="1"
         android:lineSpacingExtra="4dp"
         android:textColor="?attr/colorOnSurface"
+        android:textFontWeight="500"
         android:textSize="16sp"
-        android:textStyle="bold"
         tools:text="Brisk walk" />
 </LinearLayout>

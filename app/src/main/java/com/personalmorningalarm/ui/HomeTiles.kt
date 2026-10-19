@@ -30,10 +30,17 @@ object HomeTiles {
         return NextAlarm(time, tomorrow = !time.isAfter(now.toLocalTime()))
     }
 
+    /**
+     * One line of a strip column: its text (a calendar event's start time already
+     * in front) and where it came from. Vault text still carries authoring markup
+     * for the strip to resolve; calendar text comes from Google and shows as sent.
+     */
+    data class ScheduleEntry(val text: String, val fromCalendar: Boolean)
+
     /** One column of the Daily Schedule strip. */
     data class ScheduleColumn(
         val period: SchedulePeriod,
-        val entries: List<String>,
+        val entries: List<ScheduleEntry>,
         /** The part of the day [now] falls in — drawn in accent. */
         val current: Boolean
     )
@@ -51,7 +58,10 @@ object HomeTiles {
             ScheduleColumn(
                 period = group.period,
                 entries = group.entries.map { entry ->
-                    entry.time?.let { "${it.format(TIME)} ${entry.text}" } ?: entry.text
+                    ScheduleEntry(
+                        text = entry.time?.let { "${it.format(TIME)} ${entry.text}" } ?: entry.text,
+                        fromCalendar = entry.fromCalendar
+                    )
                 },
                 current = group.period == currentPeriod
             )

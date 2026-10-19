@@ -3,6 +3,7 @@
     <dimen name="hairline">1dp</dimen>
     <!-- Home tiles -->
     <dimen name="schedule_column_gap">8dp</dimen>
+    <dimen name="schedule_line_gap">4dp</dimen>
     <dimen name="todo_item_gap">10dp</dimen>
     <!-- Freshness: the earlier-day notice's padding, and the tile outline instead of it -->
     <dimen name="freshness_notice_padding">12dp</dimen>

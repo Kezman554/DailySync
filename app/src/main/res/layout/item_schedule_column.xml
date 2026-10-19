@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One period in the Home schedule strip: a 4dp bar, the period label, its tasks.
+<!-- One period in the Home schedule strip: a 4dp bar, the period label, its tasks,
+     one line each.
      The bar and label colours are set per column (accent for the current period). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -24,15 +25,12 @@
         android:textStyle="bold"
         tools:text="Morning" />
 
-    <TextView
-        android:id="@+id/tv_tasks"
+    <!-- One item_schedule_line per entry, filled by ScheduleStrip -->
+    <LinearLayout
+        android:id="@+id/tasks"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:lineSpacingExtra="4dp"
-        android:textColor="?attr/colorOnSurface"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        tools:text="Brisk walk\nGym" />
+        android:orientation="vertical" />
 
 </LinearLayout>

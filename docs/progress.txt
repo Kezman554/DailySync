@@ -1741,3 +1741,21 @@
     when it's from an earlier day instead of claiming today
   - NOT yet verified on device: no A32 attached and no AVD this session.
     Unit tests 314 green
+
+2026-10-19 - Session AR: schedule text — one-line cover, visible bold
+  - Schedule strip (Home tile + alarm schedule screen): one ellipsised line per
+    entry (item_schedule_line), so a long title can't change the tile height;
+    PREVIEW and "+N more" unchanged. Vault entries go through VaultText.render;
+    calendar entries don't (HomeTiles.ScheduleEntry keeps fromCalendar), so a
+    real asterisk in a Google title survives
+  - Bold in the opened view (Week, WeekDayAdapter): diagnosed on the A32 with a
+    temporary log — spans reached the TextView intact and the font resolved to
+    the 700 file, but the row body was textStyle bold, i.e. already 700, so a
+    bold StyleSpan had nothing heavier to step to. Body now textFontWeight 500;
+    bold visible in light and dark (checked on the A32)
+  - ScheduleRenderer.format has no production callers (only AlfredRendererTest);
+    left as is
+  - Unit tests 636 green (318 per variant). On device: Week bold and Home tile
+    checked in both themes with existing data. NOT yet checked: a long and a
+    **bold** item in today's plan on the Home tile, and the alarm schedule screen
+    (needs a vault edit and a real alarm run)

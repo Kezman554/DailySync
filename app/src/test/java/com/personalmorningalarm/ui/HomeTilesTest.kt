@@ -58,7 +58,7 @@ class HomeTilesTest {
             listOf(SchedulePeriod.EARLY, SchedulePeriod.MORNING, SchedulePeriod.EVENING, SchedulePeriod.UNGROUPED),
             columns.map { it.period }
         )
-        assertEquals(listOf("Call the garage"), columns.last().entries)
+        assertEquals(listOf("Call the garage"), columns.last().entries.map { it.text })
     }
 
     @Test
@@ -81,7 +81,7 @@ class HomeTilesTest {
     }
 
     @Test
-    fun calendarEvents_showTheirStartTime() {
+    fun calendarEvents_showTheirStartTime_andKeepWhereTheyCameFrom() {
         val agenda = DayAgenda(
             allDay = emptyList(),
             groups = listOf(
@@ -95,7 +95,10 @@ class HomeTilesTest {
             )
         )
         assertEquals(
-            listOf("17:30 Cubs", "Shoulders"),
+            listOf(
+                HomeTiles.ScheduleEntry("17:30 Cubs", fromCalendar = true),
+                HomeTiles.ScheduleEntry("Shoulders", fromCalendar = false)
+            ),
             HomeTiles.scheduleColumns(agenda, LocalTime.NOON).single().entries
         )
     }

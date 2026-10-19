@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One entry in a schedule strip column: always a single line, ellipsised, so a
+     wordy title can't change the tile's height. The opened view has the whole title. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:ellipsize="end"
+    android:maxLines="1"
+    android:textColor="?attr/colorOnSurface"
+    android:textSize="14sp"
+    android:textStyle="bold"
+    tools:text="Brisk walk" />
