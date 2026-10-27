@@ -226,7 +226,6 @@
     <string name="nuclear_notification_text">Time ran out — complete the challenges to stop</string>
     <string name="nuclear_title">TIME\'S UP</string>
     <string name="nuclear_subtitle">You didn\'t finish in time.</string>
-    <string name="stop_nuclear_temp">Stop nuclear (temp)</string>
 
     <!-- Nuclear dismissal challenges -->
     <string name="nuclear_instruction">Complete all three to silence the alarm</string>
@@ -514,5 +513,4 @@
 
     <!-- Temporary dev controls -->
     <string name="stop_alarm_temp">Stop alarm (temp)</string>
-    <string name="abort_temp">Abort (temp)</string>
 </resources>

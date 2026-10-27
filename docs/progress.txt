@@ -1842,3 +1842,12 @@
     gauntlet (the alarm restarts, the progress does not)
   - Existing: NuclearDismissalActivity already relaunches itself on HOME
   - Verified on the A32: Countdown 15s -> nuclear; maths solved, task cleared -> screen came back by itself with the same problem and maths still done; all three completed on the first run (no NFC step)
+
+2026-10-27 Pre-release cleanup
+  - Removed the Abort (temp) button from the alarm screen (one tap used to
+    silence Stage 1/2 with no shake, no tags, no failure logged) and the unused
+    stop_nuclear_temp / abort_temp strings
+  - Dev tools row on the Alarm tab is hidden until the Alarm pill in the header
+    is long-pressed (again to hide), so a stray tap cannot start the nuclear alarm
+  - Verified on the A32: row hidden by default, toggles on long-press; the alarm
+    notification tap opens the Stage 1 screen; Stage 1 layout clean without the button

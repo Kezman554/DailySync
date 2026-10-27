@@ -192,13 +192,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
         }
         binding.continueRing.makeSmall()
 
-        binding.btnStopAlarm.setOnClickListener {
-            Stage2Session.clear()
-            AlarmService.stop(this)
-            CountdownService.stop(this)
-            finish()
-        }
-
         lifecycleScope.launch {
             repository.getCurrentConfig()?.let { config ->
                 stage2DurationMinutes = config.stage2DurationMinutes
@@ -1043,7 +1036,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
         binding.tvNote.isVisible = true
         binding.tvNote.text = goalReminder()
 
-        binding.btnStopAlarm.isVisible = false
         binding.btnStartDay.isVisible = true
         binding.btnStartDay.setOnClickListener {
             binding.root.removeCallbacks(dismissRunnable)

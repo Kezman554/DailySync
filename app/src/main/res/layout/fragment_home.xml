@@ -245,8 +245,10 @@
                 android:layout_weight="1" />
         </LinearLayout>
 
-        <!-- TODO(temporary): dev tools for exercising the alarm/countdown/nuclear flow -->
+        <!-- Dev tools for exercising the alarm/countdown/nuclear flow. Hidden until
+             the Alarm pill is long-pressed, so a stray tap can't set off the nuclear alarm. -->
         <LinearLayout
+            android:id="@+id/dev_tools_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
@@ -255,7 +257,8 @@
             android:orientation="horizontal"
             android:paddingVertical="6dp"
             android:paddingStart="14dp"
-            android:paddingEnd="8dp">
+            android:paddingEnd="8dp"
+            android:visibility="gone">
 
             <TextView
                 android:layout_width="0dp"

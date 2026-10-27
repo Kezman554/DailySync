@@ -58,7 +58,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:orientation="vertical"
-        app:layout_constraintBottom_toTopOf="@id/btn_stop_alarm"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/top_row">
@@ -347,7 +347,7 @@
         android:layout_marginTop="16dp"
         android:orientation="vertical"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/btn_stop_alarm"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/top_row"
@@ -550,16 +550,5 @@
             </FrameLayout>
         </LinearLayout>
     </LinearLayout>
-
-    <!-- TODO(temporary): abort control for testing Stage 1/2. Its future is a
-         separate decision; kept small and quiet until then. -->
-    <Button
-        android:id="@+id/btn_stop_alarm"
-        style="@style/DailySync.SmallOutlinedButton"
-        android:layout_marginTop="10dp"
-        android:text="@string/abort_temp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

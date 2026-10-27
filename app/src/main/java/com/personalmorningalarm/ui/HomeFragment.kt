@@ -7,6 +7,7 @@ import android.text.format.DateFormat
 import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
+import androidx.core.view.isVisible
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.annotation.DrawableRes
@@ -280,9 +281,16 @@ class HomeFragment : Fragment() {
             .format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
     }
 
-    // --- Temporary dev tools ---
+    // --- Dev tools ---
 
     private fun setupDevTools() {
+        // Hidden by default; a long-press on the Alarm pill in the header shows or
+        // hides them. The pill belongs to the activity, so it is released again in
+        // onDestroyView.
+        requireActivity().findViewById<View>(R.id.pill_alarm)?.setOnLongClickListener {
+            binding.devToolsRow.isVisible = !binding.devToolsRow.isVisible
+            true
+        }
         binding.btnTestAlarm.setOnClickListener {
             if (!scheduler.canScheduleExactAlarms()) {
                 promptForExactAlarmPermission()
@@ -299,6 +307,7 @@ class HomeFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        activity?.findViewById<View>(R.id.pill_alarm)?.setOnLongClickListener(null)
         _binding = null
     }
 
