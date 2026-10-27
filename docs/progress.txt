@@ -1785,3 +1785,13 @@
     at the current checkpoint. A content screen that was up is not restored
   - Not verified on a real morning: needs a test alarm, swipe away mid-Stage 2,
     then reopen from the notification
+
+2026-10-27 Alarm schedule and stretch screens
+  - Alarm schedule screen now shows the opened day (WeekDayAdapter.renderRows,
+    shared with the week pager) instead of Home's one-line strip; all-day
+    markers are its first row, so the subtitle stays hidden
+  - Stretch ring and big time count the current exercise, not the whole set;
+    the overall timer still gates Continue. Routine exercise durations are
+    authoritative: the 5/10 min setting only sizes the built-in suggestions
+    used when no routine exists (a 5-exercise routine summed to 2:45)
+  - Unit tests green; not yet seen on the A32 (needs a test alarm run)

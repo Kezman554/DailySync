@@ -486,33 +486,16 @@
                     android:paddingVertical="4dp"
                     android:visibility="gone" />
 
-                <!-- Schedule: the same period strip as Home -->
+                <!-- Schedule: the opened day, as on the week screen (full wording) -->
                 <LinearLayout
-                    android:id="@+id/schedule_card"
+                    android:id="@+id/schedule_rows"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_card"
                     android:orientation="vertical"
-                    android:padding="18dp"
-                    android:visibility="gone">
-
-                    <HorizontalScrollView
-                        android:id="@+id/schedule_scroll"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:fadingEdgeLength="40dp"
-                        android:fillViewport="true"
-                        android:requiresFadingEdge="horizontal"
-                        android:scrollbars="none">
-
-                        <LinearLayout
-                            android:id="@+id/schedule_strip"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:baselineAligned="false"
-                            android:orientation="horizontal" />
-                    </HorizontalScrollView>
-                </LinearLayout>
+                    android:paddingHorizontal="18dp"
+                    android:paddingVertical="10dp"
+                    android:visibility="gone" />
 
                 <!-- Rolling to-do: checkboxes, hairlines between -->
                 <LinearLayout

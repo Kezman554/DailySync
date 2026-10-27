@@ -529,7 +529,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
             stretchRingArea.isVisible = false
             stretchList.isVisible = false
             stretchList.removeAllViews()
-            scheduleCard.isVisible = false
+            scheduleRows.isVisible = false
             todoList.isVisible = false
             todoList.removeAllViews()
             contentScroll.scrollTo(0, 0)
@@ -652,7 +652,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
     private fun runStretch(steps: List<StretchStep>) {
         val totalSeconds = steps.sumOf { it.seconds }
         val totalMs = totalSeconds * 1000L
-        binding.tvStretchOf.text = getString(R.string.content_stretch_of, CountdownService.formatTime(totalSeconds))
         renderStretch(steps, msLeft = totalMs, totalMs = totalMs)
         stepTimer = object : CountDownTimer(totalMs, TICK_MS) {
             override fun onTick(msLeft: Long) = renderStretch(steps, msLeft, totalMs)
@@ -668,16 +667,30 @@ class AlarmDismissalActivity : AppCompatActivity() {
         }.start()
     }
 
+    /**
+     * The ring and the big time follow the stretch that's up, so each one gets its
+     * own countdown and the ring refills for the next; the list below marks where
+     * the session is. The session's overall timer (which gates Continue) runs on
+     * underneath.
+     */
     private fun renderStretch(steps: List<StretchStep>, msLeft: Long, totalMs: Long) {
-        binding.stretchRing.setProgress(1f - msLeft.toFloat() / totalMs)
-        binding.tvStretchTime.text = CountdownService.formatTime(ceil(msLeft / 1000.0).toInt())
-        binding.tvStretchTime.setTextColor(color(MaterialR.attr.colorPrimary))
         // Which stretch is up: the first whose end hasn't been reached yet.
-        val elapsedSeconds = (totalMs - msLeft) / 1000L
-        var end = 0L
-        val current = steps.indexOfFirst { end += it.seconds; elapsedSeconds < end }.let {
-            if (it < 0) steps.lastIndex else it
+        val elapsedMs = totalMs - msLeft
+        var startMs = 0L
+        var current = steps.lastIndex
+        for ((i, step) in steps.withIndex()) {
+            if (elapsedMs < startMs + step.seconds * 1000L) {
+                current = i
+                break
+            }
+            startMs += step.seconds * 1000L
         }
+        val stepMs = steps[current].seconds * 1000L
+        val stepLeftMs = (startMs + stepMs - elapsedMs).coerceIn(0L, stepMs)
+        binding.stretchRing.setProgress(1f - stepLeftMs.toFloat() / stepMs)
+        binding.tvStretchTime.text = CountdownService.formatTime(ceil(stepLeftMs / 1000.0).toInt())
+        binding.tvStretchTime.setTextColor(color(MaterialR.attr.colorPrimary))
+        binding.tvStretchOf.text = getString(R.string.content_stretch_of, CountdownService.formatTime(steps[current].seconds))
         binding.tvContentLabel.text = getString(R.string.content_stretch_label, current + 1, steps.size)
         renderStretchList(steps, current)
     }
@@ -840,20 +853,17 @@ class AlarmDismissalActivity : AppCompatActivity() {
         }
 
         val agenda = FamilyCalendar.agenda(tasks, events)
-        // All-day markers belong to no period: they describe the day ("WFH day").
-        val dayType = agenda.allDay.joinToString(" · ") { it.summary }
-        binding.tvContentSubtitle.isVisible = dayType.isNotEmpty()
-        binding.tvContentSubtitle.text = dayType
-
-        val columns = HomeTiles.scheduleColumns(agenda, LocalTime.now())
-        if (columns.isEmpty()) {
-            binding.scheduleCard.isVisible = false
+        // The opened day, as on the week screen: the user has this screen for the
+        // length of the timer, so it carries the full wording, not Home's summary.
+        // All-day markers are its first row, so the subtitle stays hidden.
+        if (agenda.isEmpty) {
+            binding.scheduleRows.isVisible = false
             setBody(getString(R.string.schedule_empty))
             return
         }
         setBody(null)
-        binding.scheduleCard.isVisible = true
-        ScheduleStrip.render(binding.scheduleStrip, binding.scheduleScroll, columns)
+        binding.scheduleRows.isVisible = true
+        WeekDayAdapter.renderRows(binding.scheduleRows, agenda)
         Log.d(
             TAG,
             "Daily schedule: ${agenda.groups.size} groups, ${tasks.size} tasks " +

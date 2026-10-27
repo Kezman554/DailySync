@@ -4,10 +4,12 @@ import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.core.text.inSpans
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.MaterialColors
 import com.personalmorningalarm.R
+import com.personalmorningalarm.data.model.DayAgenda
 import com.personalmorningalarm.data.model.FamilyCalendar
 import com.personalmorningalarm.data.model.FamilyEvent
 import com.personalmorningalarm.data.model.WeekDay
@@ -73,48 +75,7 @@ class WeekDayAdapter : RecyclerView.Adapter<WeekDayAdapter.DayViewHolder>() {
             }
             binding.tvDayHeader.text = day.date.format(HEADER_FORMAT)
 
-            val rows = binding.dayRows
-            rows.removeAllViews()
-            val agenda = FamilyCalendar.agenda(day.tasks, events)
-            val inflater = LayoutInflater.from(context)
-            fun addRow(label: CharSequence, tasks: CharSequence) {
-                val row = ItemWeekPeriodRowBinding.inflate(inflater, rows, true)
-                row.tvPeriod.text = label
-                row.tvTasks.text = tasks
-            }
-
-            if (agenda.isEmpty) {
-                addRow("", context.getString(R.string.week_day_empty))
-            } else {
-                val calendarColor = MaterialColors.getColor(
-                    binding.root, com.google.android.material.R.attr.colorPrimary
-                )
-                // All-day markers belong to no period; they describe the day.
-                if (agenda.allDay.isNotEmpty()) {
-                    addRow(
-                        context.getString(R.string.week_all_day),
-                        SpannableStringBuilder().inSpans(ForegroundColorSpan(calendarColor)) {
-                            append(agenda.allDay.joinToString("\n") { it.summary })
-                        }
-                    )
-                }
-                agenda.groups.forEach { group ->
-                    val tasks = SpannableStringBuilder()
-                    group.entries.forEachIndexed { i, entry ->
-                        if (i > 0) tasks.append("\n")
-                        if (entry.fromCalendar) {
-                            // Calendar events carry their time and the accent, as on Home.
-                            tasks.inSpans(ForegroundColorSpan(calendarColor)) {
-                                append(entry.time?.format(TIME_FORMAT)?.let { "$it ${entry.text}" } ?: entry.text)
-                            }
-                        } else {
-                            // The vault's own markup (bold, wikilinks) rendered, as on Home.
-                            tasks.append(VaultText.render(entry.text))
-                        }
-                    }
-                    addRow(context.getString(ScheduleRenderer.periodHeading(group.period)), tasks)
-                }
-            }
+            renderRows(binding.dayRows, FamilyCalendar.agenda(day.tasks, events))
 
             // Muted, not disabled: yesterday's plan is exactly what the screen
             // exists to glance back at.
@@ -126,8 +87,60 @@ class WeekDayAdapter : RecyclerView.Adapter<WeekDayAdapter.DayViewHolder>() {
                 DateTimeFormatter.ofPattern("EEEE d MMM", Locale.getDefault())
             val WEEKDAY_FORMAT: DateTimeFormatter =
                 DateTimeFormatter.ofPattern("EEEE", Locale.getDefault())
-            val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
             const val PAST_DAY_ALPHA = 0.55f
+        }
+    }
+
+    companion object {
+        private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+        /**
+         * Fills [rows] with the day's opened schedule — one row per period, all-day
+         * calendar markers first, full wording rather than the Home strip's one-line
+         * summary. Shared by the week pager and the alarm's schedule screen.
+         */
+        fun renderRows(rows: LinearLayout, agenda: DayAgenda) {
+            val context = rows.context
+            rows.removeAllViews()
+            val inflater = LayoutInflater.from(context)
+            fun addRow(label: CharSequence, tasks: CharSequence) {
+                val row = ItemWeekPeriodRowBinding.inflate(inflater, rows, true)
+                row.tvPeriod.text = label
+                row.tvTasks.text = tasks
+            }
+
+            if (agenda.isEmpty) {
+                addRow("", context.getString(R.string.week_day_empty))
+                return
+            }
+            val calendarColor = MaterialColors.getColor(
+                rows, com.google.android.material.R.attr.colorPrimary
+            )
+            // All-day markers belong to no period; they describe the day.
+            if (agenda.allDay.isNotEmpty()) {
+                addRow(
+                    context.getString(R.string.week_all_day),
+                    SpannableStringBuilder().inSpans(ForegroundColorSpan(calendarColor)) {
+                        append(agenda.allDay.joinToString("\n") { it.summary })
+                    }
+                )
+            }
+            agenda.groups.forEach { group ->
+                val tasks = SpannableStringBuilder()
+                group.entries.forEachIndexed { i, entry ->
+                    if (i > 0) tasks.append("\n")
+                    if (entry.fromCalendar) {
+                        // Calendar events carry their time and the accent, as on Home.
+                        tasks.inSpans(ForegroundColorSpan(calendarColor)) {
+                            append(entry.time?.format(TIME_FORMAT)?.let { "$it ${entry.text}" } ?: entry.text)
+                        }
+                    } else {
+                        // The vault's own markup (bold, wikilinks) rendered, as on Home.
+                        tasks.append(VaultText.render(entry.text))
+                    }
+                }
+                addRow(context.getString(ScheduleRenderer.periodHeading(group.period)), tasks)
+            }
         }
     }
 }
