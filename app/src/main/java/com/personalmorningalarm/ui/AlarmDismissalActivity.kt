@@ -183,6 +183,11 @@ class AlarmDismissalActivity : AppCompatActivity() {
             startStage2(rejoinCountdown = true)
         } else {
             Stage2Session.clear()
+            if (intent.getBooleanExtra(EXTRA_RESUME, false) && AlarmService.isRunning) {
+                // Stage 1 has no progress worth keeping, so a lost screen is simply
+                // redrawn: the alarm is still sounding and the shake starts afresh.
+                Log.d(TAG, "Stage 1 screen rebuilt while the alarm was sounding")
+            }
             renderStage1()
         }
         binding.continueRing.makeSmall()
@@ -1222,10 +1227,13 @@ class AlarmDismissalActivity : AppCompatActivity() {
         /** Set on a relaunch that should rejoin the Stage 2 already in progress. */
         private const val EXTRA_RESUME = "extra_resume_stage2"
 
-        /** Whether a Stage 2 is counting down with no guarantee a screen is showing it. */
-        fun hasResumableSession(): Boolean = CountdownService.isRunning
+        /**
+         * Whether an alarm is live (sounding in Stage 1, or counting down in Stage 2)
+         * with no guarantee a screen is showing it.
+         */
+        fun hasResumableSession(): Boolean = CountdownService.isRunning || AlarmService.isRunning
 
-        /** Brings the live Stage 2 to the front, rebuilding the screen if it was lost. */
+        /** Brings the live alarm to the front, rebuilding its screen if it was lost. */
         fun resumeIntent(context: Context): Intent =
             Intent(context, AlarmDismissalActivity::class.java)
                 .putExtra(EXTRA_RESUME, true)

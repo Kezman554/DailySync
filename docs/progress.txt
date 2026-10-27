@@ -1815,3 +1815,11 @@
     app to the alarm screen while it runs
   - Robolectric tests for the restart paths; on-device kill test pending
   - On-device kill test passed (am crash mid-Stage 2): countdown kept its deadline, alarm screen returned unaided after the MainActivity follow-the-countdown fix (f651145)
+
+2026-10-27 Stage 1 can be reopened too
+  - Opening the app while the alarm sounds with no screen (MainActivity.onStart)
+    now goes to a rebuilt Stage 1 screen (shake starts afresh; nothing to
+    restore). The alarm notification also got a content intent, so tapping it
+    opens the screen rather than relying on the full-screen intent alone
+  - Verified on the A32: test alarm, task cleared, app relaunched -> "Stage 1
+    screen rebuilt while the alarm was sounding"
