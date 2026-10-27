@@ -1814,3 +1814,4 @@
   - Side effect: the Alarm tab's "Countdown 15s" dev button now also sends the
     app to the alarm screen while it runs
   - Robolectric tests for the restart paths; on-device kill test pending
+  - On-device kill test passed (am crash mid-Stage 2): countdown kept its deadline, alarm screen returned unaided after the MainActivity follow-the-countdown fix (f651145)
