@@ -171,6 +171,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        // A Stage 2 is still counting down: the app is no place to be until it's done.
+        if (AlarmDismissalActivity.hasResumableSession()) {
+            startActivity(AlarmDismissalActivity.resumeIntent(this))
+            return
+        }
         renderHeaderDate()
         renderHeaderAlarm()
 

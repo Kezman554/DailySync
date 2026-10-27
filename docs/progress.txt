@@ -1772,3 +1772,16 @@
     line beside the button; sign-in screen title and status read Home Hub
   - Week row body weight 500 -> 400 so bold phrases stand out more; checked on
     the A32 in light and dark, including the 55%-alpha past-day card
+
+2026-10-27 Stage 2 lost when the alarm screen was backgrounded
+  - Cause: AlarmDismissalActivity was excludeFromRecents. Leaving it (06:32:22)
+    switched reader mode off, the tap went to Samsung's TagViewer ("empty tag,
+    register?"), and the OS destroyed the trimmed task. Progress lived only in
+    the activity; the notification and Alarm tab opened MainActivity, so there
+    was no way back while the countdown ran on
+  - Fix: dropped excludeFromRecents; Stage2Session keeps the checkpoint order,
+    position and gaps for the process; the countdown notification and
+    MainActivity.onStart reopen the live session (EXTRA_RESUME) and rebuild it
+    at the current checkpoint. A content screen that was up is not restored
+  - Not verified on a real morning: needs a test alarm, swipe away mid-Stage 2,
+    then reopen from the notification

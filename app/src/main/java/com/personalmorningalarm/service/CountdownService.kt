@@ -15,7 +15,7 @@ import androidx.core.app.NotificationCompat
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
-import com.personalmorningalarm.ui.MainActivity
+import com.personalmorningalarm.ui.AlarmDismissalActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -150,11 +150,9 @@ class CountdownService : Service() {
             .notify(NOTIFICATION_ID, buildNotification(seconds))
     }
 
-    /** Tapping the notification opens the app. */
+    /** Tapping the notification goes back to the checkpoint screen, rebuilding it if it was lost. */
     private fun appPendingIntent(): PendingIntent {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
+        val intent = AlarmDismissalActivity.resumeIntent(this)
         return PendingIntent.getActivity(
             this,
             0,

@@ -37,6 +37,7 @@ import com.personalmorningalarm.challenge.CheckpointResult
 import com.personalmorningalarm.challenge.ContentScreenManager
 import com.personalmorningalarm.challenge.NfcCheckpointManager
 import com.personalmorningalarm.challenge.ShakeChallenge
+import com.personalmorningalarm.challenge.Stage2Session
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
 import com.personalmorningalarm.data.entity.AlarmEvent
@@ -95,6 +96,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
     private val countdownExpiredReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             Log.d(TAG, "Countdown expired — nuclear took over, finishing Stage 2")
+            Stage2Session.clear()
             finish()
         }
     }
@@ -168,10 +170,18 @@ class AlarmDismissalActivity : AppCompatActivity() {
             onProgress = { progress -> onShakeProgress(progress) }
             onComplete = { onShakeComplete() }
         }
-        renderStage1()
+        val progress = Stage2Session.current
+            ?.takeIf { intent.getBooleanExtra(EXTRA_RESUME, false) && CountdownService.isRunning }
+        if (progress != null) {
+            resumeStage2(progress)
+        } else {
+            Stage2Session.clear()
+            renderStage1()
+        }
         binding.continueRing.makeSmall()
 
         binding.btnStopAlarm.setOnClickListener {
+            Stage2Session.clear()
             AlarmService.stop(this)
             CountdownService.stop(this)
             finish()
@@ -330,6 +340,43 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 showCheckpoint()
                 promptUnlockIfNeeded()
             }
+            Stage2Session.begin(
+                Stage2Session.Progress(
+                    checkpoints = checkpointManager,
+                    content = contentScreenManager,
+                    stretchMinutes = stretchDurationMinutes,
+                    startMs = stage2StartMs,
+                    alarmStartMs = alarmStartMs
+                )
+            )
+        }
+    }
+
+    /**
+     * Picks Stage 2 back up in a fresh activity after the old one was destroyed
+     * mid-countdown. The countdown service never stopped (it was only paused if a
+     * content screen was up), so this just rejoins it and redraws the checkpoint
+     * the user was on; a content screen that was showing is not brought back.
+     */
+    private fun resumeStage2(progress: Stage2Session.Progress) {
+        Log.d(TAG, "Resuming Stage 2 after the screen was lost (${CountdownService.remainingSeconds.value}s left)")
+        stage = STAGE_2
+        alarmStartMs = progress.alarmStartMs
+        stage2StartMs = progress.startMs
+        checkpointManager = progress.checkpoints
+        contentScreenManager = progress.content
+        stretchDurationMinutes = progress.stretchMinutes
+        gapsShown = progress.gapsShown
+
+        binding.tvTimeLeft.isVisible = true
+        observeCountdown()
+        CountdownService.resume(this)
+        if (checkpointManager != null) {
+            enableNfcDispatch()
+            showCheckpoint()
+            promptUnlockIfNeeded()
+        } else {
+            setupFallbackConfirm()
         }
     }
 
@@ -418,6 +465,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 Log.d(TAG, "Checkpoint correct — next: ${result.next.label}")
                 val content = contentScreenManager?.contentForGap(gapsShown)
                 gapsShown++
+                Stage2Session.current?.gapsShown = gapsShown
                 if (content != null) showContentScreen(content) else showCheckpoint()
             }
             is CheckpointResult.Wrong -> {
@@ -932,6 +980,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
         // Keep reader mode engaged (taps now ignored, since stage != STAGE_2) until
         // the activity pauses — otherwise a lingering chip gets grabbed by the
         // system's own NFC popup. onPause/onDestroy disables it.
+        Stage2Session.clear()
         CountdownService.stop(this)
         clearAlarmNotifications()
 
@@ -1152,6 +1201,19 @@ class AlarmDismissalActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "PMA"
+
+        /** Set on a relaunch that should rejoin the Stage 2 already in progress. */
+        private const val EXTRA_RESUME = "extra_resume_stage2"
+
+        /** Whether a Stage 2 is counting down with no guarantee a screen is showing it. */
+        fun hasResumableSession(): Boolean =
+            Stage2Session.current != null && CountdownService.isRunning
+
+        /** Brings the live Stage 2 to the front, rebuilding the screen if it was lost. */
+        fun resumeIntent(context: Context): Intent =
+            Intent(context, AlarmDismissalActivity::class.java)
+                .putExtra(EXTRA_RESUME, true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         /** True while a wake/dismissal session is on screen, so a re-fired alarm is ignored. */
         @Volatile

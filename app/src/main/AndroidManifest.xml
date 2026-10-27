@@ -64,7 +64,6 @@
         <activity
             android:name=".ui.AlarmDismissalActivity"
             android:exported="false"
-            android:excludeFromRecents="true"
             android:launchMode="singleTask"
             android:screenOrientation="nosensor"
             android:showOnLockScreen="true"
