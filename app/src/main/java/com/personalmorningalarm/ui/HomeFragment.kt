@@ -180,13 +180,7 @@ class HomeFragment : Fragment() {
 
             item.ivMark.setImageResource(if (enabled) R.drawable.ic_content_on else R.drawable.ic_content_off)
             item.tvLabel.setTextColor(color(if (enabled) MaterialR.attr.colorOnSurface else MaterialR.attr.colorOnSurfaceVariant))
-            item.tvLabel.text = SpannableStringBuilder(getString(contentLabel(type))).apply {
-                if (type == ContentType.STRETCH && toggle != null) {
-                    inSpans(ForegroundColorSpan(color(MaterialR.attr.colorOnSurfaceVariant))) {
-                        append(getString(R.string.alarm_tab_content_stretch_minutes, toggle.durationMinutes))
-                    }
-                }
-            }
+            item.tvLabel.setText(contentLabel(type))
             item.root.isSelected = enabled
             item.root.isEnabled = toggle != null
             item.root.setOnClickListener { viewModel.setContentEnabled(type, !enabled) }

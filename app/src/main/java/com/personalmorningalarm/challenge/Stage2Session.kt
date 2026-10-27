@@ -12,7 +12,6 @@ object Stage2Session {
     class Progress(
         val checkpoints: NfcCheckpointManager?,
         val content: ContentScreenManager?,
-        val stretchMinutes: Int,
         val startMs: Long,
         val alarmStartMs: Long
     ) {

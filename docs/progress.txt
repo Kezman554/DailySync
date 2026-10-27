@@ -1795,3 +1795,10 @@
     authoritative: the 5/10 min setting only sizes the built-in suggestions
     used when no routine exists (a 5-exercise routine summed to 2:45)
   - Unit tests green; not yet seen on the A32 (needs a test alarm run)
+
+2026-10-27 Removed the 5/10 min stretch buttons
+  - They only ever sized the built-in suggestion list (no routine set); with a
+    routine, each exercise's own time is used. Removed from Morning content, the
+    Alarm tab's " · 5 min" suffix, SettingsViewModel.setStretchDuration and its
+    test. The fallback list is now a fixed 5 min. content_toggles.durationMinutes
+    stays in the schema (no migration)

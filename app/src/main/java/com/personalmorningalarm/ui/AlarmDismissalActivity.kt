@@ -129,7 +129,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
     private var stage2StartMs = 0L
 
     private var stage2DurationMinutes = DEFAULT_STAGE2_MINUTES
-    private var stretchDurationMinutes = DEFAULT_STRETCH_MINUTES
     private var sequenceLength = DEFAULT_SEQUENCE_LENGTH
     private var morningGoal = MorningGoal.EXERCISE
 
@@ -325,17 +324,13 @@ class AlarmDismissalActivity : AppCompatActivity() {
             val tags = repository.getActiveNfcTags()
             val enabledToggles = repository.getEnabledContentToggles()
             contentScreenManager = ContentScreenManager(enabledToggles.map { it.contentType })
-            stretchDurationMinutes = enabledToggles
-                .firstOrNull { it.contentType == ContentType.STRETCH }
-                ?.durationMinutes ?: DEFAULT_STRETCH_MINUTES
             if (tags.isEmpty() || nfcAdapter?.isEnabled != true) {
                 Log.d(TAG, "Stage 2: no usable NFC tags — falling back to confirm button")
                 setupFallbackConfirm()
             } else {
                 checkpointManager = NfcCheckpointManager(tags, sequenceLength)
                 Log.d(TAG, "Stage 2: ${tags.size} tags, sequence length $sequenceLength, " +
-                    "tap order randomised; content=${enabledToggles.map { it.contentType }}, " +
-                    "stretch=${stretchDurationMinutes}m")
+                    "tap order randomised; content=${enabledToggles.map { it.contentType }}")
                 enableNfcDispatch()
                 showCheckpoint()
                 promptUnlockIfNeeded()
@@ -344,7 +339,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 Stage2Session.Progress(
                     checkpoints = checkpointManager,
                     content = contentScreenManager,
-                    stretchMinutes = stretchDurationMinutes,
                     startMs = stage2StartMs,
                     alarmStartMs = alarmStartMs
                 )
@@ -365,7 +359,6 @@ class AlarmDismissalActivity : AppCompatActivity() {
         stage2StartMs = progress.startMs
         checkpointManager = progress.checkpoints
         contentScreenManager = progress.content
-        stretchDurationMinutes = progress.stretchMinutes
         gapsShown = progress.gapsShown
 
         binding.tvTimeLeft.isVisible = true
@@ -638,7 +631,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 val names = getString(R.string.stretch_suggestions).lines()
                     .map { it.removePrefix("•").trim() }
                     .filter { it.isNotEmpty() }
-                val each = (stretchDurationMinutes * 60 / names.size.coerceAtLeast(1)).coerceAtLeast(1)
+                val each = (FALLBACK_STRETCH_MINUTES * 60 / names.size.coerceAtLeast(1)).coerceAtLeast(1)
                 names.map { StretchStep(it, null, each) }
             } else {
                 Log.d(TAG, "Stretch routine '${routine?.name}', ${exercises.size} exercises")
@@ -1238,7 +1231,8 @@ class AlarmDismissalActivity : AppCompatActivity() {
         private const val TARGET_SECONDS =
             (ShakeChallenge.DEFAULT_TARGET_DURATION_MS / 1000).toInt()
         private const val DEFAULT_STAGE2_MINUTES = 10
-        private const val DEFAULT_STRETCH_MINUTES = 5
+        /** Total time for the built-in suggestions, used only when no routine is set. */
+        private const val FALLBACK_STRETCH_MINUTES = 5
         private const val DEFAULT_SEQUENCE_LENGTH = 5
 
         /** How long a content screen locks its Continue button (quote, and future

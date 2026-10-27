@@ -49,9 +49,7 @@ class MorningContentFragment : Fragment() {
             viewModel.setContentEnabled(ContentType.QUOTE, binding.switchQuote.isChecked)
         }
         binding.switchStretch.setOnClickListener {
-            val enabled = binding.switchStretch.isChecked
-            viewModel.setContentEnabled(ContentType.STRETCH, enabled)
-            binding.stretchDurationGroup.isVisible = enabled
+            viewModel.setContentEnabled(ContentType.STRETCH, binding.switchStretch.isChecked)
         }
         binding.switchDailySchedule.setOnClickListener {
             viewModel.setContentEnabled(ContentType.DAILY_SCHEDULE, binding.switchDailySchedule.isChecked)
@@ -59,8 +57,6 @@ class MorningContentFragment : Fragment() {
         binding.switchChalkboard.setOnClickListener {
             viewModel.setContentEnabled(ContentType.CHALKBOARD, binding.switchChalkboard.isChecked)
         }
-        binding.pillStretch5.setOnClickListener { viewModel.setStretchDuration(5) }
-        binding.pillStretch10.setOnClickListener { viewModel.setStretchDuration(10) }
 
         binding.rowManageQuotes.setOnClickListener {
             findNavController().navigate(R.id.action_morningContent_to_quotes)
@@ -75,12 +71,7 @@ class MorningContentFragment : Fragment() {
                     toggles.forEach { t ->
                         when (t.contentType) {
                             ContentType.QUOTE -> binding.switchQuote.isChecked = t.isEnabled
-                            ContentType.STRETCH -> {
-                                binding.switchStretch.isChecked = t.isEnabled
-                                binding.stretchDurationGroup.isVisible = t.isEnabled
-                                binding.pillStretch5.isSelected = t.durationMinutes != 10
-                                binding.pillStretch10.isSelected = t.durationMinutes == 10
-                            }
+                            ContentType.STRETCH -> binding.switchStretch.isChecked = t.isEnabled
                             ContentType.DAILY_SCHEDULE ->
                                 binding.switchDailySchedule.isChecked = t.isEnabled
                             ContentType.CHALKBOARD ->

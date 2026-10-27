@@ -213,8 +213,6 @@
     <string name="toggle_stretch">Stretching prompt</string>
     <string name="toggle_daily_schedule">Daily schedule</string>
     <string name="toggle_chalkboard">Rolling to-do</string>
-    <string name="stretch_5_min">5 min</string>
-    <string name="stretch_10_min">10 min</string>
 
     <!-- Stage 2 countdown service -->
     <string name="countdown_channel_name">Stage 2 countdown</string>
@@ -364,7 +362,6 @@
     <string name="alarm_tab_content_count">%1$d of %2$d on</string>
     <string name="alarm_tab_content_quote">Quote</string>
     <string name="alarm_tab_content_stretch">Stretch</string>
-    <string name="alarm_tab_content_stretch_minutes">" · %1$d min"</string>
     <string name="alarm_tab_content_schedule">Schedule</string>
     <string name="alarm_tab_content_todo">To-do</string>
     <string name="alarm_tab_nuclear">Nuclear</string>

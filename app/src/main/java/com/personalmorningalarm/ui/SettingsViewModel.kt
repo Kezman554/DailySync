@@ -75,14 +75,6 @@ class SettingsViewModel(private val repository: AlarmRepository) : ViewModel() {
         }
     }
 
-    fun setStretchDuration(minutes: Int) {
-        viewModelScope.launch {
-            repository.getContentToggle(ContentType.STRETCH)?.let {
-                repository.updateContentToggle(it.copy(durationMinutes = minutes))
-            }
-        }
-    }
-
     companion object {
         private const val DEFAULT_SEQUENCE_LENGTH = 5
         private const val DEFAULT_STAGE2_DURATION = 10

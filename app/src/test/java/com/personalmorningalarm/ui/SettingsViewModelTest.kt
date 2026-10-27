@@ -43,20 +43,6 @@ class SettingsViewModelTest : ViewModelTestSupport() {
     }
 
     @Test
-    fun `setStretchDuration persists on the stretch toggle`() {
-        runBlocking {
-            repo.saveContentToggle(ContentToggle(contentType = ContentType.STRETCH, durationMinutes = 5))
-        }
-        val vm = track(SettingsViewModel(repo))
-        keepSubscribed(vm.contentToggles)
-
-        vm.setStretchDuration(10)
-        settledValue(vm.contentToggles) { list ->
-            list.firstOrNull { it.contentType == ContentType.STRETCH }?.durationMinutes == 10
-        }
-    }
-
-    @Test
     fun `sequence length and stage2 duration flows fall back to defaults then track config`() {
         val vm = track(SettingsViewModel(repo))
         keepSubscribed(vm.sequenceLength, vm.stage2Duration)

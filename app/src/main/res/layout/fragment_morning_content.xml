@@ -30,29 +30,6 @@
                 style="@style/DailySync.SwitchRow"
                 android:text="@string/toggle_stretch" />
 
-            <!-- Stretch length, shown while the stretch screen is on -->
-            <LinearLayout
-                android:id="@+id/stretch_duration_group"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingBottom="12dp"
-                android:visibility="gone"
-                tools:visibility="visible">
-
-                <TextView
-                    android:id="@+id/pill_stretch_5"
-                    style="@style/DailySync.SmallPill"
-                    android:text="@string/stretch_5_min"
-                    tools:selected="true" />
-
-                <TextView
-                    android:id="@+id/pill_stretch_10"
-                    style="@style/DailySync.SmallPill"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/stretch_10_min" />
-            </LinearLayout>
-
             <View style="@style/DailySync.Hairline" />
 
             <com.google.android.material.switchmaterial.SwitchMaterial
