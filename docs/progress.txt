@@ -1841,3 +1841,4 @@
     also when the service restarts after a process kill. A kill still resets the
     gauntlet (the alarm restarts, the progress does not)
   - Existing: NuclearDismissalActivity already relaunches itself on HOME
+  - Verified on the A32: Countdown 15s -> nuclear; maths solved, task cleared -> screen came back by itself with the same problem and maths still done; all three completed on the first run (no NFC step)
