@@ -172,10 +172,15 @@ class AlarmDismissalActivity : AppCompatActivity() {
             onProgress = { progress -> onShakeProgress(progress) }
             onComplete = { onShakeComplete() }
         }
-        val progress = Stage2Session.current
-            ?.takeIf { intent.getBooleanExtra(EXTRA_RESUME, false) && CountdownService.isRunning }
+        val resuming = intent.getBooleanExtra(EXTRA_RESUME, false) && CountdownService.isRunning
+        val progress = Stage2Session.current?.takeIf { resuming }
         if (progress != null) {
             resumeStage2(progress)
+        } else if (resuming) {
+            // The countdown outlived the app process: its screen and progress are
+            // gone, so Stage 2 starts over against the time that is left.
+            Log.d(TAG, "Resuming Stage 2 after the process was killed (${CountdownService.remainingSeconds.value}s left)")
+            startStage2(rejoinCountdown = true)
         } else {
             Stage2Session.clear()
             renderStage1()
@@ -314,13 +319,14 @@ class AlarmDismissalActivity : AppCompatActivity() {
 
     // --- Stage 2 ---
 
-    private fun startStage2() {
+    private fun startStage2(rejoinCountdown: Boolean = false) {
         stage = STAGE_2
         stage2StartMs = SystemClock.elapsedRealtime()
 
         binding.tvTimeLeft.isVisible = true
 
-        CountdownService.start(this, stage2DurationMinutes * 60)
+        if (rejoinCountdown) CountdownService.resume(this)
+        else CountdownService.start(this, stage2DurationMinutes * 60)
         observeCountdown()
 
         lifecycleScope.launch {
@@ -1217,8 +1223,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
         private const val EXTRA_RESUME = "extra_resume_stage2"
 
         /** Whether a Stage 2 is counting down with no guarantee a screen is showing it. */
-        fun hasResumableSession(): Boolean =
-            Stage2Session.current != null && CountdownService.isRunning
+        fun hasResumableSession(): Boolean = CountdownService.isRunning
 
         /** Brings the live Stage 2 to the front, rebuilding the screen if it was lost. */
         fun resumeIntent(context: Context): Intent =

@@ -1802,3 +1802,15 @@
     Alarm tab's " · 5 min" suffix, SettingsViewModel.setStretchDuration and its
     test. The fallback list is now a fixed 5 min. content_toggles.durationMinutes
     stays in the schema (no migration)
+
+2026-10-27 Countdown survives a process kill
+  - CountdownService now records its wall-clock deadline (or the paused time
+    during a content screen). A system restart after a kill (null intent)
+    continues to that deadline instead of starting a fresh 10 minutes with no
+    screen; a countdown that ran out while dead fires the nuclear alarm if it
+    was within 30 min, else stops. The app (MainActivity.onStart or the
+    notification) then rebuilds a Stage 2 screen against the time left; the
+    checkpoint order restarts, since it died with the process
+  - Side effect: the Alarm tab's "Countdown 15s" dev button now also sends the
+    app to the alarm screen while it runs
+  - Robolectric tests for the restart paths; on-device kill test pending

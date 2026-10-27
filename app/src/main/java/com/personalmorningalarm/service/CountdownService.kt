@@ -63,6 +63,14 @@ class CountdownService : Service() {
             }
         }
 
+        // A null intent is the system restarting this service after the process was
+        // killed mid-countdown. The screen and its progress died with the process,
+        // so carry on to the saved deadline rather than starting a fresh countdown.
+        if (intent == null) {
+            restoreAfterKill()
+            return START_STICKY
+        }
+
         val explicitSeconds = intent?.getIntExtra(EXTRA_DURATION_SECONDS, -1) ?: -1
         val initialSeconds =
             if (explicitSeconds > 0) explicitSeconds else DEFAULT_DURATION_MINUTES * 60
@@ -89,6 +97,7 @@ class CountdownService : Service() {
     override fun onDestroy() {
         Log.d(TAG, "CountdownService stopping")
         isRunning = false
+        clearSavedDeadline()
         timer?.cancel()
         timer = null
         _remainingSeconds.value = 0
@@ -100,6 +109,7 @@ class CountdownService : Service() {
     private fun pauseTimer() {
         timer?.cancel()
         timer = null
+        saveState(deadlineMs = 0L, pausedSeconds = _remainingSeconds.value)
         Log.d(TAG, "Countdown paused at ${_remainingSeconds.value}s")
     }
 
@@ -113,8 +123,50 @@ class CountdownService : Service() {
         }
     }
 
+    /**
+     * Picks the countdown up again after a process kill. The deadline is wall-clock,
+     * so time spent dead counts; a countdown that ran out while the process was gone
+     * fires the nuclear alarm now (if it was recent), since that is what it was for.
+     */
+    private fun restoreAfterKill() {
+        val prefs = getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
+        val deadline = prefs.getLong(KEY_DEADLINE_MS, 0L)
+        val paused = prefs.getInt(KEY_PAUSED_SECONDS, 0)
+        val now = System.currentTimeMillis()
+        val remaining = when {
+            paused > 0 -> paused
+            deadline > now -> ((deadline - now + 999L) / 1000L).toInt()
+            else -> 0
+        }
+        // Foreground promotion is owed within seconds of a sticky restart, whatever happens next.
+        startForeground(NOTIFICATION_ID, buildNotification(remaining))
+        isRunning = true
+        if (remaining > 0) {
+            Log.d(TAG, "CountdownService restarted after a kill — ${remaining}s left")
+            startTimer(remaining)
+            return
+        }
+        if (deadline > 0L && now - deadline <= EXPIRED_GRACE_MS) {
+            Log.d(TAG, "Countdown ran out while the app was dead — triggering nuclear alarm")
+            NuclearAlarmService.start(this)
+        } else {
+            Log.d(TAG, "CountdownService restarted with nothing to resume — stopping")
+        }
+        stopSelf()
+    }
+
+    private fun saveState(deadlineMs: Long, pausedSeconds: Int) {
+        getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_DEADLINE_MS, deadlineMs)
+            .putInt(KEY_PAUSED_SECONDS, pausedSeconds)
+            .apply()
+    }
+
+    private fun clearSavedDeadline() = saveState(deadlineMs = 0L, pausedSeconds = 0)
+
     private fun startTimer(totalSeconds: Int) {
         _remainingSeconds.value = totalSeconds
+        saveState(deadlineMs = System.currentTimeMillis() + totalSeconds * 1000L, pausedSeconds = 0)
         timer?.cancel()
         timer = object : CountDownTimer(totalSeconds * 1000L, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
@@ -179,6 +231,14 @@ class CountdownService : Service() {
         private const val CHANNEL_ID = "countdown_channel"
         private const val NOTIFICATION_ID = 3001
         private const val DEFAULT_DURATION_MINUTES = 10
+
+        /** Where the deadline lives so a restarted service can pick the countdown up. */
+        private const val STATE_PREFS = "countdown_state"
+        private const val KEY_DEADLINE_MS = "deadline_ms"
+        private const val KEY_PAUSED_SECONDS = "paused_seconds"
+
+        /** A countdown that expired longer ago than this is stale, not a missed alarm. */
+        private const val EXPIRED_GRACE_MS = 30 * 60 * 1000L
 
         const val EXTRA_DURATION_SECONDS = "extra_duration_seconds"
         const val ACTION_STOP = "com.personalmorningalarm.action.STOP_COUNTDOWN"
