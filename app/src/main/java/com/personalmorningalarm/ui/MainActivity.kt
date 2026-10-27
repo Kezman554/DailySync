@@ -28,10 +28,12 @@ import com.personalmorningalarm.data.remote.ChalkboardSync
 import com.personalmorningalarm.data.remote.InboxSync
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.databinding.ActivityMainBinding
+import com.personalmorningalarm.service.CountdownService
 import com.personalmorningalarm.util.AlarmScheduler
 import com.personalmorningalarm.util.BatteryOptimisationHelper
 import com.personalmorningalarm.util.NotificationPermissionHelper
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -175,6 +177,16 @@ class MainActivity : AppCompatActivity() {
         if (AlarmDismissalActivity.hasResumableSession()) {
             startActivity(AlarmDismissalActivity.resumeIntent(this))
             return
+        }
+        // After a process kill the system can bring this screen back before it has
+        // restarted the countdown service, so the check above finds nothing; follow
+        // the countdown for as long as we're on screen and head for the alarm the
+        // moment it appears.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                CountdownService.remainingSeconds.first { it > 0 && AlarmDismissalActivity.hasResumableSession() }
+                startActivity(AlarmDismissalActivity.resumeIntent(this@MainActivity))
+            }
         }
         renderHeaderDate()
         renderHeaderAlarm()
