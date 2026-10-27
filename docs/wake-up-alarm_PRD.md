@@ -48,7 +48,8 @@ If timer expires before all taps complete, nuclear alarm activates
 Nuclear Alarm (Stage 2 Failure)
 
 Maximum volume, strong vibration, optional flashlight strobe
-Requires ALL of: extended shake (30s), math problem, NFC tap, typed confirmation phrase
+Requires ALL of: extended shake (30s), math problem, typed confirmation phrase
+No NFC step: away from home (or with NFC off) there may be no tag to tap, and the alarm must stay stoppable
 Logged as failed wake-up, streak resets
 
 Content Toggle System

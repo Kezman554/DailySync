@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The nuclear gauntlet: four challenges, any order, all four to silence it. The
+  The nuclear gauntlet: three challenges, any order, all three to silence it. The
   ground glows in the error colour; each challenge is a card whose state
   (done / current / to do) NuclearDismissalActivity sets.
 -->
@@ -128,35 +128,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 3. NFC -->
-        <LinearLayout
-            android:id="@+id/card_nfc"
-            style="@style/NuclearCard">
-
-            <LinearLayout style="@style/NuclearCardHeader">
-
-                <TextView
-                    android:id="@+id/status_nfc"
-                    style="@style/NuclearStatus"
-                    tools:text="○" />
-
-                <TextView
-                    style="@style/NuclearCardTitle"
-                    android:text="@string/challenge_nfc_title" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tv_nfc_hint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/nfc_tap_hint"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textFontWeight="600"
-                android:textSize="14sp" />
-        </LinearLayout>
-
-        <!-- 4. Typing -->
+        <!-- 3. Typing -->
         <LinearLayout
             android:id="@+id/card_type"
             style="@style/NuclearCard">

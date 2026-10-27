@@ -1823,3 +1823,11 @@
     opens the screen rather than relying on the full-screen intent alone
   - Verified on the A32: test alarm, task cleared, app relaunched -> "Stage 1
     screen rebuilt while the alarm was sounding"
+
+2026-10-27 Nuclear gauntlet: NFC step removed
+  - Nuclear dismissal is now shake (30s), maths and the typed phrase. An NFC tap
+    could be impossible away from home or with NFC off; the alarm must always be
+    stoppable. NuclearDismissalActivity lost its reader mode, NfcChallenge.kt
+    was deleted (nuclear-only), PRD line updated. Stage 2 checkpoint taps are
+    unchanged
+  - Not yet seen on the device (needs the nuclear alarm to fire)

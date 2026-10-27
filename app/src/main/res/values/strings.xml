@@ -229,10 +229,9 @@
     <string name="stop_nuclear_temp">Stop nuclear (temp)</string>
 
     <!-- Nuclear dismissal challenges -->
-    <string name="nuclear_instruction">Complete all four to silence the alarm</string>
+    <string name="nuclear_instruction">Complete all three to silence the alarm</string>
     <string name="challenge_shake_title">Shake hard for 30 seconds</string>
     <string name="challenge_math_title">Solve the problem</string>
-    <string name="challenge_nfc_title">Tap any registered NFC tag</string>
     <string name="challenge_type_title">Type this phrase exactly</string>
     <string name="nuclear_phrase">I am awake and getting up</string>
     <string name="math_question_format">%1$s = ?</string>
@@ -241,10 +240,6 @@
     <string name="submit">Submit</string>
     <string name="math_wrong">Wrong answer — try again</string>
     <string name="type_wrong">Doesn\'t match — type it exactly</string>
-    <string name="nfc_tap_hint">Hold a registered tag to the back of your phone</string>
-    <string name="nfc_no_tags_skipped">No tags registered — auto-completed</string>
-    <string name="nfc_wrong_tag">Not a registered tag — try another</string>
-    <string name="nfc_accepted">Tag accepted ✓</string>
     <string name="status_done">✓</string>
     <string name="status_pending">○</string>
     <string name="status_current">●</string>
