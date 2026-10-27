@@ -121,7 +121,10 @@ class AlarmDismissalActivity : AppCompatActivity() {
     // tag and killed dispatch. Callback runs on a binder thread.
     private val readerCallback = NfcAdapter.ReaderCallback { tag ->
         val tagId = tag.id.toHex()
-        runOnUiThread { if (stage == STAGE_2) onCheckpointTag(tagId) }
+        runOnUiThread {
+            if (stage == STAGE_2) onCheckpointTag(tagId)
+            else Log.d(TAG, "Tag $tagId ignored: Stage 2 isn't active (stage=$stage)")
+        }
     }
 
     private var stage = STAGE_1
@@ -452,7 +455,12 @@ class AlarmDismissalActivity : AppCompatActivity() {
     }
 
     private fun onCheckpointTag(tagId: String) {
-        if (showingContent) return // ignore taps while a content screen is up
+        if (showingContent) {
+            // Ignored on purpose; logged so a tap that did nothing can be told apart
+            // from one that was never read.
+            Log.d(TAG, "Tag $tagId ignored: a content screen is up")
+            return
+        }
         when (val result = checkpointManager?.onTagScanned(tagId)) {
             is CheckpointResult.Correct -> {
                 Log.d(TAG, "Checkpoint correct — next: ${result.next.label}")
@@ -471,7 +479,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 Log.d(TAG, "All checkpoints tapped")
                 onStage2Complete()
             }
-            else -> { /* AlreadyComplete / null — ignore */ }
+            else -> Log.d(TAG, "Tag $tagId ignored: no checkpoint to match (already complete or none loaded)")
         }
     }
 
