@@ -1851,3 +1851,11 @@
     is long-pressed (again to hide), so a stray tap cannot start the nuclear alarm
   - Verified on the A32: row hidden by default, toggles on long-press; the alarm
     notification tap opens the Stage 1 screen; Stage 1 layout clean without the button
+
+2026-10-27 Nuclear verified on the A32
+  - Process kill during the nuclear alarm: service restarted by the system, sound
+    and screen came back (gauntlet restarts). Countdown that expired while the
+    process was dead: restarted service fired the nuclear alarm within about a second
+  - Not isolated: tapping the nuclear notification on a destroyed screen (the
+    screen relaunches itself on HOME); a tap on a live screen left it on the same
+    instance with no errors
