@@ -25,11 +25,15 @@ import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
 import com.personalmorningalarm.data.model.AlarmSounds
+import com.personalmorningalarm.challenge.NuclearSession
 import com.personalmorningalarm.ui.NuclearDismissalActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -79,7 +83,7 @@ class NuclearAlarmService : Service() {
 
         Log.d(TAG, "NuclearAlarmService starting (foreground)")
         startForeground(NOTIFICATION_ID, buildNotification())
-        isRunning = true
+        _running.value = true
         if (STROBE_ENABLED) startStrobe()
         // Read the chosen sound + vibration setting off the main thread.
         scope.launch {
@@ -93,7 +97,7 @@ class NuclearAlarmService : Service() {
 
     override fun onDestroy() {
         Log.d(TAG, "NuclearAlarmService stopping")
-        isRunning = false
+        _running.value = false
         scope.cancel()
         mediaPlayer?.run {
             if (isPlaying) stop()
@@ -197,13 +201,10 @@ class NuclearAlarmService : Service() {
     // --- Notification ---
 
     private fun buildNotification(): Notification {
-        val fullScreenIntent = Intent(this, NuclearDismissalActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
         val fullScreenPendingIntent = PendingIntent.getActivity(
             this,
             0,
-            fullScreenIntent,
+            NuclearDismissalActivity.resumeIntent(this),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
@@ -215,6 +216,7 @@ class NuclearAlarmService : Service() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setOngoing(true) // can't be swiped away while the FGS runs
             .setAutoCancel(false)
+            .setContentIntent(fullScreenPendingIntent) // tapping it returns to the gauntlet
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .build()
     }
@@ -258,11 +260,15 @@ class NuclearAlarmService : Service() {
         private val VIBRATION_PATTERN = longArrayOf(0, 600, 400)
         private val VIBRATION_AMPLITUDES = intArrayOf(0, 255, 0)
 
-        @Volatile
-        var isRunning: Boolean = false
-            private set
+        private val _running = MutableStateFlow(false)
+
+        /** Whether the alarm is sounding; a flow so a screen can wait for a restarting service. */
+        val running: StateFlow<Boolean> = _running.asStateFlow()
+
+        val isRunning: Boolean get() = _running.value
 
         fun start(context: Context) {
+            NuclearSession.clear() // a new alarm starts a new gauntlet
             val intent = Intent(context, NuclearAlarmService::class.java)
             context.startForegroundService(intent)
         }

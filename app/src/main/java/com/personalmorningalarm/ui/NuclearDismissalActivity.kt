@@ -14,7 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.color.MaterialColors
 import com.personalmorningalarm.R
-import com.personalmorningalarm.challenge.MathChallenge
+import com.personalmorningalarm.challenge.NuclearSession
 import com.personalmorningalarm.challenge.ShakeChallenge
 import com.personalmorningalarm.challenge.TypingChallenge
 import com.personalmorningalarm.data.AlarmRepository
@@ -45,12 +45,20 @@ class NuclearDismissalActivity : AppCompatActivity() {
     private lateinit var repository: AlarmRepository
 
     private lateinit var shakeChallenge: ShakeChallenge
-    private val mathChallenge = MathChallenge()
+    /** The gauntlet's progress, kept by the process so a rebuilt screen keeps what is done. */
+    private val session = NuclearSession.obtain()
+    private val mathChallenge get() = session.math
     private lateinit var typingChallenge: TypingChallenge
 
-    private var shakeDone = false
-    private var mathDone = false
-    private var typeDone = false
+    private var shakeDone: Boolean
+        get() = session.shakeDone
+        set(value) { session.shakeDone = value }
+    private var mathDone: Boolean
+        get() = session.mathDone
+        set(value) { session.mathDone = value }
+    private var typeDone: Boolean
+        get() = session.typeDone
+        set(value) { session.typeDone = value }
     private var dismissing = false
 
     private var morningGoal = MorningGoal.EXERCISE
@@ -74,6 +82,7 @@ class NuclearDismissalActivity : AppCompatActivity() {
         setupShake()
         setupMath()
         setupTyping()
+        restoreDoneChallenges()
         renderCards()
 
         // Reaching the nuclear screen is the failure: log it and reset the streak
@@ -183,10 +192,25 @@ class NuclearDismissalActivity : AppCompatActivity() {
         }
     }
 
+    /** A screen rebuilt mid-gauntlet shows what was already done as done. */
+    private fun restoreDoneChallenges() {
+        if (shakeDone) binding.shakeProgress.progress = 100
+        if (mathDone) {
+            binding.etMath.isEnabled = false
+            binding.btnMathSubmit.isEnabled = false
+        }
+        if (typeDone) {
+            binding.etType.isEnabled = false
+            binding.btnTypeSubmit.isEnabled = false
+        }
+        if (shakeDone || mathDone || typeDone) Log.d(TAG, "Nuclear screen rebuilt mid-gauntlet")
+    }
+
     private fun maybeFinish() {
         if (shakeDone && mathDone && typeDone && !dismissing) {
             dismissing = true
             Log.d(TAG, "All nuclear challenges complete — dismissing")
+            NuclearSession.clear()
             NuclearAlarmService.stop(this)
             finish()
         }
@@ -275,6 +299,11 @@ class NuclearDismissalActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "PMA"
         private const val SHAKE_DURATION_MS = 30_000L
+
+        /** Brings the gauntlet to the front, rebuilding the screen if it was lost. */
+        fun resumeIntent(context: Context): Intent =
+            Intent(context, NuclearDismissalActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     }
 }

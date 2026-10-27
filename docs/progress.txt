@@ -1831,3 +1831,13 @@
     was deleted (nuclear-only), PRD line updated. Stage 2 checkpoint taps are
     unchanged
   - Not yet seen on the device (needs the nuclear alarm to fire)
+
+2026-10-27 Nuclear screen recovery
+  - NuclearSession keeps the three challenges' state (and the maths problem) for
+    the process, so a destroyed/rebuilt nuclear screen keeps what is done.
+    excludeFromRecents dropped from NuclearDismissalActivity; the nuclear
+    notification got a content intent; NuclearAlarmService.running is a flow, and
+    MainActivity (via AlarmRecovery) sends the app to the nuclear screen first,
+    also when the service restarts after a process kill. A kill still resets the
+    gauntlet (the alarm restarts, the progress does not)
+  - Existing: NuclearDismissalActivity already relaunches itself on HOME

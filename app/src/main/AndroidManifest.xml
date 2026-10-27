@@ -72,7 +72,6 @@
         <activity
             android:name=".ui.NuclearDismissalActivity"
             android:exported="false"
-            android:excludeFromRecents="true"
             android:launchMode="singleTask"
             android:screenOrientation="nosensor"
             android:showOnLockScreen="true"

@@ -29,6 +29,7 @@ import com.personalmorningalarm.data.remote.InboxSync
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.databinding.ActivityMainBinding
 import com.personalmorningalarm.service.CountdownService
+import com.personalmorningalarm.service.NuclearAlarmService
 import com.personalmorningalarm.util.AlarmScheduler
 import com.personalmorningalarm.util.BatteryOptimisationHelper
 import com.personalmorningalarm.util.NotificationPermissionHelper
@@ -174,8 +175,8 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         // A Stage 2 is still counting down: the app is no place to be until it's done.
-        if (AlarmDismissalActivity.hasResumableSession()) {
-            startActivity(AlarmDismissalActivity.resumeIntent(this))
+        if (AlarmRecovery.hasLiveAlarm()) {
+            startActivity(AlarmRecovery.resumeIntent(this))
             return
         }
         // After a process kill the system can bring this screen back before it has
@@ -185,7 +186,14 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 CountdownService.remainingSeconds.first { it > 0 && AlarmDismissalActivity.hasResumableSession() }
-                startActivity(AlarmDismissalActivity.resumeIntent(this@MainActivity))
+                startActivity(AlarmRecovery.resumeIntent(this@MainActivity))
+            }
+        }
+        // The same wait for the nuclear alarm, which a killed process restarts.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                NuclearAlarmService.running.first { it }
+                startActivity(AlarmRecovery.resumeIntent(this@MainActivity))
             }
         }
         renderHeaderDate()
