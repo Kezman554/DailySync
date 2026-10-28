@@ -1859,3 +1859,9 @@
   - Not isolated: tapping the nuclear notification on a destroyed screen (the
     screen relaunches itself on HOME); a tap on a live screen left it on the same
     instance with no errors
+
+2026-10-28 Content screens pause the countdown only while their timer runs
+  - Stage 2 countdown now restarts when a content screen's Continue frees up
+    (quote/schedule/to-do 15s timer, or the whole stretch session), not when
+    Continue is tapped, so lingering on a content screen counts against the
+    nuclear deadline

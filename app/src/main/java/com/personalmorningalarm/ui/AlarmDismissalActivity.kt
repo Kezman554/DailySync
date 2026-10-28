@@ -506,8 +506,10 @@ class AlarmDismissalActivity : AppCompatActivity() {
         showingContent = true
         binding.tvStageLabel.text =
             getString(R.string.alarm_between_taps, gapsShown, contentScreenManager?.count ?: gapsShown)
-        // Freeze the Stage 2 deadline while content shows — content time shouldn't
-        // count against the nuclear timer (a 10-min stretch must not fail you).
+        // Freeze the Stage 2 deadline while the screen's own timer runs — that time
+        // shouldn't count against the nuclear timer (a 10-min stretch must not fail
+        // you). It restarts when Continue frees up, not when it's tapped, so a
+        // content screen is no place to fall back asleep.
         CountdownService.pause(this)
         binding.content.visibility = View.GONE
         binding.contentPanel.visibility = View.VISIBLE
@@ -593,8 +595,12 @@ class AlarmDismissalActivity : AppCompatActivity() {
         binding.tvContinueSeconds.setTextColor(color(MaterialR.attr.colorPrimary))
     }
 
-    /** Continue becomes tappable, with a brief scale pop so the change is noticed. */
+    /**
+     * Continue becomes tappable, with a brief scale pop so the change is noticed.
+     * The step's timer is done, so the Stage 2 deadline runs again from here.
+     */
     private fun enableContinue() {
+        CountdownService.resume(this)
         binding.btnContinue.isEnabled = true
         binding.btnContinue.animate()
             .scaleX(1.04f).scaleY(1.04f).setDuration(150L)
@@ -979,7 +985,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
         showingContent = false
         binding.contentPanel.visibility = View.GONE
         binding.content.visibility = View.VISIBLE
-        CountdownService.resume(this) // restart the Stage 2 deadline
+        CountdownService.resume(this) // already running since Continue freed up; a no-op then
         showCheckpoint()
     }
 
