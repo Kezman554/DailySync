@@ -1865,3 +1865,5 @@
     (quote/schedule/to-do 15s timer, or the whole stretch session), not when
     Continue is tapped, so lingering on a content screen counts against the
     nuclear deadline
+  - Verified on the A32: countdown holds during the 15s timer and resumes from
+    where it stopped once Continue frees up
