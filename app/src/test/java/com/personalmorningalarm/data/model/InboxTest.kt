@@ -19,10 +19,10 @@ class InboxTest {
     @Test
     fun `a vault filename becomes a title and a captured-at`() {
         val single = Inbox.captures(
-            listOf(capture("2026-07-17-1356-morningsync-restructure-ideas.md"))
+            listOf(capture("2026-07-17-1356-allotment-layout-ideas.md"))
         ).single()
 
-        assertEquals("Morningsync restructure ideas", single.title)
+        assertEquals("Allotment layout ideas", single.title)
         assertEquals("17 Jul, 13:56", single.captured)
     }
 

@@ -90,7 +90,7 @@ class PresenceRepositoryTest {
 
     @Test
     fun `an unreachable dashboard fails the sign-in once and keeps nothing`() = runBlocking {
-        val repo = repository { throw IOException("Pi unreachable") }
+        val repo = repository { throw IOException("Host unreachable") }
 
         assertEquals(PresenceResult.Unreachable, repo.open("1234"))
         // Exactly one attempt. There's no queue to flush and nothing to replay —

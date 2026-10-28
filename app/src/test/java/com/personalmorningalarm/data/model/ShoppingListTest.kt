@@ -14,7 +14,7 @@ class ShoppingListTest {
         ShoppingItemDto(text, line, ticked)
 
     private fun pending(
-        listId: String = "6-life/shopping/fitness.md",
+        listId: String = "6-life/shopping/garden.md",
         verb: ShoppingVerb,
         text: String,
         line: String? = null,
@@ -25,28 +25,28 @@ class ShoppingListTest {
 
     @Test
     fun `short title drops what follows the spaced dash`() {
-        assertEquals("Fitness Equipment", ShoppingList.shortTitle("Fitness Equipment — Rolling Buy List"))
+        assertEquals("Garden Tools", ShoppingList.shortTitle("Garden Tools — Seasonal Buy List"))
         assertEquals("Alfred tech", ShoppingList.shortTitle("Alfred tech"))
         assertEquals(" — odd", ShoppingList.shortTitle(" — odd"))
     }
 
     @Test
     fun `name and note split at the first spaced dash`() {
-        val item = ShoppingItem(task = "Dip bars — after 2+ months — ~£40")
+        val item = ShoppingItem(task = "Hedge shears — after the spring cut — ~£40")
 
-        assertEquals("Dip bars", item.name)
-        assertEquals("after 2+ months — ~£40", item.note)
+        assertEquals("Hedge shears", item.name)
+        assertEquals("after the spring cut — ~£40", item.note)
     }
 
     @Test
     fun `an item with no spaced dash is all name, no note`() {
-        val plain = ShoppingItem(task = "Pi Zero 2W")
-        val hyphenated = ShoppingItem(task = "Pi-hole—spare SD")
+        val plain = ShoppingItem(task = "Bird feeder 2L")
+        val hyphenated = ShoppingItem(task = "Seed-tray—spare lid")
         val trailing = ShoppingItem(task = "Short USB cable — ")
 
-        assertEquals("Pi Zero 2W", plain.name)
+        assertEquals("Bird feeder 2L", plain.name)
         assertNull(plain.note)
-        assertEquals("Pi-hole—spare SD", hyphenated.name)
+        assertEquals("Seed-tray—spare lid", hyphenated.name)
         assertNull(hyphenated.note)
         assertEquals("Short USB cable", trailing.name)
         assertNull(trailing.note)
@@ -54,23 +54,23 @@ class ShoppingListTest {
 
     @Test
     fun `keeps API order`() {
-        val items = ShoppingList.items(listOf(item("Dip bars"), item("Cable pulley"), item("HDMI cable")))
+        val items = ShoppingList.items(listOf(item("Hedge shears"), item("Cable pulley"), item("HDMI cable")))
 
-        assertEquals(listOf("Dip bars", "Cable pulley", "HDMI cable"), items.map { it.task })
+        assertEquals(listOf("Hedge shears", "Cable pulley", "HDMI cable"), items.map { it.task })
     }
 
     @Test
     fun `wikilinks are resolved before display`() {
-        val items = ShoppingList.items(listOf(item("See [[shopping-guide]] §2 ~£10")))
+        val items = ShoppingList.items(listOf(item("See [[garden-guide]] §2 ~£10")))
 
-        assertEquals("See shopping-guide §2 ~£10", items.single().task)
+        assertEquals("See garden-guide §2 ~£10", items.single().task)
     }
 
     @Test
     fun `entries with no text are dropped`() {
-        val items = ShoppingList.items(listOf(item(null), item("  "), item("Dip bars")))
+        val items = ShoppingList.items(listOf(item(null), item("  "), item("Hedge shears")))
 
-        assertEquals(listOf("Dip bars"), items.map { it.task })
+        assertEquals(listOf("Hedge shears"), items.map { it.task })
     }
 
     @Test
@@ -80,36 +80,36 @@ class ShoppingListTest {
 
     @Test
     fun `the raw line rides along untouched as the targeting key`() {
-        val line = "- [ ] Dip bars"
-        assertEquals(line, ShoppingList.items(listOf(item("Dip bars", line))).single().line)
+        val line = "- [ ] Hedge shears"
+        assertEquals(line, ShoppingList.items(listOf(item("Hedge shears", line))).single().line)
     }
 
     @Test
     fun `ticked is read from the explicit flag, not the line`() {
-        val items = ShoppingList.items(listOf(item("Dip bars", "- [ ] Dip bars", ticked = true)))
+        val items = ShoppingList.items(listOf(item("Hedge shears", "- [ ] Hedge shears", ticked = true)))
 
         assertTrue(items.single().done)
     }
 
     @Test
     fun `a null ticked flag is treated as open`() {
-        val items = ShoppingList.items(listOf(item("Dip bars", "- [ ] Dip bars", ticked = null)))
+        val items = ShoppingList.items(listOf(item("Hedge shears", "- [ ] Hedge shears", ticked = null)))
 
         assertEquals(false, items.single().done)
     }
 
     @Test
     fun `no line means untargetable, from data cached before lines existed`() {
-        val item = ShoppingList.items(listOf(item("Dip bars", line = null))).single()
+        val item = ShoppingList.items(listOf(item("Hedge shears", line = null))).single()
 
         assertNull(item.line)
     }
 
     // --- merged: the snapshot with this list's queued edits laid over it ---
 
-    private val dipBarsLine = "- [ ] Dip bars"
+    private val shearsLine = "- [ ] Hedge shears"
     private val snapshot = listOf(
-        item("Dip bars", line = dipBarsLine),
+        item("Hedge shears", line = shearsLine),
         item("Cable pulley", line = "- [ ] Cable pulley")
     )
 
@@ -127,10 +127,10 @@ class ShoppingListTest {
     @Test
     fun `a queued tick flips its item, marked pending`() {
         val items = ShoppingList.merged(
-            snapshot, listOf(pending(verb = ShoppingVerb.TICK, text = "Dip bars", line = dipBarsLine))
+            snapshot, listOf(pending(verb = ShoppingVerb.TICK, text = "Hedge shears", line = shearsLine))
         )
 
-        val ticked = items.single { it.task == "Dip bars" }
+        val ticked = items.single { it.task == "Hedge shears" }
         assertTrue(ticked.done)
         assertTrue(ticked.pending)
         assertEquals(false, items.single { it.task == "Cable pulley" }.done)
@@ -139,7 +139,7 @@ class ShoppingListTest {
     @Test
     fun `a queued drop removes its item`() {
         val items = ShoppingList.merged(
-            snapshot, listOf(pending(verb = ShoppingVerb.DROP, text = "Dip bars", line = dipBarsLine))
+            snapshot, listOf(pending(verb = ShoppingVerb.DROP, text = "Hedge shears", line = shearsLine))
         )
 
         assertEquals(listOf("Cable pulley"), items.map { it.task })
@@ -151,13 +151,13 @@ class ShoppingListTest {
             snapshot,
             listOf(
                 pending(verb = ShoppingVerb.ADD, text = "Yoga mat"),
-                pending(verb = ShoppingVerb.TICK, text = "Dip bars", line = dipBarsLine),
+                pending(verb = ShoppingVerb.TICK, text = "Hedge shears", line = shearsLine),
                 pending(verb = ShoppingVerb.DROP, text = "Cable pulley", line = "- [ ] Cable pulley")
             )
         )
 
-        assertEquals(listOf("Dip bars", "Yoga mat"), items.map { it.task })
-        assertTrue(items.single { it.task == "Dip bars" }.done)
+        assertEquals(listOf("Hedge shears", "Yoga mat"), items.map { it.task })
+        assertTrue(items.single { it.task == "Hedge shears" }.done)
     }
 
     @Test
@@ -165,18 +165,18 @@ class ShoppingListTest {
         val items = ShoppingList.merged(
             snapshot,
             listOf(
-                pending(verb = ShoppingVerb.DROP, text = "Dip bars", line = dipBarsLine, failed = true),
+                pending(verb = ShoppingVerb.DROP, text = "Hedge shears", line = shearsLine, failed = true),
                 pending(verb = ShoppingVerb.ADD, text = "Yoga mat", failed = true)
             )
         )
 
-        assertEquals(listOf("Dip bars", "Cable pulley"), items.map { it.task })
+        assertEquals(listOf("Hedge shears", "Cable pulley"), items.map { it.task })
     }
 
     @Test
     fun `an unknown queued verb is ignored by the merge`() {
         val unknown = PendingShoppingWrite(
-            listId = "6-life/shopping/fitness.md", verb = "TELEPORT", text = "From a newer build",
+            listId = "6-life/shopping/garden.md", verb = "TELEPORT", text = "From a newer build",
             line = null, createdAt = 0L
         )
 

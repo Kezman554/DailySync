@@ -5,7 +5,7 @@ package com.personalmorningalarm.data.model
  * enough to render the list-picker menu without fetching every list's items.
  */
 data class ShoppingListSummaryDto(
-    /** The vault-relative file id (e.g. "6-life/shopping/fitness.md") — targets the per-list endpoints. */
+    /** The vault-relative file id (e.g. "6-life/shopping/garden.md") — targets the per-list endpoints. */
     val id: String?,
     val title: String?,
     val total: Int?,

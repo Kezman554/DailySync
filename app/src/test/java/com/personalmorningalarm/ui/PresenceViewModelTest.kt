@@ -47,7 +47,7 @@ class PresenceViewModelTest : ViewModelTestSupport() {
         )
 
         private fun reach() {
-            if (!reachable) throw IOException("Pi unreachable")
+            if (!reachable) throw IOException("Host unreachable")
         }
 
         override suspend fun getPresence(): Response<PresenceStatusDto> {

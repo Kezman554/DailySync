@@ -34,7 +34,7 @@ object ShoppingList {
 
     /**
      * A list's title as a tile or header shows it: the part before " — ", so
-     * "Fitness Equipment — Rolling Buy List" reads "Fitness Equipment".
+     * "Garden Tools — Seasonal Buy List" reads "Garden Tools".
      */
     fun shortTitle(title: String): String = title.substringBefore(" — ").trim().ifEmpty { title }
 

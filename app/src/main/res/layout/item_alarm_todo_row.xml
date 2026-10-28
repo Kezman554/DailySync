@@ -11,4 +11,4 @@
     android:textColor="?attr/colorOnSurface"
     android:textFontWeight="600"
     android:textSize="16sp"
-    tools:text="Reply to Uber complaint" />
+    tools:text="Reply to plumber quote" />

@@ -12,7 +12,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "pending_shopping_writes")
 data class PendingShoppingWrite(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    /** The vault-relative list id this write targets, e.g. "6-life/shopping/fitness.md". */
+    /** The vault-relative list id this write targets, e.g. "6-life/shopping/garden.md". */
     val listId: String,
     /** A [ShoppingVerb] name. Stored as text; unknown names are failed, not fatal. */
     val verb: String,

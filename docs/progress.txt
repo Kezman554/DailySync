@@ -1114,10 +1114,10 @@
     caching, optimistic writes, and the offline queue — rather than building a
     parallel path
   - API probed live before coding (per memory rule), and one probe went wrong:
-    testing create-list's 409 with a near-duplicate name ("Fitness Equipment" vs
-    the real "Fitness Equipment — Rolling Buy List") didn't collide — dedup is by
+    testing create-list's 409 with a near-duplicate name ("Garden Tools" vs
+    the real "Garden Tools — Seasonal Buy List") didn't collide — dedup is by
     slugified id, not display title — so it created a REAL empty list in the vault
-    (6-life/shopping/fitness-equipment.md). No DELETE endpoint exists to undo it.
+    (6-life/shopping/garden-tools.md). No DELETE endpoint exists to undo it.
     Told Nick immediately; his call was to leave it (harmless, empty) rather than
     have me touch the vault further. Confirmed 409 DOES fire on an exact repeat of
     that same name, body `{"detail":"shopping list already exists: <id>"}` (a
@@ -1163,11 +1163,11 @@
     with no crash, alarm re-armed normally through a force-stop. Tile grid shows
     Shopping Lists live next to KitchenSync, Kanban alone on its own row. Menu
     listed all 5 real vault lists with correct counts (including the stray
-    fitness-equipment.md from the probing mistake). On the real Fitness list:
+    garden-tools.md from the probing mistake). On the real Garden list:
     added "DailySync shopping-test" -> confirmed via GET, ticked it (struck
     through + greyed on screen, vault total/unticked updated), long-press ->
     confirm dialog -> dropped -> vault back to its original 2 items. Create-list:
-    exact-duplicate name "Fitness Equipment" -> "That list already exists"
+    exact-duplicate name "Garden Tools" -> "That list already exists"
     snackbar (no mutation); a genuinely new "DailySync Test List" -> 201,
     appeared in the menu immediately without a manual refresh, opened correctly
     empty. Offline: svc wifi disable (mobile data alone can't reach the LAN-only
@@ -1184,7 +1184,7 @@
     the unreachable branch, but a live "tap Create with WiFi off" run is still a
     nice-to-have
   - Left two harmless empty test artifacts in the vault, both labelled clearly:
-    fitness-equipment.md (from the probing mistake) and dailysync-test-list.md
+    garden-tools.md (from the probing mistake) and dailysync-test-list.md
     (this session's create/offline test, its one item already dropped) — no
     DELETE endpoint exists to remove the list files themselves; Nick's to tidy up
     by hand if he wants them gone

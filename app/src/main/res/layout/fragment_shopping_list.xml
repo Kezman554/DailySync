@@ -54,7 +54,7 @@
             android:textColor="?attr/colorError"
             android:textSize="14sp"
             android:textStyle="bold"
-            tools:text="1 change couldn’t sync — the list had moved on:\n• Dip bars" />
+            tools:text="1 change couldn’t sync — the list had moved on:\n• Hedge shears" />
 
         <Button
             android:id="@+id/btn_shopping_conflict_dismiss"

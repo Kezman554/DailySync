@@ -39,7 +39,7 @@
             android:textColor="?attr/colorOnSurface"
             android:textSize="15sp"
             android:textStyle="bold"
-            tools:text="Dip bars" />
+            tools:text="Hedge shears" />
 
         <TextView
             android:id="@+id/tv_shopping_note"
@@ -51,7 +51,7 @@
             android:textFontWeight="600"
             android:textSize="12sp"
             android:visibility="gone"
-            tools:text="after 2+ months consistent training ~£40"
+            tools:text="after the spring cut if the old pair fails ~£40"
             tools:visibility="visible" />
 
         <!-- Only on items still waiting in the offline queue. -->

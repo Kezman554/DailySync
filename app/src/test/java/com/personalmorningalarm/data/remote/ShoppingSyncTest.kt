@@ -94,13 +94,13 @@ class ShoppingSyncTest {
 
     private val sync = ShoppingSync(repository, dao)
 
-    private val fitness = "6-life/shopping/fitness.md"
+    private val garden = "6-life/shopping/garden.md"
     private val fashion = "6-life/shopping/fashion.md"
 
     private fun accept() = { Response.success(Unit) }
 
     private fun staleTarget(): () -> Response<Unit> = {
-        val body = """{"detail":{"error":"item not found","list_id":"$fitness","items":${Gson().toJson(emptyList<ShoppingItemDto>())}}}"""
+        val body = """{"detail":{"error":"item not found","list_id":"$garden","items":${Gson().toJson(emptyList<ShoppingItemDto>())}}}"""
         Response.error(404, ResponseBody.create(MediaType.parse("application/json"), body))
     }
 
@@ -111,15 +111,15 @@ class ShoppingSyncTest {
 
     @Test
     fun `flush replays the queue in capture order across lists and empties it`() = runBlocking {
-        sync.enqueue(fitness, ShoppingVerb.ADD, "Dip bars")
+        sync.enqueue(garden, ShoppingVerb.ADD, "Hedge shears")
         sync.enqueue(fashion, ShoppingVerb.TICK, "Scarf", "- [ ] Scarf")
-        sync.enqueue(fitness, ShoppingVerb.DROP, "Old idea", "- [ ] Old idea")
+        sync.enqueue(garden, ShoppingVerb.DROP, "Old idea", "- [ ] Old idea")
         repeat(3) { responses += accept() }
 
         val outcome = sync.flush()
 
         assertEquals(
-            listOf("$fitness:ADD:Dip bars", "$fashion:TICK:- [ ] Scarf", "$fitness:DROP:- [ ] Old idea"),
+            listOf("$garden:ADD:Hedge shears", "$fashion:TICK:- [ ] Scarf", "$garden:DROP:- [ ] Old idea"),
             writesSeen
         )
         assertEquals(3, outcome.delivered)
@@ -129,7 +129,7 @@ class ShoppingSyncTest {
 
     @Test
     fun `an unreachable Alfred stops the flush and keeps everything queued`() = runBlocking {
-        sync.enqueue(fitness, ShoppingVerb.ADD, "Dip bars")
+        sync.enqueue(garden, ShoppingVerb.ADD, "Hedge shears")
         sync.enqueue(fashion, ShoppingVerb.ADD, "Scarf")
 
         val outcome = sync.flush()
@@ -142,7 +142,7 @@ class ShoppingSyncTest {
 
     @Test
     fun `a stale target is failed and kept, and never blocks the rest of the queue`() = runBlocking {
-        sync.enqueue(fitness, ShoppingVerb.TICK, "Long gone", "- [ ] Long gone")
+        sync.enqueue(garden, ShoppingVerb.TICK, "Long gone", "- [ ] Long gone")
         sync.enqueue(fashion, ShoppingVerb.ADD, "Scarf")
         responses += staleTarget()
         responses += accept()
@@ -156,19 +156,19 @@ class ShoppingSyncTest {
         val kept = dao.observeAllOnce()
         assertEquals(1, kept.size)
         assertTrue(kept.single().failed)
-        assertEquals(fitness, kept.single().listId)
+        assertEquals(garden, kept.single().listId)
     }
 
     @Test
     fun `dismissing failed entries clears only that list's notice`() = runBlocking {
-        sync.enqueue(fitness, ShoppingVerb.TICK, "Long gone", "- [ ] Long gone")
+        sync.enqueue(garden, ShoppingVerb.TICK, "Long gone", "- [ ] Long gone")
         sync.enqueue(fashion, ShoppingVerb.TICK, "Also gone", "- [ ] Also gone")
         responses += staleTarget()
         responses += staleTarget()
         sync.flush()
         assertEquals(2, dao.observeAllOnce().size)
 
-        sync.dismissFailed(fitness)
+        sync.dismissFailed(garden)
 
         val remaining = dao.observeAllOnce()
         assertEquals(1, remaining.size)
@@ -179,17 +179,17 @@ class ShoppingSyncTest {
     fun `an entry with an unknown verb is failed, not fatal, and the rest continue`() = runBlocking {
         dao.insert(
             PendingShoppingWrite(
-                listId = fitness, verb = "TELEPORT", text = "From a newer build", line = null, createdAt = 0L
+                listId = garden, verb = "TELEPORT", text = "From a newer build", line = null, createdAt = 0L
             )
         )
-        sync.enqueue(fitness, ShoppingVerb.ADD, "Dip bars")
+        sync.enqueue(garden, ShoppingVerb.ADD, "Hedge shears")
         responses += accept()
 
         val outcome = sync.flush()
 
         assertEquals(1, outcome.delivered)
         assertEquals(1, outcome.conflicted)
-        assertEquals(listOf("$fitness:ADD:Dip bars"), writesSeen)
+        assertEquals(listOf("$garden:ADD:Hedge shears"), writesSeen)
     }
 }
 

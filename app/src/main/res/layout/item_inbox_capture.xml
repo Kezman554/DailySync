@@ -32,7 +32,7 @@
         android:textColor="?attr/colorOnSurface"
         android:textSize="16sp"
         android:textStyle="bold"
-        tools:text="Morningsync restructure ideas" />
+        tools:text="Allotment layout ideas" />
 
     <TextView
         android:id="@+id/tv_inbox_preview"
@@ -46,7 +46,7 @@
         android:textFontWeight="600"
         android:textSize="13sp"
         android:visibility="gone"
-        tools:text="Possible next phase / identity shift, no decisions yet…"
+        tools:text="Possible raised beds / herb corner, no decisions yet…"
         tools:visibility="visible" />
 
     <!-- Only on captures still waiting in the offline queue. -->
