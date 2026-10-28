@@ -291,7 +291,7 @@ class AlfredRepositoryTest {
     private val calendar = CalendarEventsDto(
         calendar = "family",
         events = listOf(
-            CalendarEventDto("France", "2026-07-24", "2026-07-25", true, null, null)
+            CalendarEventDto("Conference", "2026-07-24", "2026-07-25", true, null, null)
         )
     )
 

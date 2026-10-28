@@ -18,32 +18,32 @@ class VaultTextTest {
     @Test
     fun `a plain wikilink becomes its target`() {
         assertEquals(
-            "See pi-admin-guide §9a",
-            VaultText.stripWikiLinks("See [[pi-admin-guide]] §9a")
+            "See shed-guide §9a",
+            VaultText.stripWikiLinks("See [[shed-guide]] §9a")
         )
     }
 
     @Test
     fun `an aliased wikilink becomes the alias`() {
         assertEquals(
-            "Ask Bob about it",
-            VaultText.stripWikiLinks("Ask [[people/robert-smith|Bob]] about it")
+            "Ask Jane about it",
+            VaultText.stripWikiLinks("Ask [[people/jane-doe|Jane]] about it")
         )
     }
 
     @Test
     fun `a section link reads the way Obsidian shows it`() {
         assertEquals(
-            "Check pi-admin-guide > Networking",
-            VaultText.stripWikiLinks("Check [[pi-admin-guide#Networking]]")
+            "Check shed-guide > Roofing",
+            VaultText.stripWikiLinks("Check [[shed-guide#Roofing]]")
         )
     }
 
     @Test
     fun `an aliased section link still prefers the alias`() {
         assertEquals(
-            "Check the wifi notes",
-            VaultText.stripWikiLinks("Check [[pi-admin-guide#Networking|the wifi notes]]")
+            "Check the roofing notes",
+            VaultText.stripWikiLinks("Check [[shed-guide#Roofing|the roofing notes]]")
         )
     }
 
@@ -60,8 +60,8 @@ class VaultTextTest {
     @Test
     fun `several links in one task are all resolved`() {
         assertEquals(
-            "Link pi-admin-guide to vault-sync",
-            VaultText.stripWikiLinks("Link [[pi-admin-guide]] to [[projects/vault-sync|vault-sync]]")
+            "Link shed-guide to garden-room",
+            VaultText.stripWikiLinks("Link [[shed-guide]] to [[projects/garden-room|garden-room]]")
         )
     }
 
@@ -92,16 +92,19 @@ class VaultTextTest {
         assertEquals("fence", rendered.substring(spanned.getSpanStart(spans[0]), spanned.getSpanEnd(spans[0])))
     }
 
-    /** The exact string Alfred is serving today — the case that motivated this. */
+    /**
+     * A full-length item in the shape real ones take (parenthetical, dash, slash,
+     * a wikilink and a section reference) — the case that motivated this.
+     */
     @Test
-    fun `a real rolling-todo item comes out clean`() {
-        val real = "Disable Pi WiFi power-save (wlan0) — stops it going unreachable " +
-            "overnight; do before/with the vault-sync work. See [[pi-admin-guide]] §9a"
+    fun `a full-length rolling-todo item comes out clean`() {
+        val item = "Reseal the shed roof (north side) — stops it leaking " +
+            "overnight; do before/with the gutter work. See [[shed-guide]] §9a"
 
-        val rendered = VaultText.render(real).toString()
+        val rendered = VaultText.render(item).toString()
 
         assertFalse(rendered.contains("[["))
         assertFalse(rendered.contains("]]"))
-        assertEquals(true, rendered.endsWith("See pi-admin-guide §9a"))
+        assertEquals(true, rendered.endsWith("See shed-guide §9a"))
     }
 }

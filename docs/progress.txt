@@ -872,7 +872,7 @@
     independently (test covers it)
   - NEW: util/VaultText — resolves [[wikilinks]] the way Obsidian shows them (alias
     wins; [[a#b]] -> "a > b"; ![[x]] embeds too), then delegates to MarkdownRenderer for
-    **bold**/*italic*. Real items DO carry wikilinks (e.g. "See [[pi-admin-guide]] §9a").
+    **bold**/*italic*. Real items DO carry wikilinks (e.g. "See [[shed-guide]] §9a").
     The daily-schedule screen now uses VaultText too — same vault, so its text can carry
     the same syntax, and it was previously one code path away from showing raw [[ ]]
   - Card AE's schedule_scroll/tv_schedule renamed to content_list_scroll/tv_content_list
@@ -1253,7 +1253,7 @@
   - API probed live before coding (per memory rule). Confirmed against the Pi:
     GET /calendar/events?start=&end= returns {calendar, events:[{summary, start,
     end, all_day, location, description}]}. BOTH the query `end` AND an all-day
-    event's `end` are EXCLUSIVE (Google's convention) — the live France event is
+    event's `end` are EXCLUSIVE (Google's convention) — the live Conference event is
     start 2026-07-24, end 2026-07-25, all_day true, i.e. one day. The card's
     "?end=<weekEnd+1d>" matches the query contract exactly
   - SHARED LAYER (the card's "build once"): data/model/FamilyCalendar — pure
@@ -1268,7 +1268,7 @@
     vault blocks keep Alfred's order beneath them. That is "interleaved" at the
     finest granularity the vault data actually supports
   - All-day events belong to no period, so they banner the top of the day with no
-    time (DayAgenda.allDay), which is exactly what France needs
+    time (DayAgenda.allDay), which is exactly what Conference needs
   - VISUAL: calendar rows carry a "▌" colour band + HH:mm and are colour-marked
     (ForegroundColorSpan); vault rows keep their "•" bullet, uncoloured. Colour is
     passed in per surface like ChalkboardRenderer's dateColor — the alarm panel is
@@ -1283,22 +1283,22 @@
   - CACHING: inherits the Y5 fetch() pattern free (cache on success, serve cache
     when unreachable, Unavailable only with nothing cached). TWO cache keys, not
     one: calendar/events/week and calendar/events/day. The alarm's narrow one-day
-    fetch must not overwrite the week the tile falls back on in France — a test
+    fetch must not overwrite the week the tile falls back on in Conference — a test
     pins that. Stale calendar shows a subtle "Family calendar as of 24 Jul, 08:12"
     note, suppressed when the plan's louder "Alfred unreachable" note is already up
   - 251 unit tests green (was 221): FamilyCalendarTest (exclusive end incl. the
-    real France shape, multi-day spans, absurd-range guard, date-only-without-flag,
+    real Conference shape, multi-day spans, absurd-range guard, date-only-without-flag,
     offset and offsetless timed parsing, per-day ordering, malformed-is-absent,
     and the period merge), 5 renderer tests (banner, timed row, colour marking,
     summaries-shown-as-sent, and byte-identical output when no calendar), 6
     repository tests (ranges actually sent, fallback, cache independence)
 
 2026-07-23  Follow-up: "calendar missing from the wake page" — not a bug
-  - Nick saw the France banner on the Daily Schedule tile but not on the Stage 2
+  - Nick saw the Conference banner on the Daily Schedule tile but not on the Stage 2
     wake-up schedule page. Diagnosed from logs + the API rather than by theorising:
     the 15:27 Stage 2 run logged "Daily schedule: 1 groups, 3 tasks" with no
     "layered" line, and GET /calendar/events?start=2026-07-23&end=2026-07-24
-    returns []. There are simply no family events TODAY — the only one is France
+    returns []. There are simply no family events TODAY — the only one is Conference
     on the 24th. The tile is a week view (the 24th is one swipe away); the wake
     page is today-only by design, per the card
   - Proof the fetch really ran rather than failing quietly: a failure logs
@@ -1449,7 +1449,7 @@
     config (today/tomorrow by the same rule AlarmScheduler arms with), or
     "Alarm off" in secondary text
   - Daily Schedule card: one column per period with something today (vault plan
-    + timed family-calendar events, "17:30 Cubs"), Early..Evening then Anytime
+    + timed family-calendar events, "17:30 Choir"), Early..Evening then Anytime
     last; current period's bar + label in accent. Max 3 tasks per column, then
     "+N more". Columns have a 96dp minimum and the strip scrolls sideways (fading
     edge, current period scrolled into view) rather than breaking words. All-day

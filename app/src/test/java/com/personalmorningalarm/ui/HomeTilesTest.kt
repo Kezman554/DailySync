@@ -51,7 +51,7 @@ class HomeTilesTest {
     @Test
     fun columns_followPeriodOrder_withAnytimeLast_andSkipEmptyPeriods() {
         val columns = HomeTiles.scheduleColumns(
-            agenda("Call the garage" to null, "Cubs" to "eve", "Brisk walk" to "am", "Stretch" to "early"),
+            agenda("Call the garage" to null, "Choir" to "eve", "Brisk walk" to "am", "Stretch" to "early"),
             LocalTime.of(10, 0)
         )
         assertEquals(
@@ -63,7 +63,7 @@ class HomeTilesTest {
 
     @Test
     fun currentColumn_isThePeriodNowFallsIn() {
-        val tasks = arrayOf("Walk" to "am", "Shoulders" to "pm", "Cubs" to "eve")
+        val tasks = arrayOf("Walk" to "am", "Shoulders" to "pm", "Choir" to "eve")
         fun current(at: LocalTime) =
             HomeTiles.scheduleColumns(agenda(*tasks), at).filter { it.current }.map { it.period }
 
@@ -88,7 +88,7 @@ class HomeTilesTest {
                 AgendaGroup(
                     SchedulePeriod.EVENING,
                     listOf(
-                        AgendaEntry("Cubs", LocalTime.of(17, 30), fromCalendar = true),
+                        AgendaEntry("Choir", LocalTime.of(17, 30), fromCalendar = true),
                         AgendaEntry("Shoulders", null, fromCalendar = false)
                     )
                 )
@@ -96,7 +96,7 @@ class HomeTilesTest {
         )
         assertEquals(
             listOf(
-                HomeTiles.ScheduleEntry("17:30 Cubs", fromCalendar = true),
+                HomeTiles.ScheduleEntry("17:30 Choir", fromCalendar = true),
                 HomeTiles.ScheduleEntry("Shoulders", fromCalendar = false)
             ),
             HomeTiles.scheduleColumns(agenda, LocalTime.NOON).single().entries

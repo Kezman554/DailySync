@@ -54,12 +54,12 @@ class AlfredRendererTest {
     @Test
     fun `chalkboard task markup is rendered, never shown raw`() {
         val items = RollingTodo.items(
-            listOf(ChalkboardTaskDto("Disable Pi WiFi power-save. See [[pi-admin-guide]] §9a", "2026-07-13"))
+            listOf(ChalkboardTaskDto("Reseal the shed roof. See [[shed-guide]] §9a", "2026-07-13"))
         )
 
         val text = ChalkboardRenderer.format(items, Color.GRAY).toString()
 
-        assertTrue(text.contains("See pi-admin-guide §9a"))
+        assertTrue(text.contains("See shed-guide §9a"))
         assertFalse(text.contains("[["))
     }
 

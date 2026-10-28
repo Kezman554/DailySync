@@ -46,11 +46,11 @@ class RollingTodoTest {
     @Test
     fun `keeps API order`() {
         val items = RollingTodo.items(
-            listOf(task("Plant the bamboo"), task("Cancel Beer52"), task("Trim front hedges"))
+            listOf(task("Plant the bamboo"), task("Cancel magazine trial"), task("Trim front hedges"))
         )
 
         assertEquals(
-            listOf("Plant the bamboo", "Cancel Beer52", "Trim front hedges"),
+            listOf("Plant the bamboo", "Cancel magazine trial", "Trim front hedges"),
             items.map { it.task }
         )
     }
@@ -84,9 +84,9 @@ class RollingTodoTest {
 
     @Test
     fun `wikilinks are resolved before display`() {
-        val items = RollingTodo.items(listOf(task("See [[pi-admin-guide]] §9c", "2026-07-13")))
+        val items = RollingTodo.items(listOf(task("See [[shed-guide]] §9c", "2026-07-13")))
 
-        assertEquals("See pi-admin-guide §9c", items.single().task)
+        assertEquals("See shed-guide §9c", items.single().task)
     }
 
     @Test

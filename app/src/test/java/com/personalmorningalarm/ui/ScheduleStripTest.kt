@@ -58,7 +58,7 @@ class ScheduleStripTest {
         val long = "Rework the whole of the garage shelving so the bikes, the mower and the camping kit all fit"
         val (strip, _) = render(
             HomeTiles.ScheduleColumn(SchedulePeriod.MORNING, listOf(entry(long)), current = true),
-            HomeTiles.ScheduleColumn(SchedulePeriod.EVENING, listOf(entry("Cubs")), current = false)
+            HomeTiles.ScheduleColumn(SchedulePeriod.EVENING, listOf(entry("Choir")), current = false)
         )
         val longColumn = strip.getChildAt(0)
         val shortColumn = strip.getChildAt(1)

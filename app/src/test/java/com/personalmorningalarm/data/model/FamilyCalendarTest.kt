@@ -31,16 +31,16 @@ class FamilyCalendarTest {
 
     @Test
     fun `a one-day all-day event shows on its start date only`() {
-        // The live France event: 24 Jul, ending "2026-07-25" exclusive.
-        val byDate = FamilyCalendar.byDate(events(allDay("France", "2026-07-24", "2026-07-25")))
+        // One day, 24 Jul, ending "2026-07-25" exclusive (Google's convention).
+        val byDate = FamilyCalendar.byDate(events(allDay("Conference", "2026-07-24", "2026-07-25")))
 
-        assertEquals(listOf("France"), byDate[jul24]?.map { it.summary })
+        assertEquals(listOf("Conference"), byDate[jul24]?.map { it.summary })
         assertNull("must not spill onto the 25th", byDate[jul25])
     }
 
     @Test
     fun `an all-day event carries no time`() {
-        val event = FamilyCalendar.byDate(events(allDay("France", "2026-07-24", "2026-07-25")))[jul24]!!.single()
+        val event = FamilyCalendar.byDate(events(allDay("Conference", "2026-07-24", "2026-07-25")))[jul24]!!.single()
 
         assertTrue(event.allDay)
         assertNull(event.startTime)
@@ -48,7 +48,7 @@ class FamilyCalendarTest {
 
     @Test
     fun `a multi-day all-day event covers every day up to but not including the end`() {
-        val byDate = FamilyCalendar.byDate(events(allDay("France", "2026-07-24", "2026-07-27")))
+        val byDate = FamilyCalendar.byDate(events(allDay("Conference", "2026-07-24", "2026-07-27")))
 
         assertEquals(
             listOf("2026-07-24", "2026-07-25", "2026-07-26").map(LocalDate::parse),
@@ -58,7 +58,7 @@ class FamilyCalendarTest {
 
     @Test
     fun `an all-day event with no end shows on its start date`() {
-        val byDate = FamilyCalendar.byDate(events(allDay("France", "2026-07-24", null)))
+        val byDate = FamilyCalendar.byDate(events(allDay("Conference", "2026-07-24", null)))
 
         assertEquals(listOf(jul24), byDate.keys.toList())
     }
@@ -74,7 +74,7 @@ class FamilyCalendarTest {
     fun `a date-only start with no all_day flag is still treated as all-day`() {
         // Rendering it as "00:00" would be a worse guess than the shape already gives.
         val dto = CalendarEventsDto("family", listOf(
-            CalendarEventDto("France", "2026-07-24", "2026-07-25", null, null, null)
+            CalendarEventDto("Conference", "2026-07-24", "2026-07-25", null, null, null)
         ))
 
         val event = FamilyCalendar.byDate(dto)[jul24]!!.single()
@@ -87,7 +87,7 @@ class FamilyCalendarTest {
     @Test
     fun `a timed event keeps its wall-clock start`() {
         val event = FamilyCalendar
-            .byDate(events(timed("Early shift", "2026-07-24T07:30:00+01:00")))[jul24]!!
+            .byDate(events(timed("Site visit", "2026-07-24T07:30:00+01:00")))[jul24]!!
             .single()
 
         assertFalse(event.allDay)
@@ -108,12 +108,12 @@ class FamilyCalendarTest {
         val byDate = FamilyCalendar.byDate(
             events(
                 timed("Swimming", "2026-07-24T17:15:00"),
-                timed("Early shift", "2026-07-24T07:30:00"),
-                allDay("France", "2026-07-24", "2026-07-25")
+                timed("Site visit", "2026-07-24T07:30:00"),
+                allDay("Conference", "2026-07-24", "2026-07-25")
             )
         )
 
-        assertEquals(listOf("France", "Early shift", "Swimming"), byDate[jul24]?.map { it.summary })
+        assertEquals(listOf("Conference", "Site visit", "Swimming"), byDate[jul24]?.map { it.summary })
     }
 
     // --- malformed input is an absent calendar, never a crash ---
@@ -149,10 +149,10 @@ class FamilyCalendarTest {
     @Test
     fun `a timed event lands in the period its start time falls in`() {
         val agenda = FamilyCalendar.agenda(
-            listOf(task("A33 loop")),
+            listOf(task("Park loop")),
             listOf(
-                event("Early shift", LocalTime.of(7, 30)),
-                event("School run", LocalTime.of(15, 0)),
+                event("Site visit", LocalTime.of(7, 30)),
+                event("Pottery class", LocalTime.of(15, 0)),
                 event("Club", LocalTime.of(19, 0))
             )
         )
@@ -181,13 +181,13 @@ class FamilyCalendarTest {
     @Test
     fun `a 17 30 event sits with the vault's Evening items, as on the wall`() {
         val agenda = FamilyCalendar.agenda(
-            listOf(task("Cubs", "eve")),
+            listOf(task("Choir", "eve")),
             listOf(event("Swimming", LocalTime.of(17, 30)))
         )
 
         val evening = agenda.groups.single()
         assertEquals(SchedulePeriod.EVENING, evening.period)
-        assertEquals(listOf("Swimming", "Cubs"), evening.entries.map { it.text })
+        assertEquals(listOf("Swimming", "Choir"), evening.entries.map { it.text })
     }
 
     @Test
@@ -207,20 +207,20 @@ class FamilyCalendarTest {
     fun `calendar events and vault blocks share a period, calendar first`() {
         // The vault's blocks carry no clock time, so the timed events lead.
         val agenda = FamilyCalendar.agenda(
-            listOf(task("Weigh-in", "am"), task("Sweep verdict", "am")),
-            listOf(event("Early shift", LocalTime.of(9, 30)))
+            listOf(task("Weigh-in", "am"), task("Budget review", "am")),
+            listOf(event("Site visit", LocalTime.of(9, 30)))
         )
 
         val morning = agenda.groups.single { it.period == SchedulePeriod.MORNING }
-        assertEquals(listOf("Early shift", "Weigh-in", "Sweep verdict"), morning.entries.map { it.text })
+        assertEquals(listOf("Site visit", "Weigh-in", "Budget review"), morning.entries.map { it.text })
         assertEquals(listOf(true, false, false), morning.entries.map { it.fromCalendar })
     }
 
     @Test
     fun `all-day events sit outside the periods`() {
-        val agenda = FamilyCalendar.agenda(listOf(task("A33 loop")), listOf(event("France", null)))
+        val agenda = FamilyCalendar.agenda(listOf(task("Park loop")), listOf(event("Conference", null)))
 
-        assertEquals(listOf("France"), agenda.allDay.map { it.summary })
+        assertEquals(listOf("Conference"), agenda.allDay.map { it.summary })
         assertTrue(agenda.groups.none { group -> group.entries.any { it.fromCalendar } })
     }
 
@@ -231,12 +231,12 @@ class FamilyCalendarTest {
 
     @Test
     fun `a day with only calendar events is not empty`() {
-        assertFalse(FamilyCalendar.agenda(emptyList(), listOf(event("France", null))).isEmpty)
+        assertFalse(FamilyCalendar.agenda(emptyList(), listOf(event("Conference", null))).isEmpty)
     }
 
     @Test
     fun `the vault plan renders unchanged when there is no calendar`() {
-        val agenda = FamilyCalendar.agenda(listOf(task("A33 loop"), task("Weigh-in", "am")), emptyList())
+        val agenda = FamilyCalendar.agenda(listOf(task("Park loop"), task("Weigh-in", "am")), emptyList())
 
         assertTrue(agenda.allDay.isEmpty())
         assertEquals(

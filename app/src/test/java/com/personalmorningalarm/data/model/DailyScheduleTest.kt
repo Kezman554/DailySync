@@ -64,7 +64,7 @@ class DailyScheduleTest {
 
     @Test
     fun `only the periods in use appear, still in day order`() {
-        val groups = DailySchedule.group(listOf(task("Read", null), task("Cubs", "eve"), task("Run", "early")))
+        val groups = DailySchedule.group(listOf(task("Read", null), task("Choir", "eve"), task("Run", "early")))
 
         assertEquals(
             listOf(SchedulePeriod.EARLY, SchedulePeriod.EVENING, SchedulePeriod.UNGROUPED),
