@@ -4,7 +4,7 @@ tools (Daily Schedule, Rolling To-Do, with KitchenSync and Kanban to come), and 
 features a robust two-stage wake-up alarm with NFC checkpoints and toggleable content
 screens. The alarm — once the whole app — is now one area behind the Alarm tab; the
 tile grid is the landing screen.
-Built with Kotlin, MVVM, Room, Android NFC API, CameraX, ML Kit.
+Built with Kotlin, MVVM, Room, Android NFC API.
 Structure
 
 app/src/main/java/com/personalmorningalarm/data/ - Room entities, DAOs, repository

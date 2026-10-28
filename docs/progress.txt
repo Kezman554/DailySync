@@ -1886,3 +1886,14 @@
   - Status: feature-complete for personal use on the A32; Kanban tile still a
     coming-soon placeholder. Still open: CameraX + ML Kit are declared but unused
     (most of the APK size); no project licence chosen; no screenshots yet
+
+2026-10-28 Licence, unused camera libraries removed, history scan
+  - MIT licence (Nick Young, 2026) added as LICENSE; README links it
+  - Removed CameraX and ML Kit barcode (never used), the CAMERA permission and
+    the android.hardware.camera feature. The nuclear strobe uses
+    CameraManager.setTorchMode, which needs neither; FLASHLIGHT and
+    camera.flash stay. CLAUDE.md and the PRD no longer list them
+  - APK size: debug 34.3 MB -> 8.4 MB, release (unsigned) 28.6 MB -> 6.8 MB
+  - Installed on the A32 as an update (first install date unchanged, data kept)
+  - Full history scan before going public: only RFC1918 placeholder IPs, no
+    tokens or keys; findings reported, nothing rewritten

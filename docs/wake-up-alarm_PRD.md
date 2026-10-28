@@ -105,7 +105,6 @@ Stack
 Kotlin: Primary language
 MVVM: Architecture pattern
 Room: Local SQLite database
-CameraX / ML Kit: QR scanning (nuclear alarm only)
 Android NFC API: Checkpoint tag reading
 AlarmManager: Alarm scheduling
 Foreground Service: Alarm and countdown reliability

@@ -183,7 +183,11 @@ this repository, and the app works without both:
 Both are plain HTTP on the LAN by design. Don't point them at anything reachable
 from the internet.
 
-## Licences
+## Licence
+
+DailySync is released under the [MIT Licence](LICENSE), © 2026 Nick Young.
+
+Bundled third-party assets keep their own licences:
 
 - [Space Grotesk](https://github.com/floriankarsten/space-grotesk), the app's only
   typeface, is bundled under the SIL Open Font License
