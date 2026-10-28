@@ -27,6 +27,12 @@ class NfcCheckpointManager(private val tags: List<NfcTag>, sequenceLength: Int) 
 
     val isComplete: Boolean get() = index >= total
 
+    /**
+     * Matches [tagId] (the tag's hardware UID as hex) against the checkpoint being
+     * sought. A wrong tap costs nothing but time: progress isn't reset, the same
+     * checkpoint is still sought, and the countdown keeps running. Ids compare
+     * case-insensitively, so a tag stored with either case of hex still matches.
+     */
     fun onTagScanned(tagId: String): CheckpointResult {
         val expected = currentTag ?: return CheckpointResult.AlreadyComplete
         return if (tagId.equals(expected.tagId, ignoreCase = true)) {
@@ -48,7 +54,10 @@ class NfcCheckpointManager(private val tags: List<NfcTag>, sequenceLength: Int) 
                 // Enough tags for the whole sequence — unique, no repeats.
                 return pool.shuffled().take(length)
             }
-            // Not enough tags: repeat them, but never the same tag back-to-back.
+            // Not enough tags: repeat them, but never the same tag back-to-back —
+            // tapping one tag twice in a row would let the user stand still. Each
+            // pick is random among the tags other than the last one, so with two
+            // tags this alternates, and with three or more the order stays unpredictable.
             val result = ArrayList<NfcTag>(length)
             var lastId: String? = null
             repeat(length) {

@@ -22,6 +22,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.R as MaterialR
+import com.personalmorningalarm.BuildConfig
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
@@ -284,9 +285,11 @@ class HomeFragment : Fragment() {
     // --- Dev tools ---
 
     private fun setupDevTools() {
-        // Hidden by default; a long-press on the Alarm pill in the header shows or
-        // hides them. The pill belongs to the activity, so it is released again in
-        // onDestroyView.
+        // Debug builds only: a release build has no way to show them. Even then
+        // they're hidden by default; a long-press on the Alarm pill in the header
+        // shows or hides them. The pill belongs to the activity, so it is released
+        // again in onDestroyView.
+        if (!BuildConfig.DEBUG) return
         requireActivity().findViewById<View>(R.id.pill_alarm)?.setOnLongClickListener {
             binding.devToolsRow.isVisible = !binding.devToolsRow.isVisible
             true
@@ -296,12 +299,12 @@ class HomeFragment : Fragment() {
                 promptForExactAlarmPermission()
                 return@setOnClickListener
             }
-            scheduler.scheduleAlarm(System.currentTimeMillis() + 60_000L)
-            Toast.makeText(requireContext(), "Test alarm in 1 minute", Toast.LENGTH_SHORT).show()
+            scheduler.scheduleAlarm(System.currentTimeMillis() + DEV_ALARM_DELAY_MS)
+            Toast.makeText(requireContext(), R.string.dev_test_alarm_set, Toast.LENGTH_SHORT).show()
         }
         binding.btnTestCountdown.setOnClickListener {
-            CountdownService.start(requireContext(), 15)
-            Toast.makeText(requireContext(), "15s countdown started", Toast.LENGTH_SHORT).show()
+            CountdownService.start(requireContext(), DEV_COUNTDOWN_SECONDS)
+            Toast.makeText(requireContext(), R.string.dev_test_countdown_started, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -315,5 +318,9 @@ class HomeFragment : Fragment() {
         /** Mirror AlarmConfig's defaults, for before any config row exists. */
         const val DEFAULT_SEQUENCE_LENGTH = 5
         const val DEFAULT_STAGE2_MINUTES = 10
+
+        /** Dev tools: a test alarm a minute out, and a countdown short enough to watch expire. */
+        const val DEV_ALARM_DELAY_MS = 60_000L
+        const val DEV_COUNTDOWN_SECONDS = 15
     }
 }

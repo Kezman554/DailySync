@@ -25,7 +25,7 @@ class PresenceRepositoryTest {
     private val settings =
         DashboardSettings(ApplicationProvider.getApplicationContext<android.app.Application>())
 
-    private val open = PresenceStatusDto(open = true, person = "nick", expiresInSeconds = 300.0)
+    private val open = PresenceStatusDto(open = true, person = "alex", expiresInSeconds = 300.0)
     private val closed = PresenceStatusDto(open = false)
 
     /** Every PIN the fake dashboard was sent, in order. */

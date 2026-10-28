@@ -74,6 +74,11 @@ class ShakeAccumulator(
         }
 
         // Count this interval only if a strong shake landed within the tolerance window.
+        // E.g. at ~50Hz a shake peaks above the threshold a few times a second; the
+        // samples between peaks (the arm turning round) fall below it, but still
+        // count because a peak landed less than 500ms ago. Stop shaking and time
+        // stops accruing half a second later. Each interval is the gap since the
+        // previous sample, so progress tracks real time whatever the sensor's rate.
         val activelyShaking = haveShaken && (now - lastShakeTime <= pauseToleranceMs)
         if (activelyShaking) {
             val interval = (now - lastSampleTime).coerceAtMost(maxIntervalMs)

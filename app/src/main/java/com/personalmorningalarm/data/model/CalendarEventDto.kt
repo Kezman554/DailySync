@@ -3,7 +3,7 @@ package com.personalmorningalarm.data.model
 import com.google.gson.annotations.SerializedName
 
 /**
- * Alfred's /calendar/events response: the household diary ("Young Family" Google
+ * Alfred's /calendar/events response: the household diary (family Google
  * Calendar) for a date range, read through Home Assistant.
  *
  * Read-only — creating and updating events is a later card.

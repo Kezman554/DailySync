@@ -367,6 +367,8 @@
     <string name="alarm_tab_test_countdown">Countdown 15s</string>
     <string name="home_exact_alarm_needed">Allow “Alarms &amp; reminders”, then turn the alarm on again</string>
     <string name="home_dev_tools">Dev tools</string>
+    <string name="dev_test_alarm_set">Test alarm in 1 minute</string>
+    <string name="dev_test_countdown_started">15s countdown started</string>
 
     <!-- Appearance / theme -->
     <string name="theme_section_title">Appearance</string>
@@ -510,7 +512,4 @@
     <string name="dashboard_host_dialog_title">Home Hub dashboard address</string>
     <string name="dashboard_host_help">Address of the Home Hub dashboard on your home network — used by Home Hub Sign-in. Port defaults to 8500.</string>
     <string name="dashboard_host_invalid">Enter an address like 192.168.1.100:8500</string>
-
-    <!-- Temporary dev controls -->
-    <string name="stop_alarm_temp">Stop alarm (temp)</string>
 </resources>

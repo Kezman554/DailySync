@@ -16,7 +16,7 @@ import java.time.LocalTime
 class FamilyCalendarTest {
 
     private fun events(vararg events: CalendarEventDto) =
-        CalendarEventsDto("young_family", events.toList())
+        CalendarEventsDto("family", events.toList())
 
     private fun allDay(summary: String, start: String, end: String?) =
         CalendarEventDto(summary, start, end, true, null, null)
@@ -73,7 +73,7 @@ class FamilyCalendarTest {
     @Test
     fun `a date-only start with no all_day flag is still treated as all-day`() {
         // Rendering it as "00:00" would be a worse guess than the shape already gives.
-        val dto = CalendarEventsDto("young_family", listOf(
+        val dto = CalendarEventsDto("family", listOf(
             CalendarEventDto("France", "2026-07-24", "2026-07-25", null, null, null)
         ))
 

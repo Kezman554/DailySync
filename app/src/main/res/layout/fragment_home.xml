@@ -245,8 +245,9 @@
                 android:layout_weight="1" />
         </LinearLayout>
 
-        <!-- Dev tools for exercising the alarm/countdown/nuclear flow. Hidden until
-             the Alarm pill is long-pressed, so a stray tap can't set off the nuclear alarm. -->
+        <!-- Dev tools for exercising the alarm/countdown/nuclear flow. Debug builds
+             only, and hidden until the Alarm pill is long-pressed, so a stray tap
+             can't set off the nuclear alarm. -->
         <LinearLayout
             android:id="@+id/dev_tools_row"
             android:layout_width="match_parent"

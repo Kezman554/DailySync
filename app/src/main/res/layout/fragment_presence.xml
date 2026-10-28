@@ -173,7 +173,7 @@
                         android:textColor="?attr/colorPositive"
                         android:textFontWeight="600"
                         android:textSize="15sp"
-                        tools:text="● Your board is open as nick" />
+                        tools:text="● Your board is open as alex" />
 
                     <Space
                         android:layout_width="match_parent"

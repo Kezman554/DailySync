@@ -131,7 +131,7 @@ class RepositoryTest {
 
         repo.addQuotes(
             listOf(
-                BundledQuote(quoteText = "Rise up", author = "Nick"),
+                BundledQuote(quoteText = "Rise up", author = "Anon"),
                 BundledQuote(quoteText = "Carpe diem", author = null)
             )
         )

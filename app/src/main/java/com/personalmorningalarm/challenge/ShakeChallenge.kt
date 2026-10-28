@@ -103,6 +103,5 @@ class ShakeChallenge(
         // throttled out of Doze. 3.5f registers a moderate, comfortable shake.
         const val DEFAULT_SHAKE_THRESHOLD = 3.5f
         const val DEFAULT_TARGET_DURATION_MS = 15_000L
-        // Pause tolerance + interval cap now live in ShakeAccumulator.
     }
 }

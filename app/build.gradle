@@ -38,6 +38,8 @@ android {
     }
     buildFeatures {
         viewBinding true
+        // BuildConfig.DEBUG keeps the Alarm tab's dev tools out of release builds.
+        buildConfig true
     }
 
     testOptions {

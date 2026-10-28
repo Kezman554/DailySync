@@ -42,7 +42,7 @@ class PresenceViewModelTest : ViewModelTestSupport() {
 
         private fun status() = PresenceStatusDto(
             open = isOpen,
-            person = if (isOpen) "nick" else null,
+            person = if (isOpen) "alex" else null,
             expiresInSeconds = if (isOpen) 300.0 else null
         )
 
@@ -110,7 +110,7 @@ class PresenceViewModelTest : ViewModelTestSupport() {
         vm.refresh()
 
         val state = awaitValue(vm.state) { it.session is Session.Open }
-        assertEquals("nick", (state.session as Session.Open).person)
+        assertEquals("alex", (state.session as Session.Open).person)
     }
 
     @Test

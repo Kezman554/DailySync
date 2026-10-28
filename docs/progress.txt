@@ -1867,3 +1867,22 @@
     nuclear deadline
   - Verified on the A32: countdown holds during the 15s timer and resumes from
     where it stopped once Continue frees up
+
+2026-10-28 Public release prep
+  - README.md: overview, features, screenshots placeholder, tech stack,
+    architecture, setup (build, first run, optional Alfred/dashboard backend)
+  - Dev tools row (test alarm in 1 min, 15s countdown) now debug builds only via
+    BuildConfig.DEBUG; its toast text moved to strings and its values to constants.
+    Removed the unused stop_alarm_temp string and the stale .gitkeep files
+  - Comments: CountdownService pause/resume/restore model (header was stale,
+    still called the nuclear alarm "future"), NFC wrong-tap and repeat rules,
+    the shake accumulator's tolerance window
+  - Personal names in test fixtures, a layout preview and a comment made generic
+    (still present in git history)
+  - .gitignore: signing keys and app/release/ added; local.properties and APKs
+    were already covered
+  - Logging kept: Log.d calls are the on-device diagnostics (adb logcat) and log
+    no personal content
+  - Status: feature-complete for personal use on the A32; Kanban tile still a
+    coming-soon placeholder. Still open: CameraX + ML Kit are declared but unused
+    (most of the APK size); no project licence chosen; no screenshots yet

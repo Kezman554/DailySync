@@ -30,10 +30,22 @@ import java.util.Locale
 /**
  * Foreground service that runs the Stage 2 countdown. Ticks once per second,
  * publishing the remaining seconds via [remainingSeconds] and a notification
- * (tap opens the app). Duration comes from the start intent's
+ * (tap returns to the checkpoint screen). Duration comes from the start intent's
  * [EXTRA_DURATION_SECONDS], or falls back to [AlarmConfig]'s stage2 duration
- * (default 10 minutes). On expiry it broadcasts [ACTION_COUNTDOWN_EXPIRED]
- * (the future nuclear alarm will listen for this).
+ * (default 10 minutes). On expiry it starts the nuclear alarm itself and
+ * broadcasts [ACTION_COUNTDOWN_EXPIRED] so the Stage 2 screen can close.
+ *
+ * Lifecycle of one countdown:
+ *  - running: a [CountDownTimer] ticks, and a wall-clock deadline is saved so a
+ *    restarted service can finish the job (see [restoreAfterKill]).
+ *  - paused ([ACTION_PAUSE], while a content screen's own timer runs): the timer
+ *    is cancelled and the seconds left are saved instead of a deadline, because a
+ *    frozen countdown has no deadline — time passing must not eat into it.
+ *  - resumed ([ACTION_RESUME]): a new timer starts from the seconds left, not from
+ *    the full duration. Resuming a running countdown is a no-op, so callers can
+ *    send it without tracking whether they paused.
+ * The service, not the activity, owns this state: the screen can be destroyed and
+ * rebuilt mid-countdown, and only the service is sure to outlive it.
  */
 class CountdownService : Service() {
 
@@ -134,7 +146,9 @@ class CountdownService : Service() {
         val paused = prefs.getInt(KEY_PAUSED_SECONDS, 0)
         val now = System.currentTimeMillis()
         val remaining = when {
+            // Paused when the process died: the clock was stopped, so all of it is left.
             paused > 0 -> paused
+            // Running: whatever is left of the deadline, rounded up to whole seconds.
             deadline > now -> ((deadline - now + 999L) / 1000L).toInt()
             else -> 0
         }
@@ -267,7 +281,7 @@ class CountdownService : Service() {
             sendAction(context, ACTION_STOP)
         }
 
-        /** Pause the countdown (call while a content screen is showing). */
+        /** Pause the countdown (call while a content screen's own timer runs). */
         fun pause(context: Context) {
             sendAction(context, ACTION_PAUSE)
         }

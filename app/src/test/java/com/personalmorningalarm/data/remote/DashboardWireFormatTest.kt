@@ -39,7 +39,7 @@ class DashboardWireFormatTest {
                 .body(
                     ResponseBody.create(
                         MediaType.parse("application/json"),
-                        """{"open":true,"person":"nick","expires_in_s":300}"""
+                        """{"open":true,"person":"alex","expires_in_s":300}"""
                     )
                 )
                 .build()

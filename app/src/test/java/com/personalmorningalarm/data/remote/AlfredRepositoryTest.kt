@@ -289,7 +289,7 @@ class AlfredRepositoryTest {
     // --- family calendar: one data layer, two surfaces ---
 
     private val calendar = CalendarEventsDto(
-        calendar = "young_family",
+        calendar = "family",
         events = listOf(
             CalendarEventDto("France", "2026-07-24", "2026-07-25", true, null, null)
         )
@@ -343,7 +343,7 @@ class AlfredRepositoryTest {
         repository(calendarResponse = calendar)
             .getCalendarWeek(LocalDate.parse("2026-07-20"), LocalDate.parse("2026-07-26"))
         // A morning fetch of one narrow day, as the wake page makes.
-        repository(calendarResponse = CalendarEventsDto("young_family", emptyList()))
+        repository(calendarResponse = CalendarEventsDto("family", emptyList()))
             .getCalendarDay(LocalDate.parse("2026-07-24"))
 
         val week = repository().getCalendarWeek(LocalDate.parse("2026-07-20"), LocalDate.parse("2026-07-26"))
