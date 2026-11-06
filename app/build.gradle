@@ -91,6 +91,8 @@ dependencies {
     // CRUD, ViewModels) run under `./gradlew test` on the local JVM.
     testImplementation 'org.robolectric:robolectric:4.13'
     testImplementation 'androidx.test:core:1.6.1'
+    // A real HTTP server for the timeout tests; matches the OkHttp Retrofit brings in.
+    testImplementation 'com.squareup.okhttp3:mockwebserver:3.14.9'
     // In-memory Room for repository/ViewModel tests.
     testImplementation 'androidx.room:room-testing:2.6.1'
     // Coroutines test dispatcher for StateFlow ViewModel tests (matches the

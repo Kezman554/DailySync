@@ -80,16 +80,17 @@ class RollingTodoAdapter(
         }
     }
 
-    private companion object {
-        const val DONE_ALPHA = 0.5f
-        val SHORT_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
-        val SHORT_DATE_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yy", Locale.getDefault())
+    internal companion object {
+        private const val DONE_ALPHA = 0.5f
+        private val SHORT_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
+        private val SHORT_DATE_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yy", Locale.getDefault())
 
         val DIFF = object : DiffUtil.ItemCallback<RollingTodoItem>() {
             // Text+date rather than the raw line: ticking rewrites the line, and
             // the row should update in place rather than leave-and-reappear.
+            // Occurrence because identical rows are still separate rows.
             override fun areItemsTheSame(old: RollingTodoItem, new: RollingTodoItem): Boolean =
-                old.task == new.task && old.date == new.date
+                old.task == new.task && old.date == new.date && old.occurrence == new.occurrence
 
             override fun areContentsTheSame(old: RollingTodoItem, new: RollingTodoItem): Boolean =
                 old == new

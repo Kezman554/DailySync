@@ -58,14 +58,15 @@ class ShoppingItemAdapter(
         }
     }
 
-    private companion object {
-        const val DONE_ALPHA = 0.5f
+    internal companion object {
+        private const val DONE_ALPHA = 0.5f
 
         val DIFF = object : DiffUtil.ItemCallback<ShoppingItem>() {
             // Text rather than the raw line: ticking rewrites the line, and the
-            // row should update in place rather than leave-and-reappear.
+            // row should update in place rather than leave-and-reappear. Occurrence
+            // because identical rows are still separate rows.
             override fun areItemsTheSame(old: ShoppingItem, new: ShoppingItem): Boolean =
-                old.task == new.task
+                old.task == new.task && old.occurrence == new.occurrence
 
             override fun areContentsTheSame(old: ShoppingItem, new: ShoppingItem): Boolean =
                 old == new

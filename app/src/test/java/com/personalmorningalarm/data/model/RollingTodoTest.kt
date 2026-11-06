@@ -232,4 +232,39 @@ class RollingTodoTest {
         val queued = PendingChalkboardWrite(verb = ChalkboardVerb.ADD.name, text = raw, line = null, createdAt = 0)
         assertEquals(resolved, RollingTodo.merged(emptyList(), listOf(queued)).single().task)
     }
+
+    // --- identical rows: one queued edit, one row, the row Alfred will change ---
+
+    private val gateLine = "- [ ] Oil the gate (2026-11-06)"
+    private val twoGates = listOf(task("Oil the gate", "2026-11-06", gateLine), task("Oil the gate", "2026-11-06", gateLine))
+    private fun gateEdit(verb: ChalkboardVerb) = pending(verb = verb, text = "Oil the gate", line = gateLine)
+
+    @Test
+    fun `one queued tick on two identical rows ticks the first alone`() {
+        val items = RollingTodo.merged(twoGates, listOf(gateEdit(ChalkboardVerb.TICK)))
+
+        assertEquals(listOf(true, false), items.map { it.done })
+        assertEquals(listOf(true, false), items.map { it.pending })
+    }
+
+    @Test
+    fun `two queued ticks on the same line show as two ticked rows`() {
+        val items = RollingTodo.merged(twoGates, listOf(gateEdit(ChalkboardVerb.TICK), gateEdit(ChalkboardVerb.TICK)))
+
+        assertEquals(listOf(true, true), items.map { it.done })
+    }
+
+    @Test
+    fun `one queued drop on two identical rows removes one`() {
+        val items = RollingTodo.merged(twoGates, listOf(gateEdit(ChalkboardVerb.DROP)))
+
+        assertEquals(listOf(gateLine), items.map { it.line })
+    }
+
+    @Test
+    fun `a queued drop after a queued tick takes the row still open, as replay will`() {
+        val items = RollingTodo.merged(twoGates, listOf(gateEdit(ChalkboardVerb.TICK), gateEdit(ChalkboardVerb.DROP)))
+
+        assertEquals(listOf(true), items.map { it.done })
+    }
 }

@@ -7,6 +7,9 @@ import com.personalmorningalarm.data.entity.ChalkboardVerb
 import com.personalmorningalarm.data.entity.PendingChalkboardWrite
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
 import com.personalmorningalarm.data.model.ScheduleTaskDto
+import com.personalmorningalarm.data.model.tickedLine
+import com.personalmorningalarm.data.model.updateFirst
+import com.personalmorningalarm.data.model.withoutFirst
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.AlfredWriteResult
@@ -151,7 +154,7 @@ class TodayViewModel(
             return
         }
         applyOptimistically { list ->
-            list.map { if (it.line == line) it.copy(line = tickedLine(line)) else it }
+            list.updateFirst({ it.line == line }) { it.copy(line = tickedLine(line)) }
         }
         // No reconcile on success: Alfred's listings exclude ticked items straight
         // away, so a refetch would hide the greyed row the user should still see.
@@ -171,7 +174,7 @@ class TodayViewModel(
             queueWrite(ChalkboardVerb.DROP, text = text, line = line)
             return
         }
-        applyOptimistically { list -> list.filterNot { it.line == line } }
+        applyOptimistically { list -> list.withoutFirst { it.line == line } }
         runWrite("drop", onUnreachable = { queueWrite(ChalkboardVerb.DROP, text = text, line = line) }) {
             alfred.dropChalkboardItem(line)
         }
@@ -247,9 +250,6 @@ class TodayViewModel(
         val result = alfred.getChalkboard()
         _state.value = _state.value.copy(chalkboard = result)
     }
-
-    /** "[ ]" → "[x]" for the optimistic tick; the refetch supplies Alfred's actual line. */
-    private fun tickedLine(line: String): String = line.replaceFirst("[ ]", "[x]")
 
     /** Fresh/Stale/Unavailable, for the log — the whole point is they differ per feed. */
     private fun AlfredResult<List<*>>.label(): String = when (this) {

@@ -12,7 +12,9 @@ data class ShoppingItem(
     val line: String? = null,
     val done: Boolean = false,
     /** Waiting in the offline queue — captured on the phone, not yet in the vault. */
-    val pending: Boolean = false
+    val pending: Boolean = false,
+    /** Which of the rows with this text it is, from 0: identical rows stay separate rows. */
+    val occurrence: Int = 0
 ) {
     /** The item itself: everything before the first " — " (all of it if there's none). */
     val name: String get() = task.substringBefore(NOTE_SEPARATOR).trim()
@@ -65,13 +67,14 @@ object ShoppingList {
                     line = null,
                     pending = true
                 )
-                ShoppingVerb.TICK -> result.map {
-                    if (it.line == write.line) it.copy(done = true, pending = true) else it
+                // First match only, as on Alfred: see VaultRows.kt.
+                ShoppingVerb.TICK -> result.updateFirst({ it.line == write.line }) {
+                    it.copy(done = true, pending = true, line = write.line?.let(::tickedLine))
                 }
-                ShoppingVerb.DROP -> result.filterNot { it.line == write.line }
+                ShoppingVerb.DROP -> result.withoutFirst { it.line == write.line }
                 null -> result
             }
         }
-        return result
+        return result.numberRepeats({ it.task }) { item, occurrence -> item.copy(occurrence = occurrence) }
     }
 }

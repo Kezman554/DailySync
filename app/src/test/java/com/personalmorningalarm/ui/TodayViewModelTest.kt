@@ -34,6 +34,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import retrofit2.Response
 import java.io.IOException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * The Today screen's contract: both feeds fetched on open and on refresh, and —
@@ -418,5 +420,58 @@ class TodayViewModelTest : ViewModelTestSupport() {
         }
         assertEquals(1, writesSeen)
         assertTrue(state.chalkboard is AlfredResult.Fresh)
+    }
+
+    // --- identical rows: one tap, one row, the row Alfred will change ---
+
+    private val gateLine = "- [ ] Oil the gate (2026-11-06)"
+    private val gate = ChalkboardTaskDto("Oil the gate", "2026-11-06", gateLine)
+    private val tickedGate = gate.copy(line = "- [x] Oil the gate (2026-11-06)")
+
+    private fun rows(vm: TodayViewModel) = (vm.state.value.chalkboard as AlfredResult.Fresh).data
+
+    /** Holds writes open, so the optimistic state can be read before any refetch. */
+    private fun holdWrites(): CountDownLatch {
+        val held = CountDownLatch(1)
+        writeResponse = {
+            held.await(3, TimeUnit.SECONDS)
+            Response.success(Unit)
+        }
+        return held
+    }
+
+    @Test
+    fun `a tick on two identical rows flips one`() {
+        val vm = writableViewModel(listOf(gate, gate))
+        val held = holdWrites()
+
+        vm.tickItem(gateLine)
+
+        assertEquals(listOf(tickedGate, gate), rows(vm))
+        held.countDown()
+    }
+
+    @Test
+    fun `a second tick on the same line flips the second row`() {
+        val vm = writableViewModel(listOf(gate, gate))
+        val held = holdWrites()
+
+        vm.tickItem(gateLine)
+        vm.tickItem(gateLine)
+
+        assertEquals(listOf(tickedGate, tickedGate), rows(vm))
+        held.countDown()
+    }
+
+    @Test
+    fun `a drop on two identical rows removes one`() {
+        val vm = writableViewModel(listOf(gate, gate))
+        val held = holdWrites()
+        chalkboardResponse = listOf(gate)
+
+        vm.dropItem(gateLine)
+
+        assertEquals(listOf(gate), rows(vm))
+        held.countDown()
     }
 }

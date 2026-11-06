@@ -1913,3 +1913,20 @@
   - On the A32, light and dark, with temporary invented DTO fixtures (removed, not
     committed): Home schedule strip and to-do tile, To-Do screen, Week view.
     Not seen on device: alarm to-do and schedule screens, shopping, inbox
+
+2026-11-06 Session AV: slow writes stop duplicating, one tap changes one row
+  - Bug 1 cause holds in both codebases: a write outlasting the 3s read timeout came
+    back Unreachable and queued while the Pi finished it (flock, 30s wait), so the
+    replay added a copy. No phone log exists, so the timing itself stays inferred
+  - AlfredClient: POSTs get a 15s read timeout via an interceptor. Reads keep 3s, and
+    connect stays 3s for everything, so an unreachable Alfred still queues fast
+  - Identical rows: VaultRows.kt mirrors the Pi (first exact line; a tick rewrites
+    the line). Used by both ViewModels and both merges. Shopping's optimistic and
+    queued ticks now rewrite the line too, or a second tick hit the same row
+  - Row identity: occurrence on ShoppingItem and RollingTodoItem, numbered in
+    merged(), read by both DiffUtil callbacks
+  - Tests: real HTTP via MockWebServer (test-only dependency). Each fix undone in
+    turn turned its tests red. One unrelated TodayViewModelTest flake seen once,
+    under load, not reproduced in 6 reruns or the full runs
+  - A32: To-Do and a shopping list opened and scrolled, no crashes, no rows tapped.
+    The real-list check is Nick's. Server-side duplicate protection not part of this

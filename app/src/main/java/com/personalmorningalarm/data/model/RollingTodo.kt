@@ -21,7 +21,9 @@ data class RollingTodoItem(
     /** Waiting in the offline queue — captured on the phone, not yet in the vault. */
     val pending: Boolean = false,
     /** The day it went on the list, when the vault's date parses; null otherwise. */
-    val addedOn: LocalDate? = null
+    val addedOn: LocalDate? = null,
+    /** Which of the rows with this text and date it is, from 0: identical rows stay separate rows. */
+    val occurrence: Int = 0
 )
 
 /**
@@ -69,14 +71,15 @@ object RollingTodo {
                     line = null,
                     pending = true
                 )
-                ChalkboardVerb.TICK -> result.map {
-                    if (it.line == write.line) it.copy(done = true, pending = true) else it
+                // First match only, as on Alfred: see VaultRows.kt.
+                ChalkboardVerb.TICK -> result.updateFirst({ it.line == write.line }) {
+                    it.copy(done = true, pending = true, line = write.line?.let(::tickedLine))
                 }
-                ChalkboardVerb.DROP -> result.filterNot { it.line == write.line }
+                ChalkboardVerb.DROP -> result.withoutFirst { it.line == write.line }
                 null -> result
             }
         }
-        return result
+        return result.numberRepeats({ it.task to it.date }) { item, occurrence -> item.copy(occurrence = occurrence) }
     }
 
     /**

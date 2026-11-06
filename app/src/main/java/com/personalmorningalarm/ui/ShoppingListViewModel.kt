@@ -7,6 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.personalmorningalarm.data.entity.PendingShoppingWrite
 import com.personalmorningalarm.data.entity.ShoppingVerb
 import com.personalmorningalarm.data.model.ShoppingItemDto
+import com.personalmorningalarm.data.model.tickedLine
+import com.personalmorningalarm.data.model.updateFirst
+import com.personalmorningalarm.data.model.withoutFirst
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ShoppingSync
@@ -109,7 +112,9 @@ class ShoppingListViewModel(
             queueWrite(ShoppingVerb.TICK, text = text, line = line)
             return
         }
-        applyOptimistically { list -> list.map { if (it.line == line) it.copy(ticked = true) else it } }
+        applyOptimistically { list ->
+            list.updateFirst({ it.line == line }) { it.copy(ticked = true, line = tickedLine(line)) }
+        }
         runWrite(
             "tick",
             reconcileOnSuccess = true,
@@ -123,7 +128,7 @@ class ShoppingListViewModel(
             queueWrite(ShoppingVerb.DROP, text = text, line = line)
             return
         }
-        applyOptimistically { list -> list.filterNot { it.line == line } }
+        applyOptimistically { list -> list.withoutFirst { it.line == line } }
         runWrite("drop", onUnreachable = { queueWrite(ShoppingVerb.DROP, text = text, line = line) }) {
             alfred.dropShoppingItem(listId, line)
         }
