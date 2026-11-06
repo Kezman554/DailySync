@@ -81,6 +81,36 @@ class AlfredClientTimeoutTest {
     }
 
     @Test
+    fun `saving and deleting a note get the same timeouts as any other write`() {
+        val url = server.url("/notes/11111111-2222-4333-8444-555555555555")
+        val save = Request.Builder().url(url).put(RequestBody.create(null, "{}")).build()
+        val delete = Request.Builder().url(url).delete().build()
+
+        assertEquals(3_000 to 15_000, appliedTimeouts(save))
+        assertEquals(3_000 to 15_000, appliedTimeouts(delete))
+    }
+
+    @Test
+    fun `a note read keeps its 3 seconds`() {
+        val read = Request.Builder().url(server.url("/notes")).build()
+
+        assertEquals(3_000 to 3_000, appliedTimeouts(read))
+    }
+
+    @Test
+    fun `a note write answered after 5 seconds lands once`() = runBlocking {
+        answerAfterSeconds = 5
+
+        val results = listOf(
+            async { repository.saveNote("11111111-2222-4333-8444-555555555555", "Slow Pi") },
+            async { repository.deleteNote("66666666-7777-4888-8999-aaaaaaaaaaaa") }
+        ).awaitAll()
+
+        assertEquals(listOf(NoteWriteResult.Done, NoteWriteResult.Done), results)
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
     fun `a read keeps its 3 seconds for both`() {
         val read = Request.Builder().url(server.url("/chalkboard")).build()
 

@@ -90,6 +90,9 @@ class TilesFragment : Fragment() {
         binding.cardInbox.setOnClickListener {
             findNavController().navigate(R.id.action_tiles_to_inbox)
         }
+        binding.cardNotes.setOnClickListener {
+            findNavController().navigate(R.id.action_tiles_to_notes)
+        }
         val openSignIn = View.OnClickListener {
             findNavController().navigate(R.id.action_tiles_to_presence)
         }

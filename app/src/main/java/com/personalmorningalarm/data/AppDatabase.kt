@@ -14,6 +14,7 @@ import com.personalmorningalarm.data.dao.ContentToggleDao
 import com.personalmorningalarm.data.dao.NfcTagDao
 import com.personalmorningalarm.data.dao.PendingChalkboardWriteDao
 import com.personalmorningalarm.data.dao.PendingInboxWriteDao
+import com.personalmorningalarm.data.dao.PendingNoteWriteDao
 import com.personalmorningalarm.data.dao.PendingShoppingWriteDao
 import com.personalmorningalarm.data.dao.StretchExerciseDao
 import com.personalmorningalarm.data.dao.StretchRoutineDao
@@ -24,6 +25,7 @@ import com.personalmorningalarm.data.entity.ContentToggle
 import com.personalmorningalarm.data.entity.NfcTag
 import com.personalmorningalarm.data.entity.PendingChalkboardWrite
 import com.personalmorningalarm.data.entity.PendingInboxWrite
+import com.personalmorningalarm.data.entity.PendingNoteWrite
 import com.personalmorningalarm.data.entity.PendingShoppingWrite
 import com.personalmorningalarm.data.entity.StretchExercise
 import com.personalmorningalarm.data.entity.StretchRoutine
@@ -39,9 +41,10 @@ import com.personalmorningalarm.data.entity.StretchRoutine
         StretchExercise::class,
         PendingChalkboardWrite::class,
         PendingShoppingWrite::class,
-        PendingInboxWrite::class
+        PendingInboxWrite::class,
+        PendingNoteWrite::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -57,6 +60,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pendingChalkboardWriteDao(): PendingChalkboardWriteDao
     abstract fun pendingShoppingWriteDao(): PendingShoppingWriteDao
     abstract fun pendingInboxWriteDao(): PendingInboxWriteDao
+    abstract fun pendingNoteWriteDao(): PendingNoteWriteDao
 
     companion object {
         private const val DB_NAME = "personal_morning_alarm.db"
@@ -160,6 +164,29 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // v9: offline store-and-forward queue for notes. Non-destructive. The unique
+        // index is what keeps it to one row per note.
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `pending_note_writes` " +
+                        "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `noteId` TEXT NOT NULL, " +
+                        "`verb` TEXT NOT NULL, `text` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, " +
+                        "`failed` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_pending_note_writes_noteId` " +
+                        "ON `pending_note_writes` (`noteId`)"
+                )
+            }
+        }
+
+        /** Every migration, in order: what the app opens with, and what the migration test opens with. */
+        internal val MIGRATIONS = arrayOf(
+            MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
+            MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9
+        )
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -169,10 +196,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     DB_NAME
-                ).addMigrations(
-                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-                    MIGRATION_6_7, MIGRATION_7_8
-                )
+                ).addMigrations(*MIGRATIONS)
                     .build().also { INSTANCE = it }
             }
         }

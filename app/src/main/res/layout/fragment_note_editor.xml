@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One note, full screen: a title bar and the text, nothing else. The field takes all
+  the height there is and scrolls inside it, so when the keyboard shrinks the window
+  (adjustResize) the line being typed stays above the keyboard.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="12dp">
+
+    <include
+        android:id="@+id/title_bar"
+        layout="@layout/view_screen_title" />
+
+    <!-- Only for a saved copy opened because Alfred couldn't be reached -->
+    <include
+        android:id="@+id/freshness"
+        layout="@layout/view_freshness"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" />
+
+    <!-- Loading, or the text can't be had: the field stays away, so nothing can be
+         typed over a note that hasn't been read -->
+    <TextView
+        android:id="@+id/tv_note_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:paddingHorizontal="4dp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        tools:text="Checking with Alfred…" />
+
+    <!-- saveEnabled off: the ViewModel owns what's shown, or a restored view would
+         put old text over a freshly loaded note -->
+    <EditText
+        android:id="@+id/et_note"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1"
+        android:background="@null"
+        android:gravity="top|start"
+        android:hint="@string/note_hint"
+        android:importantForAutofill="no"
+        android:inputType="textCapSentences|textMultiLine"
+        android:lineSpacingMultiplier="1.2"
+        android:paddingHorizontal="4dp"
+        android:paddingBottom="12dp"
+        android:saveEnabled="false"
+        android:scrollbars="vertical"
+        android:textColor="?attr/colorOnSurface"
+        android:textColorHint="?attr/colorOnSurfaceVariant"
+        android:textSize="17sp"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+</LinearLayout>

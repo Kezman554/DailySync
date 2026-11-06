@@ -159,6 +159,23 @@
     <string name="shopping_drop_title">Drop this item?</string>
     <string name="shopping_drop_message">“%1$s” will be removed as no longer wanted. To mark it bought instead, tap it.</string>
 
+    <!-- Notes tile (Alfred /notes) — free text, saved on leaving, through a queue -->
+    <string name="notes_title">Notes</string>
+    <string name="notes_new">New note</string>
+    <string name="notes_loading">Checking with Alfred…</string>
+    <string name="notes_empty">No notes yet</string>
+    <string name="notes_unavailable">Notes not on this phone yet — Alfred unreachable</string>
+    <plurals name="notes_pending_count">
+        <item quantity="one">%1$d change waiting to sync</item>
+        <item quantity="other">%1$d changes waiting to sync</item>
+    </plurals>
+    <string name="note_title">Note</string>
+    <string name="note_hint">Write something</string>
+    <string name="note_unavailable">This note isn\'t on this phone yet, and Alfred can\'t be reached. Nothing has changed.</string>
+    <string name="note_refused">Alfred refused this note. It\'s safe on the phone: open it to shorten it</string>
+    <string name="note_delete_title">Delete this note?</string>
+    <string name="note_delete_message">“%1$s” will be deleted from the vault.</string>
+
     <!-- Inbox tile (Alfred /inbox) — read-only list, capture-only write -->
     <string name="inbox_title">Inbox</string>
     <string name="inbox_unavailable">Inbox not on this phone yet — Alfred unreachable</string>
@@ -202,6 +219,7 @@
     <string name="tiles_shopping_done">Nothing left to buy</string>
     <string name="tiles_shopping_unavailable">Never loaded</string>
     <string name="tiles_inbox_subtitle">Capture a thought</string>
+    <string name="tiles_notes_subtitle">Jot something down</string>
     <string name="tiles_sign_in_locked">Wall board locked</string>
     <string name="tiles_sign_in_open">Signed in</string>
     <string name="tiles_sign_in_open_as">Signed in as %1$s</string>
@@ -209,6 +227,7 @@
     <string name="tiles_sign_in_checking">Checking…</string>
 
     <string name="tile_inbox">Inbox</string>
+    <string name="tile_notes">Notes</string>
     <string name="tile_kitchen_sync">KitchenSync</string>
     <string name="tile_kanban">Kanban</string>
     <string name="tile_kitchen_sign_in">Home Hub Sign-in</string>

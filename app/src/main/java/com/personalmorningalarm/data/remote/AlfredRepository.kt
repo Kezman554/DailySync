@@ -7,6 +7,9 @@ import com.google.gson.reflect.TypeToken
 import com.personalmorningalarm.data.model.CalendarEventsDto
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
 import com.personalmorningalarm.data.model.InboxCaptureDto
+import com.personalmorningalarm.data.model.NoteDto
+import com.personalmorningalarm.data.model.NoteSummaryDto
+import com.personalmorningalarm.data.model.Notes
 import com.personalmorningalarm.data.model.ScheduleTaskDto
 import com.personalmorningalarm.data.model.ShoppingItemDto
 import com.personalmorningalarm.data.model.ShoppingListDetailDto
@@ -259,6 +262,86 @@ class AlfredRepository(
         }
     }
 
+    /** Every note, newest first, falling back to the last list Alfred served. */
+    suspend fun getNotes(): AlfredResult<List<NoteSummaryDto>> =
+        fetch(
+            endpoint = ENDPOINT_NOTES,
+            type = NOTES_TYPE
+        ) { it.getNotes() }
+
+    /** One note's text, falling back to the last copy this phone saw. */
+    suspend fun getNote(noteId: String): AlfredResult<NoteDto> =
+        fetch(
+            endpoint = noteEndpoint(noteId),
+            type = NoteDto::class.java
+        ) { it.getNote(noteId) }
+
+    /** The saved list as it stands, for a screen to pick up what a delivered write changed. */
+    fun savedNotes(): List<NoteSummaryDto>? = try {
+        cache.get(ENDPOINT_NOTES)?.let { gson.fromJson<List<NoteSummaryDto>>(it.json, NOTES_TYPE) }
+    } catch (e: Exception) {
+        null
+    }
+
+    /**
+     * Saves [text] as note [noteId]. On success the saved copies follow, so a note
+     * written on this phone can always be reopened offline, and a list Alfred can't
+     * refresh right now doesn't lose the note the moment its queue row goes.
+     */
+    suspend fun saveNote(noteId: String, text: String): NoteWriteResult =
+        writeNote("save", { it.saveNote(noteId, NoteSaveRequest(text)) }) {
+            cache.put(noteEndpoint(noteId), gson.toJson(NoteDto(id = noteId, text = text)), clock())
+            patchSavedNotes { notes -> listOf(Notes.summary(noteId, text)) + notes.filterNot { it.id == noteId } }
+        }
+
+    /** Deletes note [noteId], and its saved copies, so an offline screen can't bring it back. */
+    suspend fun deleteNote(noteId: String): NoteWriteResult =
+        writeNote("delete", { it.deleteNote(noteId) }) {
+            cache.clear(noteEndpoint(noteId))
+            patchSavedNotes { notes -> notes.filterNot { it.id == noteId } }
+        }
+
+    /**
+     * Changes the saved list and leaves its timestamp alone: this is one note's news,
+     * not a fresh list, so the rest of it is exactly as old as it was.
+     */
+    private fun patchSavedNotes(change: (List<NoteSummaryDto>) -> List<NoteSummaryDto>) {
+        val saved = cache.get(ENDPOINT_NOTES) ?: return
+        val notes = savedNotes() ?: return
+        cache.put(ENDPOINT_NOTES, gson.toJson(change(notes)), saved.cachedAtMillis)
+    }
+
+    private suspend fun writeNote(
+        verb: String,
+        request: suspend (AlfredApiService) -> Response<Unit>,
+        onDone: () -> Unit
+    ): NoteWriteResult = withContext(Dispatchers.IO) {
+        try {
+            val response = request(serviceProvider(settings))
+            reportAnswer(response.isSuccessful || response.code() == 422)
+            when {
+                response.isSuccessful -> {
+                    onDone()
+                    NoteWriteResult.Done
+                }
+                response.code() == 422 -> {
+                    Log.w(TAG, "Note $verb refused: HTTP 422")
+                    NoteWriteResult.Rejected
+                }
+                else -> {
+                    Log.w(TAG, "Note $verb rejected: HTTP ${response.code()}")
+                    NoteWriteResult.Unreachable
+                }
+            }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (e: Exception) {
+            Log.d(TAG, "Alfred unreachable for note $verb (${e.javaClass.simpleName})")
+            reportAnswer(false)
+            NoteWriteResult.Unreachable
+        }
+    }
+
     /**
      * Runs a chalkboard write. A 404 means the targeting line went stale; its body
      * carries the current list, which is cached (it is the freshest state we have)
@@ -434,6 +517,7 @@ class AlfredRepository(
 
         const val ENDPOINT_SHOPPING = "shopping"
         const val ENDPOINT_INBOX = "inbox"
+        const val ENDPOINT_NOTES = "notes"
 
         private val CHALKBOARD_TYPE: Type =
             object : TypeToken<List<ChalkboardTaskDto>>() {}.type
@@ -444,6 +528,9 @@ class AlfredRepository(
         private val INBOX_TYPE: Type =
             object : TypeToken<List<InboxCaptureDto>>() {}.type
 
+        private val NOTES_TYPE: Type =
+            object : TypeToken<List<NoteSummaryDto>>() {}.type
+
         private val PLAIN_TEXT: MediaType? = MediaType.parse("text/plain; charset=utf-8")
 
         /** POST /inbox takes the capture as a plain-text body, not JSON. */
@@ -451,5 +538,8 @@ class AlfredRepository(
 
         /** Each list caches independently — a slash is a fine SharedPreferences key. */
         fun shoppingListEndpoint(listId: String): String = "$ENDPOINT_SHOPPING/$listId"
+
+        /** Each note's text caches on its own, as each shopping list does. */
+        fun noteEndpoint(noteId: String): String = "$ENDPOINT_NOTES/$noteId"
     }
 }

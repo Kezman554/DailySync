@@ -3,6 +3,8 @@ package com.personalmorningalarm.data.remote
 import com.personalmorningalarm.data.model.CalendarEventsDto
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
 import com.personalmorningalarm.data.model.InboxCaptureDto
+import com.personalmorningalarm.data.model.NoteDto
+import com.personalmorningalarm.data.model.NoteSummaryDto
 import com.personalmorningalarm.data.model.ScheduleTaskDto
 import com.personalmorningalarm.data.model.ShoppingItemDto
 import com.personalmorningalarm.data.model.ShoppingListDetailDto
@@ -14,6 +16,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -121,7 +124,26 @@ interface AlfredApiService {
      */
     @POST("inbox")
     suspend fun capture(@Body body: RequestBody): Response<Unit>
+
+    /** Every note as id, title, updated and preview, newest update first. */
+    @GET("notes")
+    suspend fun getNotes(): List<NoteSummaryDto>
+
+    /** One note's exact text. The list's preview is short, so this is what the editor opens. */
+    @GET("notes/{noteId}")
+    suspend fun getNote(@Path("noteId") noteId: String): NoteDto
+
+    /** Creates or replaces a note. Safe to repeat; 422 (via [Response]) if the text is refused. */
+    @PUT("notes/{noteId}")
+    suspend fun saveNote(@Path("noteId") noteId: String, @Body body: NoteSaveRequest): Response<Unit>
+
+    /** Removes a note. Succeeds even if it's already gone, so it's safe to repeat. */
+    @DELETE("notes/{noteId}")
+    suspend fun deleteNote(@Path("noteId") noteId: String): Response<Unit>
 }
+
+/** Body for PUT /notes/{noteId} — the note's text, exactly as typed. */
+data class NoteSaveRequest(val text: String)
 
 /** What DELETE /shopping/{listId} answers: the lists that remain. */
 data class ShoppingDeleteResponse(val lists: List<ShoppingListSummaryDto>?)

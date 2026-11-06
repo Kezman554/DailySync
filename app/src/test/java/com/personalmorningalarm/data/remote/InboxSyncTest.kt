@@ -78,6 +78,12 @@ class InboxSyncTest {
                 override suspend fun dropShoppingItem(listId: String, body: ShoppingLineRequest): Response<Unit> =
                     throw IOException()
 
+                override suspend fun getNotes(): List<com.personalmorningalarm.data.model.NoteSummaryDto> = throw java.io.IOException()
+                override suspend fun getNote(noteId: String): com.personalmorningalarm.data.model.NoteDto = throw java.io.IOException()
+                override suspend fun saveNote(noteId: String, body: com.personalmorningalarm.data.remote.NoteSaveRequest): Response<Unit> =
+                    throw java.io.IOException()
+                override suspend fun deleteNote(noteId: String): Response<Unit> = throw java.io.IOException()
+
                 override suspend fun getInbox(): List<InboxCaptureDto> = throw IOException()
 
                 override suspend fun capture(body: RequestBody): Response<Unit> {

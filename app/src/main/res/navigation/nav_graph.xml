@@ -24,6 +24,9 @@
             android:id="@+id/action_tiles_to_inbox"
             app:destination="@id/inboxFragment" />
         <action
+            android:id="@+id/action_tiles_to_notes"
+            app:destination="@id/notesFragment" />
+        <action
             android:id="@+id/action_tiles_to_presence"
             app:destination="@id/presenceFragment" />
     </fragment>
@@ -41,6 +44,31 @@
         android:name="com.personalmorningalarm.ui.InboxFragment"
         android:label="@string/inbox_title"
         tools:layout="@layout/fragment_inbox" />
+
+    <!-- Notes tile: the list, then one note full screen. The id is made by the list
+         for a new note, so isNew and noteId together survive a process death. -->
+    <fragment
+        android:id="@+id/notesFragment"
+        android:name="com.personalmorningalarm.ui.NotesFragment"
+        android:label="@string/notes_title"
+        tools:layout="@layout/fragment_notes">
+        <action
+            android:id="@+id/action_notes_to_editor"
+            app:destination="@id/noteEditorFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/noteEditorFragment"
+        android:name="com.personalmorningalarm.ui.NoteEditorFragment"
+        android:label="@string/note_title"
+        tools:layout="@layout/fragment_note_editor">
+        <argument
+            android:name="noteId"
+            app:argType="string" />
+        <argument
+            android:name="isNew"
+            app:argType="boolean" />
+    </fragment>
 
     <!-- The Daily Schedule tile: the whole plan week, one page per day. -->
     <fragment

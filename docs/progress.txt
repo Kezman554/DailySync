@@ -1948,3 +1948,37 @@
     timeout checks didn't finish
   - A32: dialog checked in light and dark, with and without a count, dismissed with
     Back. No real delete sent; that check is Nick's
+
+2026-11-06 Session AX: notepad tile
+  - Notes tile under To-Do in the bento (Kitchen and Kanban tiles kept), a list, and
+    a plain full-screen editor. Plain text throughout, never through VaultText
+  - Every save and delete goes through NoteSync, online or not. Row id is
+    AUTOINCREMENT with a unique index on noteId, and a write REPLACEs, so a newer
+    write gets a new id and a replay in flight can't delete it. Flush reads one row
+    at a time, so a note deleted mid-flush is never saved first
+  - Writes run in NoteSync's own serial scope: Back cancels viewModelScope. The id
+    is made at the tap and travels in the nav args, so a restored editor is the same
+    note. Emptied note in the background: nothing happens, the question waits for Back
+  - The editor only opens on the real text (queue, Alfred, or saved copy); the list's
+    preview is 120 characters. With none of those it stays shut and can't write.
+    So a note never opened on this phone can't be edited offline. Notes written here
+    are saved on delivery, so those can
+  - Only a 422 marks a row failed (text kept, listed as refused, an edit retries).
+    A 404 or 5xx stays queued, in case the Pi is mid-update. No maxLength on the
+    field: it would truncate a paste silently, and the 422 path keeps everything
+  - Delivered writes patch the saved list keeping its timestamp, so it can't look
+    newer than it is. The list rereads it as rows leave the queue, so a deleted note
+    doesn't flash back during a long flush
+  - DB v9. Migration tested on the JVM from the committed 8.json, seeded, opened with
+    AppDatabase.MIGRATIONS, because instrumented tests never run on the A32. Room's
+    open check let a missing unique index through; a separate test catches that
+  - Tests: 497 pass, forced rerun. All 16 undo-the-fix checks caught; two were missed
+    at first (mid-flush list, serial scope) and got proper tests
+  - A32, update install over real data: v8 to v9, every table count unchanged. With
+    a temporary uncommitted build sending only /notes to a fake server over adb
+    reverse: tile, list, editor, dialogs in light and dark, keyboard (last line stays
+    above it), background save, rotation, offline edits and delete, am crash with 3
+    queued, each write then arrived once. Queue confirmed empty, clean build installed
+    and hash checked, temp cache removed, theme back to dark, auto-rotate restored
+  - Real Alfred: GET /notes only ("No notes yet"). No note written. The real-note
+    check is Nick's, and 6-life/notes/ arriving in the vault is unconfirmed until then

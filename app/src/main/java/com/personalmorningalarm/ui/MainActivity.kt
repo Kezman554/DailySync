@@ -26,6 +26,7 @@ import com.personalmorningalarm.data.AppDatabase
 import com.personalmorningalarm.data.entity.AlarmConfig
 import com.personalmorningalarm.data.remote.ChalkboardSync
 import com.personalmorningalarm.data.remote.InboxSync
+import com.personalmorningalarm.data.remote.NoteSync
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.databinding.ActivityMainBinding
 import com.personalmorningalarm.service.CountdownService
@@ -169,6 +170,7 @@ class MainActivity : AppCompatActivity() {
             flushChalkboardQueue("network available")
             flushShoppingQueue("network available")
             flushInboxQueue("network available")
+            flushNoteQueue("network available")
         }
     }
 
@@ -209,6 +211,7 @@ class MainActivity : AppCompatActivity() {
         flushChalkboardQueue("app foreground")
         flushShoppingQueue("app foreground")
         flushInboxQueue("app foreground")
+        flushNoteQueue("app foreground")
         getSystemService<ConnectivityManager>()?.registerDefaultNetworkCallback(networkCallback)
     }
 
@@ -278,6 +281,25 @@ class MainActivity : AppCompatActivity() {
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Inbox queue flush failed ($trigger)", e)
+            }
+        }
+    }
+
+    /** Same trigger shape again, for the note queue. */
+    private fun flushNoteQueue(trigger: String) {
+        val appContext = applicationContext
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val sync = NoteSync.getInstance(appContext)
+                if (!sync.hasPending()) return@launch
+                val outcome = sync.flush()
+                Log.d(
+                    TAG,
+                    "Note queue flush ($trigger): ${outcome.delivered} delivered, " +
+                        "${outcome.refused} refused, ${outcome.remaining} remaining"
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Note queue flush failed ($trigger)", e)
             }
         }
     }
