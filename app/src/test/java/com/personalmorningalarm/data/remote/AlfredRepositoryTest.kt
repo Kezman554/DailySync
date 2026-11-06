@@ -50,6 +50,7 @@ class AlfredRepositoryTest {
         shoppingWriteResponse: (() -> Response<Unit>)? = null,
         inboxResponse: List<InboxCaptureDto>? = null,
         captureResponse: (() -> Response<Unit>)? = null,
+        deleteShoppingListResponse: (() -> Response<ShoppingDeleteResponse>)? = null,
         calendarResponse: CalendarEventsDto? = null,
         clock: () -> Long = System::currentTimeMillis
     ) = AlfredRepository(
@@ -82,6 +83,9 @@ class AlfredRepositoryTest {
 
                 override suspend fun getShoppingList(listId: String): ShoppingListDetailDto =
                     shoppingListResponse ?: throw IOException("Alfred unreachable")
+
+                override suspend fun deleteShoppingList(listId: String): Response<com.personalmorningalarm.data.remote.ShoppingDeleteResponse> =
+                    deleteShoppingListResponse?.invoke() ?: throw IOException("Alfred unreachable")
 
                 override suspend fun createShoppingList(body: ShoppingCreateRequest): Response<ShoppingListSummaryDto> =
                     createShoppingListResponse?.invoke() ?: throw IOException("Alfred unreachable")
@@ -569,5 +573,101 @@ class AlfredRepositoryTest {
     @Test
     fun `an unreachable Alfred never throws on a capture`() = runBlocking {
         assertEquals(InboxWriteResult.Unreachable, repository().captureToInbox("A thought"))
+    }
+
+    // --- deleting a list ---
+
+    private val hardware = ShoppingListSummaryDto("hardware.md", "Hardware", 2, 2)
+    private val garden = ShoppingListSummaryDto("garden-tools.md", "Garden Tools", 5, 3)
+
+    /** Both saved copies as an Alfred that has since gone away would serve them. */
+    private suspend fun savedAfterwards(): Pair<AlfredResult<*>, AlfredResult<*>> {
+        val offline = repository()
+        return offline.getShoppingLists() to offline.getShoppingList(garden.id!!)
+    }
+
+    /** Fills both saved copies, as opening the menu and the list would have. */
+    private suspend fun seedSavedCopies() {
+        repository(shoppingListsResponse = listOf(garden, hardware)).getShoppingLists()
+        repository(shoppingListResponse = ShoppingListDetailDto(garden, emptyList())).getShoppingList(garden.id!!)
+    }
+
+    private fun notFound(body: String) =
+        Response.error<ShoppingDeleteResponse>(404, ResponseBody.create(MediaType.parse("application/json"), body))
+
+    @Test
+    fun `a deleted list returns what remains and leaves neither saved copy showing it`() = runBlocking {
+        seedSavedCopies()
+        val repository = repository(
+            deleteShoppingListResponse = { Response.success(ShoppingDeleteResponse(listOf(hardware))) }
+        )
+
+        val result = repository.deleteShoppingList(garden.id!!)
+
+        assertEquals(ShoppingDeleteResult.Deleted(listOf(hardware)), result)
+        val (lists, list) = savedAfterwards()
+        assertEquals(listOf(hardware), (lists as AlfredResult.Stale).data)
+        assertEquals(AlfredResult.Unavailable, list)
+    }
+
+    @Test
+    fun `a success with no lists falls back to the saved list without this one`() = runBlocking {
+        seedSavedCopies()
+        val repository = repository(deleteShoppingListResponse = { Response.success(ShoppingDeleteResponse(null)) })
+
+        val result = repository.deleteShoppingList(garden.id!!)
+
+        assertEquals(ShoppingDeleteResult.Deleted(listOf(hardware)), result)
+    }
+
+    @Test
+    fun `a 404 carrying the lists counts as gone, and updates the saved copies`() = runBlocking {
+        seedSavedCopies()
+        val body = Gson().toJson(mapOf("detail" to mapOf("error" to "not found", "lists" to listOf(hardware))))
+        val repository = repository(deleteShoppingListResponse = { notFound(body) })
+
+        val result = repository.deleteShoppingList(garden.id!!)
+
+        assertEquals(ShoppingDeleteResult.Deleted(listOf(hardware)), result)
+        val (lists, list) = savedAfterwards()
+        assertEquals(listOf(hardware), (lists as AlfredResult.Stale).data)
+        assertEquals(AlfredResult.Unavailable, list)
+    }
+
+    @Test
+    fun `a 404 that isn't Alfred's is a failure, and the saved copies stay`() = runBlocking {
+        seedSavedCopies()
+        val repository = repository(deleteShoppingListResponse = { notFound("""{"detail":"Not Found"}""") })
+
+        val result = repository.deleteShoppingList(garden.id!!)
+
+        assertEquals(ShoppingDeleteResult.Unreachable, result)
+        val (lists, list) = savedAfterwards()
+        assertEquals(listOf(garden, hardware), (lists as AlfredResult.Stale).data)
+        assertTrue(list is AlfredResult.Stale)
+    }
+
+    @Test
+    fun `an unreachable Alfred leaves the saved copies as they were`() = runBlocking {
+        seedSavedCopies()
+
+        val result = repository().deleteShoppingList(garden.id!!)
+
+        assertEquals(ShoppingDeleteResult.Unreachable, result)
+        val (lists, list) = savedAfterwards()
+        assertEquals(listOf(garden, hardware), (lists as AlfredResult.Stale).data)
+        assertTrue(list is AlfredResult.Stale)
+    }
+
+    @Test
+    fun `an error from Alfred is a failure, not a delete`() = runBlocking {
+        seedSavedCopies()
+        val repository = repository(
+            deleteShoppingListResponse = {
+                Response.error(500, ResponseBody.create(MediaType.parse("application/json"), "{}"))
+            }
+        )
+
+        assertEquals(ShoppingDeleteResult.Unreachable, repository.deleteShoppingList(garden.id!!))
     }
 }

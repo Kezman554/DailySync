@@ -29,7 +29,7 @@ object AlfredClient {
     private const val TIMEOUT_SECONDS = 3L
     private const val WRITE_READ_TIMEOUT_SECONDS = 15L
 
-    /** Every POST in [AlfredApiService] is a vault write; every read is a GET. */
+    /** Everything in [AlfredApiService] that isn't a GET is a vault write. */
     private val writeTimeout = Interceptor { chain ->
         val request = chain.request()
         if (request.method() == "GET") {

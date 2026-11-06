@@ -16,12 +16,15 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.personalmorningalarm.R
+import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.databinding.FragmentShoppingMenuBinding
 import kotlinx.coroutines.launch
 import java.time.ZoneId
@@ -31,7 +34,8 @@ import java.time.ZoneId
  * endpoint as a grid of tiles, plus a New list tile that opens the create field. Behaves like the other Alfred menus — cache-backed,
  * renders from the saved copy when Alfred is unreachable — except create-list, which
  * is deliberately online-only (it needs the API's 409 answer, so there's nothing a
- * queue could usefully do with it offline).
+ * queue could usefully do with it offline). Delete-list, a long press on a tile, is
+ * online-only as well.
  */
 class ShoppingMenuFragment : Fragment() {
 
@@ -39,11 +43,11 @@ class ShoppingMenuFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: ShoppingMenuViewModel by viewModels {
-        AlfredViewModelFactory(AlfredRepository(requireContext()))
+        ShoppingMenuViewModelFactory(AlfredRepository(requireContext()), ShoppingSync.getInstance(requireContext()))
     }
 
     private val listAdapter by lazy {
-        ShoppingListSummaryAdapter(onClick = ::openList, onNewList = ::openCreate)
+        ShoppingListSummaryAdapter(onClick = ::openList, onLongPress = ::confirmDelete, onNewList = ::openCreate)
     }
 
     override fun onCreateView(
@@ -130,9 +134,31 @@ class ShoppingMenuFragment : Fragment() {
         )
     }
 
-    private fun showEvent(event: ShoppingMenuViewModel.CreateEvent) {
+    /** Like create, delete needs a live Alfred, so a saved copy gets the reason and no dialog. */
+    private fun confirmDelete(summary: ShoppingListSummaryDto) {
+        if (viewModel.state.value.lists !is AlfredResult.Fresh) {
+            Snackbar.make(binding.root, R.string.shopping_delete_needs_alfred, Snackbar.LENGTH_LONG).show()
+            return
+        }
+        val name = ShoppingList.shortTitle(summary.title ?: summary.id.orEmpty())
+        val left = ShoppingList.itemsLeft(summary)
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.shopping_delete_title)
+            .setMessage(
+                if (left > 0) {
+                    resources.getQuantityString(R.plurals.shopping_delete_message_open, left, left, name)
+                } else {
+                    getString(R.string.shopping_delete_message, name)
+                }
+            )
+            .setPositiveButton(R.string.shopping_delete_confirm) { _, _ -> viewModel.deleteList(summary) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showEvent(event: ShoppingMenuViewModel.MenuEvent) {
         when (event) {
-            is ShoppingMenuViewModel.CreateEvent.Created -> {
+            is ShoppingMenuViewModel.MenuEvent.Created -> {
                 binding.etShoppingNewList.setText("")
                 closeCreate()
                 Snackbar.make(
@@ -141,15 +167,23 @@ class ShoppingMenuFragment : Fragment() {
                     Snackbar.LENGTH_LONG
                 ).show()
             }
-            ShoppingMenuViewModel.CreateEvent.Conflict ->
+            ShoppingMenuViewModel.MenuEvent.Conflict ->
                 Snackbar.make(binding.root, R.string.shopping_new_list_conflict, Snackbar.LENGTH_LONG).show()
-            ShoppingMenuViewModel.CreateEvent.Unreachable ->
+            ShoppingMenuViewModel.MenuEvent.Unreachable ->
                 Snackbar.make(binding.root, R.string.shopping_new_list_needs_alfred, Snackbar.LENGTH_LONG).show()
+            is ShoppingMenuViewModel.MenuEvent.Deleted ->
+                Snackbar.make(
+                    binding.root,
+                    getString(R.string.shopping_delete_done, event.title),
+                    Snackbar.LENGTH_LONG
+                ).show()
+            ShoppingMenuViewModel.MenuEvent.DeleteUnreachable ->
+                Snackbar.make(binding.root, R.string.shopping_delete_needs_alfred, Snackbar.LENGTH_LONG).show()
         }
     }
 
     private fun render(state: ShoppingMenuViewModel.MenuState) {
-        binding.swipeRefresh.isRefreshing = state.loading
+        binding.swipeRefresh.isRefreshing = state.loading || state.deleting
 
         renderFreshness(state)
         val lists: List<ShoppingListSummaryDto>? = when (val result = state.lists) {

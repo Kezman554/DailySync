@@ -137,6 +137,15 @@
     <string name="shopping_new_list_needs_alfred">Creating a list needs Alfred — try again on home WiFi</string>
     <string name="shopping_new_list_created">“%1$s” created</string>
     <string name="shopping_new_list_conflict">That list already exists</string>
+    <string name="shopping_delete_title">Delete this list?</string>
+    <string name="shopping_delete_message">This deletes “%1$s”.</string>
+    <plurals name="shopping_delete_message_open">
+        <item quantity="one">This deletes “%2$s”, with %1$d item still open.</item>
+        <item quantity="other">This deletes “%2$s”, with %1$d items still open.</item>
+    </plurals>
+    <string name="shopping_delete_confirm">Delete</string>
+    <string name="shopping_delete_done">“%1$s” deleted</string>
+    <string name="shopping_delete_needs_alfred">Deleting a list needs Alfred — try again on home WiFi</string>
     <string name="shopping_left">%1$d left</string>
     <string name="shopping_all_done">All done</string>
     <string name="shopping_new_list_ready">Create on Alfred</string>

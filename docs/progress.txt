@@ -1930,3 +1930,21 @@
     under load, not reproduced in 6 reruns or the full runs
   - A32: To-Do and a shopping list opened and scrolled, no crashes, no rows tapped.
     The real-list check is Nick's. Server-side duplicate protection not part of this
+
+2026-11-06 Session AW: delete a shopping list from the phone
+  - Long press on a list tile confirms by name, with the open count if any. Online
+    only, like create: a saved copy gets the reason and no dialog, and a delete is
+    never queued. DELETE gets the 15s write timeout (the interceptor is "not GET")
+  - On success or a 404 carrying the lists: screen and both saved copies updated,
+    and the list's queued writes removed, failed ones too. A 404 without the lists
+    is a failed call, so a stray 404 can't wipe a queue
+  - ShoppingSync.deleteList holds the flush lock across the request and the clear.
+    A replay into a deleted list comes back Unreachable and stops the whole flush,
+    so the clearing also protects the other lists. NonCancellable, so backing out
+    mid-delete still clears; success cancels any refresh already in flight
+  - New list clears isLongClickable as well as the listener, for recycled holders
+  - Tests: 412 pass on debug. 8 of 10 undo-the-fix checks ran and all were caught;
+    the run was stopped for low memory, so the in-flight guard and the delete
+    timeout checks didn't finish
+  - A32: dialog checked in light and dark, with and without a count, dismissed with
+    Back. No real delete sent; that check is Nick's

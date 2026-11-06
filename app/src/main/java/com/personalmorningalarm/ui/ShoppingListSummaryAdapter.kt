@@ -14,10 +14,12 @@ import com.personalmorningalarm.databinding.ItemShoppingListBinding
 /**
  * The Shopping grid: one tile per list (name, then "9 left" or "All done"), and a
  * dashed New list tile last. The New list tile is only tappable while [canCreate]
- * — creating needs a live Alfred, and offline it says so instead.
+ * — creating needs a live Alfred, and offline it says so instead. A list tile opens
+ * on a tap and offers deletion on a long press; the New list tile has no long press.
  */
 class ShoppingListSummaryAdapter(
     private val onClick: (ShoppingListSummaryDto) -> Unit,
+    private val onLongPress: (ShoppingListSummaryDto) -> Unit,
     private val onNewList: () -> Unit
 ) : ListAdapter<ShoppingListSummaryAdapter.Tile, ShoppingListSummaryAdapter.Holder>(DIFF) {
 
@@ -54,8 +56,7 @@ class ShoppingListSummaryAdapter(
             binding.ivShoppingListBadge.setImageResource(R.drawable.ic_list)
             binding.tvShoppingListTitle.text = ShoppingList.shortTitle(summary.title ?: summary.id.orEmpty())
 
-            val total = summary.total ?: 0
-            val left = summary.unticked ?: total
+            val left = ShoppingList.itemsLeft(summary)
             val resources = binding.root.resources
             // Nothing left reads "All done" even with no items listed: the overnight
             // sweep removes bought items, so a finished list usually has none.
@@ -68,6 +69,7 @@ class ShoppingListSummaryAdapter(
 
             binding.root.isEnabled = true
             binding.root.setOnClickListener { onClick(summary) }
+            binding.root.setOnLongClickListener { onLongPress(summary); true }
         }
 
         fun bindNewList(canCreate: Boolean) {
@@ -83,6 +85,10 @@ class ShoppingListSummaryAdapter(
             binding.root.isEnabled = canCreate
             binding.root.setOnClickListener(if (canCreate) { _ -> onNewList() } else null)
             binding.root.isClickable = canCreate
+            // A recycled holder may have been a list tile. The listener alone isn't
+            // enough: clearing it leaves the view long-clickable.
+            binding.root.setOnLongClickListener(null)
+            binding.root.isLongClickable = false
         }
     }
 

@@ -72,6 +72,9 @@ class ChalkboardSyncTest {
                 override suspend fun getShoppingList(listId: String): com.personalmorningalarm.data.model.ShoppingListDetailDto =
                     throw IOException()
 
+                override suspend fun deleteShoppingList(listId: String): Response<com.personalmorningalarm.data.remote.ShoppingDeleteResponse> =
+                    throw IOException()
+
                 override suspend fun createShoppingList(
                     body: ShoppingCreateRequest
                 ): Response<com.personalmorningalarm.data.model.ShoppingListSummaryDto> = throw IOException()

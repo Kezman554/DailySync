@@ -11,6 +11,7 @@ import com.personalmorningalarm.data.model.WeekScheduleDto
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -83,6 +84,10 @@ interface AlfredApiService {
     @POST("shopping")
     suspend fun createShoppingList(@Body body: ShoppingCreateRequest): Response<ShoppingListSummaryDto>
 
+    /** Takes a list out of discovery. 404 (via [Response]) if it's already gone, with the current lists. */
+    @DELETE("shopping/{listId}")
+    suspend fun deleteShoppingList(@Path("listId") listId: String): Response<ShoppingDeleteResponse>
+
     /** Appends an unticked item to the targeted list. */
     @POST("shopping/{listId}")
     suspend fun addShoppingItem(
@@ -117,6 +122,9 @@ interface AlfredApiService {
     @POST("inbox")
     suspend fun capture(@Body body: RequestBody): Response<Unit>
 }
+
+/** What DELETE /shopping/{listId} answers: the lists that remain. */
+data class ShoppingDeleteResponse(val lists: List<ShoppingListSummaryDto>?)
 
 /** Body for POST /chalkboard — the task text alone; Alfred adds the checkbox and date. */
 data class ChalkboardAddRequest(val text: String)

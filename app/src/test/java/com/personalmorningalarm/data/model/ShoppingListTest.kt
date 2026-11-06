@@ -270,4 +270,13 @@ class ShoppingListTest {
 
         assertEquals(listOf(true), items.map { it.done })
     }
+
+    // --- how many items are left, as the tile and the delete dialog count them ---
+
+    @Test
+    fun `items left prefers the unticked count, then the total, then nothing`() {
+        assertEquals(3, ShoppingList.itemsLeft(ShoppingListSummaryDto("a.md", "A", 5, 3)))
+        assertEquals(5, ShoppingList.itemsLeft(ShoppingListSummaryDto("a.md", "A", 5, null)))
+        assertEquals(0, ShoppingList.itemsLeft(ShoppingListSummaryDto("a.md", "A", null, null)))
+    }
 }

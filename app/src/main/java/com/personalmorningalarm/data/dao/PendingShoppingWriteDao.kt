@@ -32,6 +32,10 @@ interface PendingShoppingWriteDao {
     @Query("UPDATE pending_shopping_writes SET failed = 1 WHERE id = :id")
     suspend fun markFailed(id: Long)
 
+    /** The list itself is gone, so nothing queued for it, failed or not, has anywhere to land. */
+    @Query("DELETE FROM pending_shopping_writes WHERE listId = :listId")
+    suspend fun deleteForList(listId: String)
+
     /** The user has seen this list's conflict notice — its failed entries have served their purpose. */
     @Query("DELETE FROM pending_shopping_writes WHERE failed = 1 AND listId = :listId")
     suspend fun deleteFailedForList(listId: String)

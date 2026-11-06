@@ -18,7 +18,8 @@ import kotlinx.coroutines.sync.withLock
  * one difference: the queue is shared across every list, so each entry carries its
  * own [PendingShoppingWrite.listId] and replay dispatches to that list's endpoint.
  * Create-list is never queued here — it's online-only, handled directly by
- * [AlfredRepository.createShoppingList].
+ * [AlfredRepository.createShoppingList]. Delete-list is online-only too, but it runs
+ * through [deleteList] because it has to clear the queue.
  */
 class ShoppingSync(
     private val alfred: AlfredRepository,
@@ -54,6 +55,19 @@ class ShoppingSync(
 
     /** Clears [listId]'s failed entries once its conflict notice has been dismissed. */
     suspend fun dismissFailed(listId: String) = dao.deleteFailedForList(listId)
+
+    /**
+     * Deletes [listId] on Alfred and, once it's gone, everything queued for it.
+     *
+     * The clearing matters beyond tidiness: a replay into a deleted list comes back
+     * as a failed write, which stops the flush and so holds up every other list. The
+     * lock keeps a flush from replaying into the list between the two steps.
+     */
+    suspend fun deleteList(listId: String): ShoppingDeleteResult = mutex.withLock {
+        val result = alfred.deleteShoppingList(listId)
+        if (result is ShoppingDeleteResult.Deleted) dao.deleteForList(listId)
+        result
+    }
 
     /** Replays the whole queue, across every list, in order. Safe to call speculatively. */
     suspend fun flush(): FlushOutcome {

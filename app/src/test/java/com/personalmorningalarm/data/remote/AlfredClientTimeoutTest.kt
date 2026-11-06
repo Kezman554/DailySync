@@ -74,6 +74,13 @@ class AlfredClientTimeoutTest {
     }
 
     @Test
+    fun `a delete gets the same timeouts as any other write`() {
+        val delete = Request.Builder().url(server.url("/shopping/garden-tools.md")).delete().build()
+
+        assertEquals(3_000 to 15_000, appliedTimeouts(delete))
+    }
+
+    @Test
     fun `a read keeps its 3 seconds for both`() {
         val read = Request.Builder().url(server.url("/chalkboard")).build()
 
@@ -100,6 +107,16 @@ class AlfredClientTimeoutTest {
             results
         )
         assertEquals(5, server.requestCount)
+    }
+
+    @Test
+    fun `a delete answered after 5 seconds lands once`() = runBlocking {
+        answerAfterSeconds = 5
+
+        val result = repository.deleteShoppingList("garden-tools.md")
+
+        assertTrue(result is ShoppingDeleteResult.Deleted)
+        assertEquals(1, server.requestCount)
     }
 
     @Test

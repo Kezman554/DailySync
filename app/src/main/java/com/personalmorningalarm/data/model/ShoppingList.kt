@@ -40,6 +40,9 @@ object ShoppingList {
      */
     fun shortTitle(title: String): String = title.substringBefore(" — ").trim().ifEmpty { title }
 
+    /** How many items are still to buy on a list, as its tile counts them. */
+    fun itemsLeft(summary: ShoppingListSummaryDto): Int = summary.unticked ?: summary.total ?: 0
+
     fun items(items: List<ShoppingItemDto>): List<ShoppingItem> =
         items
             .filter { !it.text.isNullOrBlank() }

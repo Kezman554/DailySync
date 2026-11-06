@@ -66,6 +66,9 @@ class InboxSyncTest {
                 override suspend fun getShoppingLists(): List<ShoppingListSummaryDto> = throw IOException()
                 override suspend fun getShoppingList(listId: String): com.personalmorningalarm.data.model.ShoppingListDetailDto =
                     throw IOException()
+                override suspend fun deleteShoppingList(listId: String): Response<com.personalmorningalarm.data.remote.ShoppingDeleteResponse> =
+                    throw IOException()
+
                 override suspend fun createShoppingList(body: ShoppingCreateRequest): Response<ShoppingListSummaryDto> =
                     throw IOException()
                 override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest): Response<Unit> =

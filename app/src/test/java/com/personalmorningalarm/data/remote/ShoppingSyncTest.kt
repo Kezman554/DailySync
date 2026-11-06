@@ -47,6 +47,9 @@ class ShoppingSyncTest {
     /** Every write the fake Alfred saw, in order — "list:ADD:text" / "list:TICK:line" / "list:DROP:line". */
     private val writesSeen = mutableListOf<String>()
 
+    /** How the fake Alfred answers a delete; null means "unreachable". */
+    private var deleteResponse: (() -> Response<ShoppingDeleteResponse>)? = null
+
     /** Per-write behaviour, consumed in order; missing entries mean "unreachable". */
     private val responses = ArrayDeque<() -> Response<Unit>>()
 
@@ -67,6 +70,9 @@ class ShoppingSyncTest {
                 override suspend fun getShoppingLists(): List<ShoppingListSummaryDto> = throw IOException()
                 override suspend fun getShoppingList(listId: String): com.personalmorningalarm.data.model.ShoppingListDetailDto =
                     throw IOException()
+                override suspend fun deleteShoppingList(listId: String): Response<ShoppingDeleteResponse> =
+                    deleteResponse?.invoke() ?: throw IOException()
+
                 override suspend fun createShoppingList(body: ShoppingCreateRequest): Response<ShoppingListSummaryDto> =
                     throw IOException()
 
@@ -190,6 +196,69 @@ class ShoppingSyncTest {
         assertEquals(1, outcome.delivered)
         assertEquals(1, outcome.conflicted)
         assertEquals(listOf("$garden:ADD:Hedge shears"), writesSeen)
+    }
+
+    // --- deleting a list clears what was queued for it ---
+
+    private suspend fun queueForTwoLists() {
+        sync.enqueue(garden, ShoppingVerb.ADD, "Hedge shears")
+        sync.enqueue(garden, ShoppingVerb.TICK, "Cable pulley", "- [ ] Cable pulley")
+        sync.enqueue(fashion, ShoppingVerb.ADD, "Wool socks")
+    }
+
+    @Test
+    fun `a delete clears that list's queued writes, failed ones too, and no other list's`() = runBlocking {
+        queueForTwoLists()
+        dao.markFailed(dao.getPending().first().id)
+        deleteResponse = { Response.success(ShoppingDeleteResponse(emptyList())) }
+
+        val result = sync.deleteList(garden)
+
+        assertEquals(ShoppingDeleteResult.Deleted(emptyList()), result)
+        assertEquals(listOf(fashion), sync.queue.first().map { it.listId })
+    }
+
+    @Test
+    fun `a 404 clears the queued writes as a delete does`() = runBlocking {
+        queueForTwoLists()
+        deleteResponse = {
+            val body = Gson().toJson(mapOf("detail" to mapOf("lists" to emptyList<Any>())))
+            Response.error(404, ResponseBody.create(MediaType.parse("application/json"), body))
+        }
+
+        sync.deleteList(garden)
+
+        assertEquals(listOf(fashion), dao.getPending().map { it.listId })
+    }
+
+    @Test
+    fun `an unreachable Alfred leaves the queue alone`() = runBlocking {
+        queueForTwoLists()
+
+        val result = sync.deleteList(garden)
+
+        assertEquals(ShoppingDeleteResult.Unreachable, result)
+        assertEquals(3, dao.getPending().size)
+    }
+
+    @Test
+    fun `a delete is never queued`() = runBlocking {
+        sync.deleteList(garden)
+
+        assertTrue(dao.getPending().isEmpty())
+    }
+
+    @Test
+    fun `other lists' writes still replay after a delete`() = runBlocking {
+        queueForTwoLists()
+        deleteResponse = { Response.success(ShoppingDeleteResponse(emptyList())) }
+        sync.deleteList(garden)
+        responses += accept()
+
+        val outcome = sync.flush()
+
+        assertEquals(1, outcome.delivered)
+        assertEquals(listOf("$fashion:ADD:Wool socks"), writesSeen)
     }
 }
 

@@ -31,3 +31,11 @@ sealed interface ShoppingCreateResult {
     /** Alfred didn't take the request — unreachable, or an unexpected error. */
     data object Unreachable : ShoppingCreateResult
 }
+
+/** Outcome of deleting a shopping list. Online-only like create, and likewise never queued. */
+sealed interface ShoppingDeleteResult {
+    /** The list is gone, whether this call removed it or it already had been. */
+    data class Deleted(val remaining: List<ShoppingListSummaryDto>) : ShoppingDeleteResult
+    /** Alfred didn't take the request — unreachable, or an unexpected error. The list stays. */
+    data object Unreachable : ShoppingDeleteResult
+}

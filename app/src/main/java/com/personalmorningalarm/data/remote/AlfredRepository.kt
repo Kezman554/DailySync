@@ -113,7 +113,7 @@ class AlfredRepository(
     suspend fun getShoppingLists(): AlfredResult<List<ShoppingListSummaryDto>> =
         fetch(
             endpoint = ENDPOINT_SHOPPING,
-            type = object : TypeToken<List<ShoppingListSummaryDto>>() {}.type
+            type = SHOPPING_LISTS_TYPE
         ) { it.getShoppingLists() }
 
     /** One shopping list's items from Alfred, falling back to the last copy served for [listId]. */
@@ -155,6 +155,59 @@ class AlfredRepository(
             reportAnswer(false)
             ShoppingCreateResult.Unreachable
         }
+    }
+
+    /**
+     * Deletes the list [listId]. Online-only, as [createShoppingList] is. A 404 with
+     * its list of lists means the list is already gone, which is what was asked for;
+     * a 404 without one is just a failed call, and the list is left alone.
+     */
+    suspend fun deleteShoppingList(listId: String): ShoppingDeleteResult = withContext(Dispatchers.IO) {
+        try {
+            val response = serviceProvider(settings).deleteShoppingList(listId)
+            val remaining = when {
+                response.isSuccessful -> response.body()?.lists ?: cachedShoppingLists(listId)
+                response.code() == 404 -> listsFromStaleBody(response)
+                else -> null
+            }
+            reportAnswer(remaining != null)
+            if (remaining == null) {
+                Log.w(TAG, "Delete shopping list rejected: HTTP ${response.code()}")
+                ShoppingDeleteResult.Unreachable
+            } else {
+                // Both saved copies, so an offline screen can't bring the list back.
+                cache.put(ENDPOINT_SHOPPING, gson.toJson(remaining), clock())
+                cache.clear(shoppingListEndpoint(listId))
+                ShoppingDeleteResult.Deleted(remaining)
+            }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (e: Exception) {
+            Log.d(TAG, "Alfred unreachable for delete shopping list (${e.javaClass.simpleName})")
+            reportAnswer(false)
+            ShoppingDeleteResult.Unreachable
+        }
+    }
+
+    /** Shape of a list-level 404: {"detail":{"error":…,"lists":[…]}}. */
+    private data class StaleListsBody(val detail: Detail?) {
+        data class Detail(val lists: List<ShoppingListSummaryDto>?)
+    }
+
+    private fun listsFromStaleBody(response: Response<*>): List<ShoppingListSummaryDto>? = try {
+        gson.fromJson(response.errorBody()?.string(), StaleListsBody::class.java)?.detail?.lists
+    } catch (e: Exception) {
+        null
+    }
+
+    /** The saved list of lists without [listId], for a success that came with no lists. */
+    private fun cachedShoppingLists(listId: String): List<ShoppingListSummaryDto> {
+        val saved: List<ShoppingListSummaryDto>? = try {
+            cache.get(ENDPOINT_SHOPPING)?.let { gson.fromJson(it.json, SHOPPING_LISTS_TYPE) }
+        } catch (e: Exception) {
+            null
+        }
+        return saved.orEmpty().filterNot { it.id == listId }
     }
 
     /** Adds an item to the shopping list [listId]. Alfred appends the checkbox. */
@@ -384,6 +437,9 @@ class AlfredRepository(
 
         private val CHALKBOARD_TYPE: Type =
             object : TypeToken<List<ChalkboardTaskDto>>() {}.type
+
+        private val SHOPPING_LISTS_TYPE: Type =
+            object : TypeToken<List<ShoppingListSummaryDto>>() {}.type
 
         private val INBOX_TYPE: Type =
             object : TypeToken<List<InboxCaptureDto>>() {}.type

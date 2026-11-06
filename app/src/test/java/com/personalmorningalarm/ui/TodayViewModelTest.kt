@@ -87,6 +87,9 @@ class TodayViewModelTest : ViewModelTestSupport() {
                     override suspend fun getShoppingList(listId: String): com.personalmorningalarm.data.model.ShoppingListDetailDto =
                         throw IOException("Alfred unreachable")
 
+                    override suspend fun deleteShoppingList(listId: String): Response<com.personalmorningalarm.data.remote.ShoppingDeleteResponse> =
+                        throw IOException()
+
                     override suspend fun createShoppingList(
                         body: ShoppingCreateRequest
                     ): Response<com.personalmorningalarm.data.model.ShoppingListSummaryDto> =
