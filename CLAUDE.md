@@ -90,3 +90,4 @@ Reference
 Requirements: docs/wake-up-alarm_PRD.md
 Progress log: docs/progress.txt
 Task prompts: Kanban app
+Android practice: C:\Dev\alfred-vault\shared-knowledge\android-best-practices.md (read before running a build gate, and before work on lifecycle, background services, Room migrations or release builds)
