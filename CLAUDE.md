@@ -60,7 +60,7 @@ Conventions
 
 Min API level 26, target API 34
 Primary test device: Samsung Galaxy A32 5G, model SM-A326B (Android 13 / API 33). The vault's 5-reference/hardware-and-software.md is the one home for its facts: confirm there, don't re-derive them from a project doc
-Vault text must mean the same on the phone and the wall. VaultText doesn't handle inline `code` yet, which the dashboard has rendered since Dash Y (11 Oct), so the two currently disagree. Close that gap before adding markup to either side alone [2-projects/alfred/scribble-pad, 11 Oct]
+Vault text must mean the same on the phone and the wall. Change markup handling on both sides together, never on one alone [2-projects/alfred/dashboard-build-decisions, 11 Oct]
 MVVM architecture with Repository pattern throughout
 Public repo — never commit credentials, tokens, personal data, public IPs or hostnames, port-forwards, or VPN endpoints
 RFC1918 LAN defaults (192.168.x.x, 10.x.x.x, 172.16-31.x.x) are fine to commit — non-routable, unreachable from outside, and reveal nothing about the network. e.g. the Alfred host default 192.168.1.100:8200
