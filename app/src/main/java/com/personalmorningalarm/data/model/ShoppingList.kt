@@ -6,7 +6,7 @@ import com.personalmorningalarm.util.VaultText
 
 /** One shopping list item, cleaned up and ready to render. Mirrors [RollingTodoItem]. */
 data class ShoppingItem(
-    /** Wikilinks resolved; still carries emphasis markers and any "~£cost" fragment for the renderer. */
+    /** Wikilinks resolved; still carries emphasis and code markers and any "~£cost" fragment for the renderer. */
     val task: String,
     /** Raw vault line — the targeting key for tick/drop. Null on pre-line cached data. */
     val line: String? = null,
@@ -43,7 +43,7 @@ object ShoppingList {
             .filter { !it.text.isNullOrBlank() }
             .map {
                 ShoppingItem(
-                    task = VaultText.stripWikiLinks(it.text!!.trim()),
+                    task = VaultText.resolveLinks(it.text!!.trim()),
                     line = it.line,
                     done = it.ticked == true
                 )
@@ -61,7 +61,7 @@ object ShoppingList {
         pending.filterNot { it.failed }.forEach { write ->
             result = when (ShoppingVerb.fromName(write.verb)) {
                 ShoppingVerb.ADD -> result + ShoppingItem(
-                    task = VaultText.stripWikiLinks(write.text),
+                    task = VaultText.resolveLinks(write.text),
                     line = null,
                     pending = true
                 )

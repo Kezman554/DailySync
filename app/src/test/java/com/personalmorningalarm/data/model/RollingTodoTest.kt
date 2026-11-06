@@ -222,4 +222,14 @@ class RollingTodoTest {
         assertEquals(listOf("Buy stamps"), items.map { it.task })
         assertTrue(items.single().pending)
     }
+
+    @Test
+    fun `a link inside backticks survives to the renderer, in server and queued items alike`() {
+        val raw = "Check `[[not a link]]` then [[shed-guide]]"
+        val resolved = "Check `[[not a link]]` then shed-guide"
+
+        assertEquals(resolved, RollingTodo.items(listOf(ChalkboardTaskDto(raw, null))).single().task)
+        val queued = PendingChalkboardWrite(verb = ChalkboardVerb.ADD.name, text = raw, line = null, createdAt = 0)
+        assertEquals(resolved, RollingTodo.merged(emptyList(), listOf(queued)).single().task)
+    }
 }

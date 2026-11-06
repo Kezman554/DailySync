@@ -33,7 +33,7 @@ class InboxCaptureAdapter : ListAdapter<InboxCapture, InboxCaptureAdapter.Holder
             binding.tvInboxCaptured.text = capture.captured
             binding.tvInboxPreview.isVisible = capture.preview.isNotBlank()
             // The vault's markup rendered rather than shown raw ("**bold**").
-            binding.tvInboxPreview.text = VaultText.render(capture.preview)
+            binding.tvInboxPreview.text = VaultText.render(binding.root.context, capture.preview)
             binding.tvInboxPending.isVisible = capture.pending
         }
     }

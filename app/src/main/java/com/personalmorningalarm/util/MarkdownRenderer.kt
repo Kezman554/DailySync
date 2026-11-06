@@ -1,44 +1,42 @@
 package com.personalmorningalarm.util
 
+import android.content.Context
 import android.graphics.Typeface
 import android.text.SpannableStringBuilder
 import android.text.Spanned
+import android.text.style.BackgroundColorSpan
 import android.text.style.StyleSpan
+import com.google.android.material.color.MaterialColors
+import com.personalmorningalarm.R
 
 /**
- * Renders the inline emphasis Alfred's task strings carry — **bold** and *italic* —
- * as styled text, so the markers themselves never reach the screen.
+ * Turns the runs [VaultText.parse] finds into styled text, so the markers themselves
+ * never reach the screen: **bold** and *italic* as weight and slant, `code` set apart
+ * by colorSurface2 behind it.
  *
- * Deliberately not a markdown parser: it handles the emphasis that actually turns
- * up in a task line and leaves everything else (including an unpaired asterisk,
- * which isn't emphasis) alone.
+ * Code stays in Space Grotesk, the app's only face. A background span rather than a
+ * drawn chip because a long code span has to wrap with the line it sits in.
  */
 object MarkdownRenderer {
 
-    // Bold is listed first so `**x**` is matched as bold rather than as an italic
-    // `*` wrapping `*x*`. `.+?` is lazy, so each run stops at its nearest closer,
-    // and neither alternative may span a line break.
-    private val EMPHASIS = Regex("""\*\*([^*\n]+)\*\*|\*([^*\n]+)\*""")
+    private const val TAG = "MarkdownRenderer"
 
-    fun render(source: String): CharSequence {
-        if (!source.contains('*')) return source
-
-        val out = SpannableStringBuilder()
-        var cursor = 0
-        for (match in EMPHASIS.findAll(source)) {
-            out.append(source, cursor, match.range.first)
-
-            val bold = match.groupValues[1]
-            val text = bold.ifEmpty { match.groupValues[2] }
-            val style = if (bold.isNotEmpty()) Typeface.BOLD else Typeface.ITALIC
-
-            val start = out.length
-            out.append(text)
-            out.setSpan(StyleSpan(style), start, out.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-
-            cursor = match.range.last + 1
+    fun render(context: Context, source: String): CharSequence {
+        val segments = VaultText.parse(source)
+        if (segments.none { it.bold || it.italic || it.code }) {
+            return segments.joinToString("") { it.text }
         }
-        out.append(source, cursor, source.length)
+
+        val codeBackground by lazy { MaterialColors.getColor(context, R.attr.colorSurface2, TAG) }
+        val out = SpannableStringBuilder()
+        for (segment in segments) {
+            val start = out.length
+            out.append(segment.text)
+            fun span(what: Any) = out.setSpan(what, start, out.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            if (segment.bold) span(StyleSpan(Typeface.BOLD))
+            if (segment.italic) span(StyleSpan(Typeface.ITALIC))
+            if (segment.code) span(BackgroundColorSpan(codeBackground))
+        }
         return out
     }
 }

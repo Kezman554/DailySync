@@ -34,14 +34,14 @@ class ShoppingItemAdapter(
         fun bind(item: ShoppingItem) {
             binding.cbShopping.isChecked = item.done
             // Two lines: the name in bold, then whatever followed " — " as the note.
-            binding.tvShoppingTask.text = VaultText.render(item.name)
+            binding.tvShoppingTask.text = VaultText.render(binding.root.context, item.name)
             binding.tvShoppingTask.paintFlags = if (item.done) {
                 binding.tvShoppingTask.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             } else {
                 binding.tvShoppingTask.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
             }
             binding.tvShoppingNote.isVisible = item.note != null
-            binding.tvShoppingNote.text = item.note?.let(VaultText::render)
+            binding.tvShoppingNote.text = item.note?.let { VaultText.render(binding.root.context, it) }
             binding.tvShoppingPending.isVisible = item.pending
             binding.root.alpha = if (item.done) DONE_ALPHA else 1f
 

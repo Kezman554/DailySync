@@ -1,8 +1,10 @@
 package com.personalmorningalarm.util
 
+import android.content.Context
 import android.graphics.Typeface
 import android.text.Spanned
 import android.text.style.StyleSpan
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -16,6 +18,8 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class MarkdownRendererTest {
 
+    private val context: Context = ApplicationProvider.getApplicationContext()
+
     /** Text with no emphasis comes back unspanned, so plain input has no spans. */
     private fun spansOf(rendered: CharSequence): List<Pair<Int, String>> {
         val spanned = rendered as? Spanned ?: return emptyList()
@@ -25,7 +29,7 @@ class MarkdownRendererTest {
 
     @Test
     fun `bold markers are rendered, not shown`() {
-        val rendered = MarkdownRenderer.render("Go to the **gym**")
+        val rendered = MarkdownRenderer.render(context, "Go to the **gym**")
 
         assertEquals("Go to the gym", rendered.toString())
         assertEquals(listOf(Typeface.BOLD to "gym"), spansOf(rendered))
@@ -33,7 +37,7 @@ class MarkdownRendererTest {
 
     @Test
     fun `italic markers are rendered, not shown`() {
-        val rendered = MarkdownRenderer.render("Call *Mum*")
+        val rendered = MarkdownRenderer.render(context, "Call *Mum*")
 
         assertEquals("Call Mum", rendered.toString())
         assertEquals(listOf(Typeface.ITALIC to "Mum"), spansOf(rendered))
@@ -41,7 +45,7 @@ class MarkdownRendererTest {
 
     @Test
     fun `bold and italic in one task are each rendered`() {
-        val rendered = MarkdownRenderer.render("**Gym** then *shower*")
+        val rendered = MarkdownRenderer.render(context, "**Gym** then *shower*")
 
         assertEquals("Gym then shower", rendered.toString())
         assertEquals(
@@ -52,7 +56,7 @@ class MarkdownRendererTest {
 
     @Test
     fun `bold wins over italic so double markers never leak a stray asterisk`() {
-        val rendered = MarkdownRenderer.render("**a** and **b**")
+        val rendered = MarkdownRenderer.render(context, "**a** and **b**")
 
         assertEquals("a and b", rendered.toString())
         assertEquals(listOf(Typeface.BOLD to "a", Typeface.BOLD to "b"), spansOf(rendered))
@@ -60,7 +64,7 @@ class MarkdownRendererTest {
 
     @Test
     fun `plain text passes through untouched`() {
-        val rendered = MarkdownRenderer.render("Walk the dog")
+        val rendered = MarkdownRenderer.render(context, "Walk the dog")
 
         assertEquals("Walk the dog", rendered.toString())
         assertTrue(spansOf(rendered).isEmpty())
@@ -68,7 +72,7 @@ class MarkdownRendererTest {
 
     @Test
     fun `an unpaired asterisk is left alone rather than eating the rest of the task`() {
-        val rendered = MarkdownRenderer.render("2 * 3 sets")
+        val rendered = MarkdownRenderer.render(context, "2 * 3 sets")
 
         assertEquals("2 * 3 sets", rendered.toString())
     }

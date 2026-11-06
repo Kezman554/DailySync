@@ -1,5 +1,6 @@
 package com.personalmorningalarm.ui
 
+import android.content.Context
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
@@ -26,13 +27,13 @@ object ChalkboardRenderer {
     /** Indents the date under its task rather than under the box. */
     private const val DATE_INDENT = "     "
 
-    fun format(items: List<RollingTodoItem>, @ColorInt dateColor: Int): CharSequence {
+    fun format(context: Context, items: List<RollingTodoItem>, @ColorInt dateColor: Int): CharSequence {
         val out = SpannableStringBuilder()
         items.forEach { item ->
             if (out.isNotEmpty()) out.append("\n")
             // Build the line around the rendered task so its emphasis spans survive.
             val start = out.length
-            out.append(if (item.done) BOX_DONE else BOX).append(VaultText.render(item.task))
+            out.append(if (item.done) BOX_DONE else BOX).append(VaultText.render(context, item.task))
             if (item.done) {
                 out.setSpan(StrikethroughSpan(), start, out.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 out.setSpan(ForegroundColorSpan(dateColor), start, out.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)

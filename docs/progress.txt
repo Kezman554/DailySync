@@ -1897,3 +1897,19 @@
   - Installed on the A32 as an update (first install date unchanged, data kept)
   - Full history scan before going public: only RFC1918 placeholder IPs, no
     tokens or keys; findings reported, nothing rewritten
+
+2026-11-06 Session AU: inline code in vault text, matching the wall
+  - VaultText.parse is a port of the dashboard's parseVaultText: code spans lifted
+    to private-use placeholders before links and emphasis, contents literal, a
+    source already holding private-use characters skips code handling
+  - MarkdownRenderer now only turns those segments into spans. Code stays in
+    Space Grotesk, backticks removed, colorSurface2 behind it (BackgroundColorSpan,
+    so a long span wraps). render() takes a Context for the theme attribute
+  - The data layer stripped links at parse time, which would have flattened a
+    [[link]] inside backticks before any renderer saw it. To-dos, shopping and
+    inbox now use VaultText.resolveLinks, which skips code spans
+  - Parity: origin/master's vaultMarkup.ts and VaultText.parse run over 40,049
+    inputs (fixtures plus seeded fuzz, 4,537 with code): 0 differences
+  - On the A32, light and dark, with temporary invented DTO fixtures (removed, not
+    committed): Home schedule strip and to-do tile, To-Do screen, Week view.
+    Not seen on device: alarm to-do and schedule screens, shopping, inbox

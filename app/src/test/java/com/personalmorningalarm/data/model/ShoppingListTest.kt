@@ -204,4 +204,15 @@ class ShoppingListTest {
         assertEquals(listOf("Yoga mat"), items.map { it.task })
         assertTrue(items.single().pending)
     }
+
+    @Test
+    fun `a link inside backticks survives to the renderer, in server and queued items alike`() {
+        val raw = "Felt `[[not a link]]` — see [[shed-guide]]"
+        val item = ShoppingList.items(listOf(ShoppingItemDto(text = raw, line = null, ticked = false))).single()
+
+        assertEquals("Felt `[[not a link]]`", item.name)
+        assertEquals("see shed-guide", item.note)
+        val queued = PendingShoppingWrite(listId = "l", verb = ShoppingVerb.ADD.name, text = raw, line = null, createdAt = 0)
+        assertEquals(item.task, ShoppingList.merged(emptyList(), listOf(queued)).single().task)
+    }
 }

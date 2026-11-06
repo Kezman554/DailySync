@@ -939,7 +939,7 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 )
             }
             val row = ItemAlarmTodoRowBinding.inflate(layoutInflater, list, true)
-            row.cbItem.text = MarkdownRenderer.render(item.task)
+            row.cbItem.text = MarkdownRenderer.render(this, item.task)
             // Pre-line cached items have nothing to target a tick at.
             row.cbItem.isEnabled = item.line != null
             row.cbItem.setOnCheckedChangeListener { box, checked ->

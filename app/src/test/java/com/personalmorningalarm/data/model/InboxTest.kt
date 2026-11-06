@@ -106,4 +106,14 @@ class InboxTest {
 
         assertTrue(merged.isEmpty())
     }
+
+    @Test
+    fun `a link inside backticks survives to the preview`() {
+        val capture = InboxCaptureDto("note.md", "Check `[[not a link]]` then [[shed-guide]]")
+
+        assertEquals(
+            "Check `[[not a link]]` then shed-guide",
+            Inbox.captures(listOf(capture)).single().preview
+        )
+    }
 }

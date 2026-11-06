@@ -135,8 +135,8 @@ class WeekDayAdapter : RecyclerView.Adapter<WeekDayAdapter.DayViewHolder>() {
                             append(entry.time?.format(TIME_FORMAT)?.let { "$it ${entry.text}" } ?: entry.text)
                         }
                     } else {
-                        // The vault's own markup (bold, wikilinks) rendered, as on Home.
-                        tasks.append(VaultText.render(entry.text))
+                        // The vault's own markup (bold, code, wikilinks) rendered, as on Home.
+                        tasks.append(VaultText.render(context, entry.text))
                     }
                 }
                 addRow(context.getString(ScheduleRenderer.periodHeading(group.period)), tasks)

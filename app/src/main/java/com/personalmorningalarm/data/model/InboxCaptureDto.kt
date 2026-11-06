@@ -76,7 +76,7 @@ object Inbox {
     }
 
     private fun preview(body: String): String =
-        VaultText.stripWikiLinks(body)
+        VaultText.resolveLinks(body)
             .lineSequence()
             .filter { it.isNotBlank() }
             .take(PREVIEW_LINES)

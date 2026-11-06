@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Typeface
 import android.text.Spanned
 import android.text.TextUtils
+import android.text.style.BackgroundColorSpan
 import android.text.style.StyleSpan
 import android.view.View
 import android.view.ViewGroup
@@ -36,7 +37,7 @@ class ScheduleStripTest {
 
     @Test
     fun `a vault entry's markup is resolved`() {
-        val text = ScheduleStrip.entryText(HomeTiles.ScheduleEntry("Ship **DailySync Y10**", fromCalendar = false))
+        val text = ScheduleStrip.entryText(context, HomeTiles.ScheduleEntry("Ship **DailySync Y10**", fromCalendar = false))
 
         assertEquals("Ship DailySync Y10", text.toString())
         val bold = (text as Spanned).getSpans(0, text.length, StyleSpan::class.java).single()
@@ -47,7 +48,7 @@ class ScheduleStripTest {
     @Test
     fun `a calendar entry's asterisks are part of its title`() {
         val title = "18:00 Quiz *night* **finals**"
-        val text = ScheduleStrip.entryText(HomeTiles.ScheduleEntry(title, fromCalendar = true))
+        val text = ScheduleStrip.entryText(context, HomeTiles.ScheduleEntry(title, fromCalendar = true))
 
         assertEquals(title, text.toString())
         assertTrue(text !is Spanned || text.getSpans(0, text.length, StyleSpan::class.java).isEmpty())
@@ -81,6 +82,22 @@ class ScheduleStripTest {
             listOf("Task 1", "Task 2", "Task 3", context.getString(R.string.tiles_schedule_more, 2)),
             lines(strip.getChildAt(0)).map { it.text.toString() }
         )
+    }
+
+    @Test
+    fun `a vault entry's code is shown without backticks and stays literal`() {
+        val text = ScheduleStrip.entryText(context, HomeTiles.ScheduleEntry("08:00 Run `[[not a link]]`", fromCalendar = false))
+
+        assertEquals("08:00 Run [[not a link]]", text.toString())
+        val code = (text as Spanned).getSpans(0, text.length, BackgroundColorSpan::class.java).single()
+        assertEquals("[[not a link]]", text.subSequence(text.getSpanStart(code), text.getSpanEnd(code)).toString())
+    }
+
+    @Test
+    fun `a calendar entry's backticks are part of its title`() {
+        val title = "18:00 Quiz `night`"
+
+        assertEquals(title, ScheduleStrip.entryText(context, HomeTiles.ScheduleEntry(title, fromCalendar = true)).toString())
     }
 
     private fun entry(text: String) = HomeTiles.ScheduleEntry(text, fromCalendar = false)

@@ -10,7 +10,7 @@ import java.util.Locale
 
 /** One rolling to-do item, cleaned up and ready to render. */
 data class RollingTodoItem(
-    /** Wikilinks resolved; still carries emphasis markers for the renderer. */
+    /** Wikilinks resolved; still carries emphasis and code markers for the renderer. */
     val task: String,
     /** Display date, or null when the item has none — never the string "null". */
     val date: String?,
@@ -45,7 +45,7 @@ object RollingTodo {
             .filter { !it.task.isNullOrBlank() }
             .map {
                 RollingTodoItem(
-                    task = VaultText.stripWikiLinks(it.task!!.trim()),
+                    task = VaultText.resolveLinks(it.task!!.trim()),
                     date = displayDate(it.date),
                     addedOn = parseDate(it.date),
                     line = it.line,
@@ -64,7 +64,7 @@ object RollingTodo {
         pending.filterNot { it.failed }.forEach { write ->
             result = when (ChalkboardVerb.fromName(write.verb)) {
                 ChalkboardVerb.ADD -> result + RollingTodoItem(
-                    task = VaultText.stripWikiLinks(write.text),
+                    task = VaultText.resolveLinks(write.text),
                     date = null,
                     line = null,
                     pending = true

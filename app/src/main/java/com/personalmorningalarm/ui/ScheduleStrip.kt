@@ -1,5 +1,6 @@
 package com.personalmorningalarm.ui
 
+import android.content.Context
 import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -33,8 +34,8 @@ object ScheduleStrip {
      * never shows; a calendar title has no authoring syntax, so it stays as sent —
      * a real asterisk in it is part of the title.
      */
-    fun entryText(entry: HomeTiles.ScheduleEntry): CharSequence =
-        if (entry.fromCalendar) entry.text else VaultText.render(entry.text)
+    fun entryText(context: Context, entry: HomeTiles.ScheduleEntry): CharSequence =
+        if (entry.fromCalendar) entry.text else VaultText.render(context, entry.text)
 
     fun render(strip: LinearLayout, scroll: HorizontalScrollView, columns: List<HomeTiles.ScheduleColumn>) {
         val context = strip.context
@@ -58,7 +59,7 @@ object ScheduleStrip {
             )
             val shown = column.entries.take(PREVIEW)
             val more = column.entries.size - shown.size
-            val lines = shown.map(::entryText) +
+            val lines = shown.map { entryText(context, it) } +
                 listOfNotNull(more.takeIf { it > 0 }?.let { context.getString(R.string.tiles_schedule_more, it) })
             lines.forEachIndexed { i, text ->
                 val line = ItemScheduleLineBinding.inflate(inflater, item.tasks, true).root

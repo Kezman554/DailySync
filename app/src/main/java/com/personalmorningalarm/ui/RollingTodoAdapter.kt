@@ -51,7 +51,7 @@ class RollingTodoAdapter(
 
         fun bind(item: RollingTodoItem) {
             binding.cbTodo.isChecked = item.done
-            binding.tvTodoTask.text = VaultText.render(item.task)
+            binding.tvTodoTask.text = VaultText.render(binding.root.context, item.task)
             binding.tvTodoTask.paintFlags = if (item.done) {
                 binding.tvTodoTask.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
             } else {

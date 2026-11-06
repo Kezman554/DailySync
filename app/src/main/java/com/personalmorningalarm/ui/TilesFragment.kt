@@ -156,7 +156,7 @@ class TilesFragment : Fragment() {
                     .apply { topMargin = resources.getDimensionPixelSize(R.dimen.todo_item_gap) }
             )
             val row = TextView(requireContext(), null, 0, R.style.DailySync_TileListItem)
-            row.text = MarkdownRenderer.render(item.task)
+            row.text = MarkdownRenderer.render(requireContext(), item.task)
             binding.todoItems.addView(row)
         }
 
