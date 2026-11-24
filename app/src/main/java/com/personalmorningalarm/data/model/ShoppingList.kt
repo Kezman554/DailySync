@@ -14,7 +14,9 @@ data class ShoppingItem(
     /** Waiting in the offline queue — captured on the phone, not yet in the vault. */
     val pending: Boolean = false,
     /** Which of the rows with this text it is, from 0: identical rows stay separate rows. */
-    val occurrence: Int = 0
+    val occurrence: Int = 0,
+    /** A phone list's row id, the targeting key in place of [line]. Null on hub lists. */
+    val localId: Long? = null
 ) {
     /** The item itself: everything before the first " — " (all of it if there's none). */
     val name: String get() = task.substringBefore(NOTE_SEPARATOR).trim()

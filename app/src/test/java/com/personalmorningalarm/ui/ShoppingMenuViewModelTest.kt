@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.personalmorningalarm.data.entity.ShoppingVerb
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.phone.ListHome
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResponseCache
@@ -97,7 +98,7 @@ class ShoppingMenuViewModelTest : ViewModelTestSupport() {
     }
 
     private fun loadedViewModel(): ShoppingMenuViewModel {
-        val vm = track(ShoppingMenuViewModel(alfred, sync))
+        val vm = track(ShoppingMenuViewModel(alfred, sync, phoneStore))
         keepSubscribed(vm.state)
         eventScope.launch { vm.events.collect { events += it } }
         awaitValue(vm.state) { it.lists is AlfredResult.Fresh }
@@ -251,6 +252,71 @@ class ShoppingMenuViewModelTest : ViewModelTestSupport() {
         Thread.sleep(300)
         assertEquals(listOf(hardware), shown(vm))
         assertEquals(false, vm.state.value.loading)
+    }
+
+    // ---- Lists kept on the phone ----
+
+    @Test
+    fun `a phone list is made with Alfred gone, and nothing is sent or queued`() {
+        val vm = loadedViewModel()
+        val asked = server.requestCount
+        server.shutdown()
+
+        vm.createHome = ListHome.PHONE
+        vm.createList("  Camping ")
+
+        awaitEvent(ShoppingMenuViewModel.MenuEvent.Created("Camping"))
+        awaitValue(vm.state) { it.phoneLists?.map { list -> list.title } == listOf("Camping") }
+        assertEquals(asked, server.requestCount)
+        assertTrue(queuedLists().isEmpty())
+        // The hub's lists are still the hub's.
+        assertEquals(listOf(garden, hardware), shown(vm))
+    }
+
+    @Test
+    fun `a phone list's name is checked against the phone's lists, not Alfred`() {
+        val vm = loadedViewModel()
+        vm.createHome = ListHome.PHONE
+        vm.createList("Camping")
+        awaitEvent(ShoppingMenuViewModel.MenuEvent.Created("Camping"))
+        val asked = server.requestCount
+
+        vm.createList("camping")
+
+        awaitEvent(ShoppingMenuViewModel.MenuEvent.Conflict)
+        assertEquals(asked, server.requestCount)
+        assertEquals(1, vm.state.value.phoneLists?.size)
+    }
+
+    @Test
+    fun `a phone list is deleted with its items, and Alfred never hears of it`() {
+        val vm = loadedViewModel()
+        vm.createHome = ListHome.PHONE
+        vm.createList("Camping")
+        val list = awaitValue(vm.state) { !it.phoneLists.isNullOrEmpty() }.phoneLists!!.single()
+        runBlocking { phoneStore.add(list.id, "Tent pegs").join() }
+        val asked = server.requestCount
+
+        vm.deletePhoneList(ShoppingListSummaryDto(list.id, list.title, 1, 1))
+
+        awaitValue(vm.state) { it.phoneLists?.isEmpty() == true }
+        awaitEvent(ShoppingMenuViewModel.MenuEvent.Deleted("Camping"))
+        assertTrue(deletes.isEmpty())
+        assertEquals(asked, server.requestCount)
+        assertTrue(runBlocking { phoneDb.dao().allItems(list.id) }.isEmpty())
+    }
+
+    @Test
+    fun `a list for the hub still goes to Alfred when the hub is chosen`() {
+        val vm = loadedViewModel()
+        val asked = server.requestCount
+
+        vm.createHome = ListHome.HUB
+        vm.createList("Camping")
+
+        awaitEvent(ShoppingMenuViewModel.MenuEvent.Created("Camping"))
+        assertTrue(server.requestCount > asked)
+        assertEquals(emptyList<Any>(), vm.state.value.phoneLists)
     }
 
     private companion object {

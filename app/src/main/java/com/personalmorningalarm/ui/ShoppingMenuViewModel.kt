@@ -6,6 +6,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.phone.PhoneListStore
+import com.personalmorningalarm.data.phone.PhoneListSummary
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ShoppingCreateResult
@@ -23,22 +26,29 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Backs the shopping list-picker menu: discovery (read-only, cache-backed like every
- * other Alfred screen) plus creating and deleting lists. Both are online-only: a name
- * collision is the API's call, not something the queue can pre-empt, and a delete
- * shouldn't wait in a queue behind edits to the list it removes. [sync] is here only
- * so a delete can clear what was queued for that list.
+ * Backs the shopping list-picker menu: the hub's lists from discovery (read-only,
+ * cache-backed like every other Alfred screen), the phone's own lists beside them,
+ * and creating and deleting either.
+ *
+ * On the hub both are online-only: a name collision is the API's call, not something
+ * the queue can pre-empt, and a delete shouldn't wait in a queue behind edits to the
+ * list it removes. [sync] is here only so a hub delete can clear what was queued for
+ * that list. A phone list is made and deleted in [phone], offline or not, and never
+ * reaches Alfred or the queue.
  */
 class ShoppingMenuViewModel(
     private val alfred: AlfredRepository,
-    private val sync: ShoppingSync
+    private val sync: ShoppingSync,
+    private val phone: PhoneListStore
 ) : ViewModel() {
 
     data class MenuState(
         val loading: Boolean = false,
         val lists: AlfredResult<List<ShoppingListSummaryDto>>? = null,
         /** A delete is with Alfred. One at a time, and the spinner shows the wait. */
-        val deleting: Boolean = false
+        val deleting: Boolean = false,
+        /** The phone's own lists, oldest first. Null until the first read. */
+        val phoneLists: List<PhoneListSummary>? = null
     )
 
     /** One-shot outcomes of a create or delete attempt the user should hear about. */
@@ -58,7 +68,14 @@ class ShoppingMenuViewModel(
 
     private var inFlight: Job? = null
 
+    /** Where the open create field will put the new list. Chosen as the field opens. */
+    var createHome: ListHome = ListHome.HUB
+
     init {
+        phone.sweep()
+        viewModelScope.launch {
+            phone.shoppingLists().collect { _state.value = _state.value.copy(phoneLists = it) }
+        }
         refresh()
     }
 
@@ -73,10 +90,17 @@ class ShoppingMenuViewModel(
         }
     }
 
-    /** Blank or whitespace-only names are the caller's to reject; re-checked here. */
+    /**
+     * Makes a list called [name] wherever [createHome] says. Blank or whitespace-only
+     * names are the caller's to reject; re-checked here.
+     */
     fun createList(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
+        if (createHome == ListHome.PHONE) {
+            createPhoneList(trimmed)
+            return
+        }
         viewModelScope.launch {
             when (val result = alfred.createShoppingList(trimmed)) {
                 is ShoppingCreateResult.Created -> {
@@ -92,7 +116,24 @@ class ShoppingMenuViewModel(
         }
     }
 
-    /** Deletes [list]. Ignored while another delete is with Alfred. */
+    private fun createPhoneList(name: String) {
+        viewModelScope.launch {
+            when (val result = phone.createShoppingList(name)) {
+                is PhoneListStore.CreateResult.Created -> _events.emit(MenuEvent.Created(result.list.title))
+                PhoneListStore.CreateResult.Conflict -> _events.emit(MenuEvent.Conflict)
+                PhoneListStore.CreateResult.Blank -> Unit
+            }
+        }
+    }
+
+    /** Deletes a phone list and everything on it. Nothing to wait for and nobody to ask. */
+    fun deletePhoneList(list: ShoppingListSummaryDto) {
+        val id = list.id ?: return
+        phone.deleteList(id)
+        _events.tryEmit(MenuEvent.Deleted(ShoppingList.shortTitle(list.title ?: id)))
+    }
+
+    /** Deletes [list] from the hub. Ignored while another delete is with Alfred. */
     fun deleteList(list: ShoppingListSummaryDto) {
         val id = list.id ?: return
         if (_state.value.deleting) return
@@ -105,7 +146,11 @@ class ShoppingMenuViewModel(
                 is ShoppingDeleteResult.Deleted -> {
                     // A refresh begun before the delete would bring the list back.
                     inFlight?.cancel()
-                    _state.value = MenuState(lists = AlfredResult.Fresh(result.remaining, System.currentTimeMillis()))
+                    _state.value = _state.value.copy(
+                        loading = false,
+                        deleting = false,
+                        lists = AlfredResult.Fresh(result.remaining, System.currentTimeMillis())
+                    )
                     _events.emit(MenuEvent.Deleted(ShoppingList.shortTitle(list.title ?: id)))
                 }
                 ShoppingDeleteResult.Unreachable -> {
@@ -122,12 +167,13 @@ class ShoppingMenuViewModel(
     }
 }
 
-/** Builds [ShoppingMenuViewModel] with the (repository, sync) shape [AlfredViewModelFactory] doesn't cover. */
+/** Builds [ShoppingMenuViewModel] with the (repository, sync, phone) shape [AlfredViewModelFactory] doesn't cover. */
 class ShoppingMenuViewModelFactory(
     private val repository: AlfredRepository,
-    private val sync: ShoppingSync
+    private val sync: ShoppingSync,
+    private val phone: PhoneListStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        ShoppingMenuViewModel(repository, sync) as T
+        ShoppingMenuViewModel(repository, sync, phone) as T
 }

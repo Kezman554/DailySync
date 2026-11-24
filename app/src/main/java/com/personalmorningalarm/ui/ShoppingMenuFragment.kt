@@ -19,8 +19,12 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.personalmorningalarm.R
+import com.personalmorningalarm.data.model.PhoneLists
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.phone.ListSettings
+import com.personalmorningalarm.data.phone.PhoneListStore
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
@@ -31,11 +35,15 @@ import java.time.ZoneId
 
 /**
  * The shopping-list tile's landing screen: every active list from Alfred's discovery
- * endpoint as a grid of tiles, plus a New list tile that opens the create field. Behaves like the other Alfred menus — cache-backed,
- * renders from the saved copy when Alfred is unreachable — except create-list, which
- * is deliberately online-only (it needs the API's 409 answer, so there's nothing a
+ * endpoint as a grid of tiles, then the lists kept on this phone, plus a New list
+ * tile. The hub's lists behave like the other Alfred menus — cache-backed, rendered
+ * from the saved copy when Alfred is unreachable — except create-list, which is
+ * deliberately online-only (it needs the API's 409 answer, so there's nothing a
  * queue could usefully do with it offline). Delete-list, a long press on a tile, is
- * online-only as well.
+ * online-only as well. A phone list is made and deleted anywhere.
+ *
+ * New list first asks where the list lives, starting on the hub when an address is
+ * set in Settings and on this phone when none is.
  */
 class ShoppingMenuFragment : Fragment() {
 
@@ -43,7 +51,11 @@ class ShoppingMenuFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: ShoppingMenuViewModel by viewModels {
-        ShoppingMenuViewModelFactory(AlfredRepository(requireContext()), ShoppingSync.getInstance(requireContext()))
+        ShoppingMenuViewModelFactory(
+            AlfredRepository(requireContext()),
+            ShoppingSync.getInstance(requireContext()),
+            PhoneListStore.getInstance(requireContext())
+        )
     }
 
     private val listAdapter by lazy {
@@ -76,7 +88,6 @@ class ShoppingMenuFragment : Fragment() {
                 false
             }
         }
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.state.collect(::render) }
@@ -98,12 +109,30 @@ class ShoppingMenuFragment : Fragment() {
         FreshnessView.render(binding.freshness, age(state), AlfredReachability.state.value)
     }
 
-    /** The New list tile opens the create field, focused with the keyboard up. */
+    /** The New list tile asks where the list lives, then opens the create field. */
     private fun openCreate() {
+        showListHomeDialog(requireContext(), ListSettings(requireContext()).defaultHome()) { home ->
+            viewModel.createHome = home
+            if (_binding != null) showCreateField(home)
+        }
+    }
+
+    /** The create field, focused with the keyboard up, its hint saying where the list goes. */
+    private fun showCreateField(home: ListHome) {
+        setCreateHint(home)
         binding.rowShoppingNewList.isVisible = true
         binding.etShoppingNewList.requestFocus()
         requireContext().getSystemService<InputMethodManager>()
             ?.showSoftInput(binding.etShoppingNewList, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun setCreateHint(home: ListHome) {
+        binding.etShoppingNewList.hint = getString(
+            when (home) {
+                ListHome.HUB -> R.string.shopping_new_list_hint_hub
+                ListHome.PHONE -> R.string.shopping_new_list_hint_phone
+            }
+        )
     }
 
     private fun closeCreate() {
@@ -123,10 +152,14 @@ class ShoppingMenuFragment : Fragment() {
         viewModel.createList(name)
     }
 
-    private fun openList(summary: ShoppingListSummaryDto) {
+    private fun openList(tile: ShoppingListSummaryAdapter.Tile.ListTile) {
+        val summary = tile.summary
         val id = summary.id ?: return
         findNavController().navigate(
-            R.id.action_shoppingMenu_to_shoppingList,
+            when (tile.home) {
+                ListHome.HUB -> R.id.action_shoppingMenu_to_shoppingList
+                ListHome.PHONE -> R.id.action_shoppingMenu_to_phoneShoppingList
+            },
             bundleOf(
                 ShoppingListFragment.ARG_LIST_ID to id,
                 ShoppingListFragment.ARG_LIST_TITLE to (summary.title ?: id)
@@ -134,24 +167,35 @@ class ShoppingMenuFragment : Fragment() {
         )
     }
 
-    /** Like create, delete needs a live Alfred, so a saved copy gets the reason and no dialog. */
-    private fun confirmDelete(summary: ShoppingListSummaryDto) {
-        if (viewModel.state.value.lists !is AlfredResult.Fresh) {
+    /**
+     * Like create, a hub delete needs a live Alfred, so a saved copy gets the reason
+     * and no dialog. A phone list is always there to delete.
+     */
+    private fun confirmDelete(tile: ShoppingListSummaryAdapter.Tile.ListTile) {
+        val summary = tile.summary
+        val onPhone = tile.home == ListHome.PHONE
+        if (!onPhone && viewModel.state.value.lists !is AlfredResult.Fresh) {
             Snackbar.make(binding.root, R.string.shopping_delete_needs_alfred, Snackbar.LENGTH_LONG).show()
             return
         }
         val name = ShoppingList.shortTitle(summary.title ?: summary.id.orEmpty())
         val left = ShoppingList.itemsLeft(summary)
+        val message = when {
+            left > 0 -> resources.getQuantityString(
+                if (onPhone) R.plurals.shopping_phone_delete_message_open else R.plurals.shopping_delete_message_open,
+                left,
+                left,
+                name
+            )
+            onPhone -> getString(R.string.shopping_phone_delete_message, name)
+            else -> getString(R.string.shopping_delete_message, name)
+        }
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.shopping_delete_title)
-            .setMessage(
-                if (left > 0) {
-                    resources.getQuantityString(R.plurals.shopping_delete_message_open, left, left, name)
-                } else {
-                    getString(R.string.shopping_delete_message, name)
-                }
-            )
-            .setPositiveButton(R.string.shopping_delete_confirm) { _, _ -> viewModel.deleteList(summary) }
+            .setMessage(message)
+            .setPositiveButton(R.string.shopping_delete_confirm) { _, _ ->
+                if (onPhone) viewModel.deletePhoneList(summary) else viewModel.deleteList(summary)
+            }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
@@ -193,20 +237,19 @@ class ShoppingMenuFragment : Fragment() {
             AlfredResult.Unavailable -> null
         }
 
-        // The New list tile needs a live Alfred; it says so whenever the last
-        // discovery fetch wasn't fresh, and an open create field stands down.
-        val canCreate = state.lists is AlfredResult.Fresh
-        if (!canCreate && binding.rowShoppingNewList.isVisible) closeCreate()
-
-        binding.tvShoppingMenuBody.isVisible = lists.isNullOrEmpty()
-        binding.tvShoppingMenuBody.text = getString(
-            when {
-                lists != null -> R.string.shopping_menu_empty
-                state.lists == null -> R.string.shopping_menu_loading
-                else -> R.string.shopping_menu_unavailable
-            }
-        )
-        listAdapter.submit(lists, canCreate)
+        // A list for the hub asks Alfred as it's created, and says so if he can't be
+        // reached; a phone list needs nobody. So the create field stays open either way.
+        val phoneLists = state.phoneLists.orEmpty()
+        val body = when {
+            lists == null && state.lists == null -> R.string.shopping_menu_loading
+            lists == null && phoneLists.isEmpty() -> R.string.shopping_menu_unavailable
+            lists == null -> R.string.shopping_menu_hub_unavailable
+            lists.isEmpty() && phoneLists.isEmpty() -> R.string.shopping_menu_empty
+            else -> null
+        }
+        binding.tvShoppingMenuBody.isVisible = body != null
+        body?.let(binding.tvShoppingMenuBody::setText)
+        listAdapter.submit(lists, phoneLists.map(PhoneLists::summary))
     }
 
     override fun onDestroyView() {

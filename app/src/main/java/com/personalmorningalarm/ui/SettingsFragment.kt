@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.personalmorningalarm.R
+import com.personalmorningalarm.data.phone.ListSettings
 import com.personalmorningalarm.data.remote.AlfredSettings
 import com.personalmorningalarm.data.remote.DashboardSettings
 import com.personalmorningalarm.databinding.DialogAlfredHostBinding
@@ -23,7 +24,7 @@ import com.personalmorningalarm.util.ThemeMode
 
 /**
  * Settings, behind the header's cog: Appearance, the Alfred and dashboard
- * addresses, and Alarm health. Everything about the alarm itself lives on the
+ * addresses, where the To-Do list lives, and Alarm health. Everything about the alarm itself lives on the
  * Alarm tab's tiles.
  */
 class SettingsFragment : Fragment() {
@@ -34,6 +35,7 @@ class SettingsFragment : Fragment() {
     private lateinit var themeManager: ThemeManager
     private lateinit var alfredSettings: AlfredSettings
     private lateinit var dashboardSettings: DashboardSettings
+    private lateinit var listSettings: ListSettings
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -84,6 +86,24 @@ class SettingsFragment : Fragment() {
         renderAlfredHost()
         binding.rowDashboardHost.setOnClickListener { showDashboardHostDialog() }
         renderDashboardHost()
+
+        listSettings = ListSettings(requireContext())
+        binding.rowTodoHome.setOnClickListener {
+            showListHomeDialog(
+                requireContext(),
+                listSettings.todoHome(),
+                title = R.string.todo_home_dialog_title,
+                positive = R.string.save
+            ) { home ->
+                listSettings.setTodoHome(home)
+                if (_binding != null) renderTodoHome()
+            }
+        }
+        renderTodoHome()
+    }
+
+    private fun renderTodoHome() {
+        binding.tvTodoHome.setText(listSettings.todoHome().label())
     }
 
     /** Shows the saved Alfred address (or the default, which is what we'd use). */

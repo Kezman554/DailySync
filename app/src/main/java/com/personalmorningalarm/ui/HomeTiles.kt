@@ -72,9 +72,15 @@ object HomeTiles {
     fun openTodos(items: List<RollingTodoItem>, count: Int = TODO_PREVIEW): List<RollingTodoItem> =
         items.filterNot { it.done }.take(count)
 
-    /** The first list with anything left on it, as Alfred orders them; null if none. */
-    fun activeShoppingList(lists: List<ShoppingListSummaryDto>): ShoppingListSummaryDto? =
-        lists.firstOrNull { (it.unticked ?: 0) > 0 && !it.title.isNullOrBlank() }
+    /**
+     * The first list with anything left on it, the hub's lists as Alfred orders them
+     * and then the phone's [phoneLists]; null if none.
+     */
+    fun activeShoppingList(
+        lists: List<ShoppingListSummaryDto>,
+        phoneLists: List<ShoppingListSummaryDto> = emptyList()
+    ): ShoppingListSummaryDto? =
+        (lists + phoneLists).firstOrNull { (it.unticked ?: 0) > 0 && !it.title.isNullOrBlank() }
 
     private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     const val TODO_PREVIEW = 3

@@ -15,6 +15,9 @@
             android:id="@+id/action_tiles_to_todo"
             app:destination="@id/rollingTodoFragment" />
         <action
+            android:id="@+id/action_tiles_to_phoneTodo"
+            app:destination="@id/phoneTodoFragment" />
+        <action
             android:id="@+id/action_tiles_to_week"
             app:destination="@id/weekScheduleFragment" />
         <action
@@ -68,6 +71,11 @@
         <argument
             android:name="isNew"
             app:argType="boolean" />
+        <!-- A ListHome name: HUB for Alfred's notes, PHONE for notes kept here. -->
+        <argument
+            android:name="home"
+            android:defaultValue="HUB"
+            app:argType="string" />
     </fragment>
 
     <!-- The Daily Schedule tile: the whole plan week, one page per day. -->
@@ -149,6 +157,13 @@
         android:label="@string/todo_title"
         tools:layout="@layout/fragment_rolling_todo" />
 
+    <!-- The To-Do tile when Settings keeps its list on the phone. -->
+    <fragment
+        android:id="@+id/phoneTodoFragment"
+        android:name="com.personalmorningalarm.ui.PhoneTodoFragment"
+        android:label="@string/todo_title"
+        tools:layout="@layout/fragment_rolling_todo" />
+
     <!-- Shopping Lists tile: discovery menu + create, then one screen per list. -->
     <fragment
         android:id="@+id/shoppingMenuFragment"
@@ -158,6 +173,23 @@
         <action
             android:id="@+id/action_shoppingMenu_to_shoppingList"
             app:destination="@id/shoppingListFragment" />
+        <action
+            android:id="@+id/action_shoppingMenu_to_phoneShoppingList"
+            app:destination="@id/phoneShoppingListFragment" />
+    </fragment>
+
+    <!-- One shopping list kept on the phone: never sent, never queued. -->
+    <fragment
+        android:id="@+id/phoneShoppingListFragment"
+        android:name="com.personalmorningalarm.ui.PhoneShoppingListFragment"
+        android:label="@string/shopping_menu_title"
+        tools:layout="@layout/fragment_shopping_list">
+        <argument
+            android:name="listId"
+            app:argType="string" />
+        <argument
+            android:name="listTitle"
+            app:argType="string" />
     </fragment>
 
     <fragment

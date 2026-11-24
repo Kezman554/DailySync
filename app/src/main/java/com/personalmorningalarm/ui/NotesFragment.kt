@@ -16,6 +16,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.NoteRow
 import com.personalmorningalarm.data.model.Notes
+import com.personalmorningalarm.data.model.PhoneLists
+import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.phone.ListSettings
+import com.personalmorningalarm.data.phone.PhoneListStore
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
@@ -29,6 +33,9 @@ import java.time.ZoneId
  * The Notes tile: every note as a title and preview, newest first, and a button to
  * start another. A tap opens the editor and a long press offers to delete. Works
  * anywhere: queued notes are listed from the phone, on top of the saved copy.
+ *
+ * Notes kept on the phone are listed first, marked as such. A new note asks where
+ * it lives, starting on the hub when an address is set and on this phone when not.
  */
 class NotesFragment : Fragment() {
 
@@ -36,11 +43,15 @@ class NotesFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: NoteListViewModel by viewModels {
-        NoteListViewModelFactory(AlfredRepository(requireContext()), NoteSync.getInstance(requireContext()))
+        NoteListViewModelFactory(
+            AlfredRepository(requireContext()),
+            NoteSync.getInstance(requireContext()),
+            PhoneListStore.getInstance(requireContext())
+        )
     }
 
     private val noteAdapter by lazy {
-        NoteAdapter(onClick = { open(it.id, isNew = false) }, onLongPress = ::confirmDelete)
+        NoteAdapter(onClick = { open(it.id, isNew = false, it.home) }, onLongPress = ::confirmDelete)
     }
 
     override fun onCreateView(
@@ -61,7 +72,11 @@ class NotesFragment : Fragment() {
         binding.rvNotes.adapter = noteAdapter
         // The id is made here, not in the editor, so it travels in the nav arguments
         // and a restored editor is still the same note.
-        binding.fabNewNote.setOnClickListener { open(Notes.newId(), isNew = true) }
+        binding.fabNewNote.setOnClickListener {
+            showListHomeDialog(requireContext(), ListSettings(requireContext()).defaultHome()) { home ->
+                if (_binding != null) open(Notes.newId(), isNew = true, home)
+            }
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -83,20 +98,21 @@ class NotesFragment : Fragment() {
         viewModel.refresh(quiet = true)
     }
 
-    private fun open(noteId: String, isNew: Boolean) {
+    private fun open(noteId: String, isNew: Boolean, home: ListHome) {
         // A second tap can land before the first has finished navigating.
         if (findNavController().currentDestination?.id != R.id.notesFragment) return
         findNavController().navigate(
             R.id.action_notes_to_editor,
             bundleOf(
                 NoteEditorFragment.ARG_NOTE_ID to noteId,
-                NoteEditorFragment.ARG_IS_NEW to isNew
+                NoteEditorFragment.ARG_IS_NEW to isNew,
+                NoteEditorFragment.ARG_HOME to home.name
             )
         )
     }
 
     private fun confirmDelete(row: NoteRow) {
-        showNoteDeleteDialog(requireContext(), row.title, onDelete = { viewModel.delete(row.id) })
+        showNoteDeleteDialog(requireContext(), row.title, row.home, onDelete = { viewModel.delete(row) })
     }
 
     private fun age(state: NoteListViewModel.NoteListState): Freshness.Age? =
@@ -115,7 +131,8 @@ class NotesFragment : Fragment() {
         binding.syncLine.tvSyncText.text =
             resources.getQuantityString(R.plurals.notes_pending_count, waiting, waiting)
 
-        val rows = Notes.merged(state.result?.dataOrNull().orEmpty(), state.pending)
+        val rows = PhoneLists.noteRows(state.phoneNotes) +
+            Notes.merged(state.result?.dataOrNull().orEmpty(), state.pending)
         binding.rvNotes.isVisible = rows.isNotEmpty()
         binding.tvNotesBody.isVisible = rows.isEmpty()
         binding.tvNotesBody.setText(

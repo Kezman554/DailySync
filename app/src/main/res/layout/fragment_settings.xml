@@ -131,6 +131,53 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Lists: where the To-Do tile's list lives (ListSettings.todoHome) -->
+        <TextView
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/lists_section_title" />
+
+        <LinearLayout style="@style/DailySync.SettingsCard">
+
+            <LinearLayout
+                android:id="@+id/row_todo_home"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="vertical"
+                android:paddingVertical="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/todo_home_label" />
+
+                    <TextView
+                        android:id="@+id/tv_todo_home"
+                        style="@style/DailySync.RowValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        tools:text="Home hub" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/DailySync.RowHelp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/todo_home_help" />
+            </LinearLayout>
+        </LinearLayout>
+
         <!-- Alarm health: each check shows its status; the fix appears only when
              the check fails (SettingsFragment.renderHealthRow) -->
         <TextView

@@ -68,7 +68,8 @@ class RollingTodoAdapter(
             binding.root.alpha = if (item.done) DONE_ALPHA else 1f
 
             // A ticked item has had its verb — only drop remains for it.
-            val targetable = writable && item.line != null
+            // A hub row by its vault line, a phone row by its id.
+            val targetable = writable && (item.line != null || item.localId != null)
             binding.root.isClickable = targetable && !item.done
             binding.root.isLongClickable = targetable
             binding.root.setOnClickListener(
@@ -90,7 +91,11 @@ class RollingTodoAdapter(
             // the row should update in place rather than leave-and-reappear.
             // Occurrence because identical rows are still separate rows.
             override fun areItemsTheSame(old: RollingTodoItem, new: RollingTodoItem): Boolean =
-                old.task == new.task && old.date == new.date && old.occurrence == new.occurrence
+                if (old.localId != null || new.localId != null) {
+                    old.localId == new.localId
+                } else {
+                    old.task == new.task && old.date == new.date && old.occurrence == new.occurrence
+                }
 
             override fun areContentsTheSame(old: RollingTodoItem, new: RollingTodoItem): Boolean =
                 old == new

@@ -125,4 +125,17 @@ class HomeTilesTest {
         assertEquals("Alfred tech", HomeTiles.activeShoppingList(lists)?.title)
         assertNull(HomeTiles.activeShoppingList(lists.take(2)))
     }
+
+    @Test
+    fun activeShoppingList_triesThePhoneListsAfterTheHubs() {
+        val hub = listOf(ShoppingListSummaryDto("done.md", "Done", total = 4, unticked = 0))
+        val phone = listOf(
+            ShoppingListSummaryDto("invented-a", "Empty", total = 0, unticked = 0),
+            ShoppingListSummaryDto("invented-b", "Camping", total = 2, unticked = 1)
+        )
+        assertEquals("Camping", HomeTiles.activeShoppingList(hub, phone)?.title)
+        assertEquals("Camping", HomeTiles.activeShoppingList(emptyList(), phone)?.title)
+        val busyHub = listOf(ShoppingListSummaryDto("tech.md", "Alfred tech", total = 12, unticked = 9))
+        assertEquals("Alfred tech", HomeTiles.activeShoppingList(busyHub, phone)?.title)
+    }
 }

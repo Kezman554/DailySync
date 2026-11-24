@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.personalmorningalarm.data.entity.NoteVerb
 import com.personalmorningalarm.data.model.NoteDto
 import com.personalmorningalarm.data.model.Notes
+import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.phone.PhoneListStore
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.NoteSync
@@ -27,13 +29,18 @@ import kotlinx.coroutines.launch
  * The screen surviving is not assumed. After a process death the note is reloaded
  * from wherever the last leave put it, and [handle] remembers that a new note has
  * been kept, so it comes back as the same note and not a blank new one.
+ *
+ * A note whose [home] is the phone is read from and written to [phone] alone: it
+ * never touches Alfred or the queue.
  */
 class NoteEditorViewModel(
     private val alfred: AlfredRepository,
     private val sync: NoteSync,
     val noteId: String,
     isNew: Boolean,
-    private val handle: SavedStateHandle
+    private val handle: SavedStateHandle,
+    private val home: ListHome = ListHome.HUB,
+    private val phone: PhoneListStore? = null
 ) : ViewModel() {
 
     sealed interface EditorState {
@@ -68,6 +75,11 @@ class NoteEditorViewModel(
     }
 
     private suspend fun load() {
+        if (home == ListHome.PHONE) {
+            val kept = phone?.note(noteId)
+            if (kept == null) _state.value = EditorState.Unavailable else open(kept.text, source = null)
+            return
+        }
         val queued = sync.queued(noteId)
         when {
             queued == null || queued.failed && queued.verb == NoteVerb.DELETE.name -> loadFromAlfred()
@@ -103,7 +115,10 @@ class NoteEditorViewModel(
         if (leaving == Notes.Leaving.SAVE) {
             kept = text
             handle[KEY_KEPT] = true
-            sync.save(noteId, text)
+            when (home) {
+                ListHome.HUB -> sync.save(noteId, text)
+                ListHome.PHONE -> requireNotNull(phone).saveNote(noteId, text)
+            }
         }
         return leaving
     }
@@ -119,7 +134,10 @@ class NoteEditorViewModel(
     /** Answers [Notes.Leaving.CONFIRM_DELETE] with yes. */
     fun confirmDelete() {
         deleted = true
-        sync.delete(noteId)
+        when (home) {
+            ListHome.HUB -> sync.delete(noteId)
+            ListHome.PHONE -> requireNotNull(phone).deleteNote(noteId)
+        }
     }
 
     /** Answers [Notes.Leaving.CONFIRM_DELETE] with no, and returns the text to put back. */

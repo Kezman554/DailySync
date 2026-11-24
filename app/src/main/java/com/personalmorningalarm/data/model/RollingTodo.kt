@@ -23,7 +23,9 @@ data class RollingTodoItem(
     /** The day it went on the list, when the vault's date parses; null otherwise. */
     val addedOn: LocalDate? = null,
     /** Which of the rows with this text and date it is, from 0: identical rows stay separate rows. */
-    val occurrence: Int = 0
+    val occurrence: Int = 0,
+    /** A phone list's row id, the targeting key in place of [line]. Null on the hub's to-do. */
+    val localId: Long? = null
 )
 
 /**

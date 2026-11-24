@@ -19,6 +19,9 @@ import com.personalmorningalarm.data.model.DayAgenda
 import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.phone.ListSettings
+import com.personalmorningalarm.data.phone.PhoneListStore
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
@@ -50,10 +53,13 @@ class TilesFragment : Fragment() {
         viewModelFactory {
             initializer {
                 val context = requireContext().applicationContext
+                val lists = ListSettings(context)
                 TilesViewModel(
                     AlfredRepository(context),
                     ChalkboardSync.getInstance(context),
-                    PresenceRepository(context)
+                    PresenceRepository(context),
+                    PhoneListStore.getInstance(context),
+                    todoHome = lists::todoHome
                 )
             }
         }
@@ -82,7 +88,12 @@ class TilesFragment : Fragment() {
         // still intercepts a drag), so the whole card opens the week.
         binding.scheduleStrip.setOnClickListener(openWeek)
         binding.cardTodo.setOnClickListener {
-            findNavController().navigate(R.id.action_tiles_to_todo)
+            findNavController().navigate(
+                when (ListSettings(requireContext()).todoHome()) {
+                    ListHome.HUB -> R.id.action_tiles_to_todo
+                    ListHome.PHONE -> R.id.action_tiles_to_phoneTodo
+                }
+            )
         }
         binding.cardShopping.setOnClickListener {
             findNavController().navigate(R.id.action_tiles_to_shoppingMenu)
@@ -111,8 +122,8 @@ class TilesFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.state.collect { state ->
                     renderSchedule(state.schedule)
-                    renderTodos(state.todos)
-                    renderShopping(state.shopping)
+                    renderTodos(state)
+                    renderShopping(state.shopping, state.phoneShopping)
                     renderSignIn(state.presence)
                     renderFreshness(state)
                 }
@@ -148,8 +159,11 @@ class TilesFragment : Fragment() {
         binding.tvScheduleNote.text = note
     }
 
-    private fun renderTodos(result: AlfredResult<List<RollingTodoItem>>?) {
-        val items = result?.dataOrNull()?.let { HomeTiles.openTodos(it) }.orEmpty()
+    private fun renderTodos(state: TilesViewModel.TilesState) {
+        val onPhone = state.todoHome == ListHome.PHONE
+        val result = state.todos
+        val all = if (onPhone) state.phoneTodos else result?.dataOrNull()
+        val items = all?.let { HomeTiles.openTodos(it) }.orEmpty()
         binding.todoItems.removeAllViews()
         items.forEach { item ->
             val hairline = View(requireContext(), null, 0, R.style.DailySync_Hairline)
@@ -164,6 +178,8 @@ class TilesFragment : Fragment() {
         }
 
         val note = when {
+            onPhone && all == null -> getString(R.string.tiles_todo_loading)
+            onPhone -> getString(R.string.tiles_todo_empty).takeIf { items.isEmpty() }
             result == null -> getString(R.string.tiles_todo_loading)
             result is AlfredResult.Unavailable -> getString(R.string.tiles_todo_unavailable)
             items.isEmpty() -> getString(R.string.tiles_todo_empty)
@@ -173,14 +189,18 @@ class TilesFragment : Fragment() {
         binding.tvTodoNote.text = note
     }
 
-    private fun renderShopping(result: AlfredResult<List<ShoppingListSummaryDto>>?) {
+    private fun renderShopping(
+        result: AlfredResult<List<ShoppingListSummaryDto>>?,
+        phoneLists: List<ShoppingListSummaryDto>
+    ) {
         val lists = result?.dataOrNull()
-        val active = lists?.let { HomeTiles.activeShoppingList(it) }
+        // A phone list with items left shows even while the hub's lists can't be had.
+        val active = HomeTiles.activeShoppingList(lists.orEmpty(), phoneLists)
         binding.tvShoppingName.text = when {
+            active != null -> ShoppingList.shortTitle(active.title!!.trim())
             result == null -> getString(R.string.tiles_todo_loading)
             lists == null -> getString(R.string.tiles_shopping_unavailable)
-            active == null -> getString(R.string.tiles_shopping_done)
-            else -> ShoppingList.shortTitle(active.title!!.trim())
+            else -> getString(R.string.tiles_shopping_done)
         }
         binding.tvShoppingCount.isVisible = active != null
         binding.tvShoppingCount.text = active?.let { getString(R.string.tiles_shopping_left, it.unticked ?: 0) }
@@ -194,7 +214,8 @@ class TilesFragment : Fragment() {
         val calendar = Freshness.of(state.calendar, now, zone).takeIf { state.schedule?.dataOrNull() != null }
         return listOf(
             Freshness.worst(Freshness.of(state.schedule, now, zone), calendar),
-            Freshness.of(state.todos, now, zone),
+            // A to-do kept on the phone is never out of date.
+            Freshness.of(state.todos, now, zone).takeIf { state.todoHome == ListHome.HUB },
             Freshness.of(state.shopping, now, zone)
         )
     }

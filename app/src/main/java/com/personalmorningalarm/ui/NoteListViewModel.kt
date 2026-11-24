@@ -4,7 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.personalmorningalarm.data.entity.PendingNoteWrite
+import com.personalmorningalarm.data.model.NoteRow
 import com.personalmorningalarm.data.model.NoteSummaryDto
+import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.phone.PhoneListStore
+import com.personalmorningalarm.data.phone.PhoneNote
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.NoteSync
@@ -17,18 +21,21 @@ import kotlinx.coroutines.launch
 
 /**
  * Backs the notes list: Alfred's list, with the queue merged on top by the screen
- * ([com.personalmorningalarm.data.model.Notes.merged]). The one write here is a
- * delete; saves come from the editor.
+ * ([com.personalmorningalarm.data.model.Notes.merged]), and the notes kept on the
+ * phone beside it. The one write here is a delete; saves come from the editor.
  */
 class NoteListViewModel(
     private val alfred: AlfredRepository,
-    private val sync: NoteSync
+    private val sync: NoteSync,
+    private val phone: PhoneListStore
 ) : ViewModel() {
 
     data class NoteListState(
         val loading: Boolean = false,
         val result: AlfredResult<List<NoteSummaryDto>>? = null,
-        val pending: List<PendingNoteWrite> = emptyList()
+        val pending: List<PendingNoteWrite> = emptyList(),
+        /** Notes kept on the phone, newest first. Never sent, never queued. */
+        val phoneNotes: List<PhoneNote> = emptyList()
     )
 
     private val _state = MutableStateFlow(NoteListState(loading = true))
@@ -37,6 +44,9 @@ class NoteListViewModel(
     private var inFlight: Job? = null
 
     init {
+        viewModelScope.launch {
+            phone.notes().collect { _state.value = _state.value.copy(phoneNotes = it) }
+        }
         viewModelScope.launch {
             sync.queue.collect { pending ->
                 // A row leaves the queue when it's delivered, and the saved list has
@@ -73,8 +83,12 @@ class NoteListViewModel(
         }
     }
 
-    fun delete(noteId: String) {
-        sync.delete(noteId)
+    /** A hub note's delete goes through the queue to Alfred; a phone note's stays here. */
+    fun delete(row: NoteRow) {
+        when (row.home) {
+            ListHome.HUB -> sync.delete(row.id)
+            ListHome.PHONE -> phone.deleteNote(row.id)
+        }
     }
 
     private suspend fun reconcile() {
@@ -87,9 +101,10 @@ class NoteListViewModel(
 /** Builds [NoteListViewModel] with the (repository, sync) shape [AlfredViewModelFactory] doesn't cover. */
 class NoteListViewModelFactory(
     private val repository: AlfredRepository,
-    private val sync: NoteSync
+    private val sync: NoteSync,
+    private val phone: PhoneListStore
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        NoteListViewModel(repository, sync) as T
+        NoteListViewModel(repository, sync, phone) as T
 }

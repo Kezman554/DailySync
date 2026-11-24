@@ -6,6 +6,8 @@ import androidx.appcompat.view.ContextThemeWrapper
 import androidx.test.core.app.ApplicationProvider
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.phone.ListHome
+import android.widget.TextView
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -23,15 +25,18 @@ class ShoppingListSummaryAdapterTest {
     )
     private val list = ShoppingListSummaryDto("garden-tools.md", "Garden Tools", 5, 3)
 
+    private val phoneList = ShoppingListSummaryDto("0b6c-invented", "Camping", 2, 2)
+
     private val opened = mutableListOf<ShoppingListSummaryDto>()
+    private val openedHomes = mutableListOf<ListHome>()
     private val pressed = mutableListOf<ShoppingListSummaryDto>()
     private var newListTaps = 0
 
     private val adapter = ShoppingListSummaryAdapter(
-        onClick = { opened += it },
-        onLongPress = { pressed += it },
+        onClick = { opened += it.summary; openedHomes += it.home },
+        onLongPress = { pressed += it.summary },
         onNewList = { newListTaps++ }
-    ).also { it.submit(listOf(list), canCreate = true) }
+    ).also { it.submit(listOf(list), listOf(phoneList)) }
 
     private val parent = FrameLayout(context)
     private val holder = adapter.onCreateViewHolder(parent, 0).also { parent.addView(it.itemView) }
@@ -78,8 +83,33 @@ class ShoppingListSummaryAdapterTest {
         assertEquals(listOf(list), pressed)
     }
 
+    @Test
+    fun `a phone list follows the hub's, says it's on this phone, and opens as a phone list`() {
+        adapter.onBindViewHolder(holder, PHONE_TILE)
+
+        holder.itemView.performClick()
+
+        assertEquals(listOf(phoneList), opened)
+        assertEquals(listOf(ListHome.PHONE), openedHomes)
+        val count = holder.itemView.findViewById<TextView>(R.id.tv_shopping_list_count).text.toString()
+        assertEquals("2 left · this phone", count)
+    }
+
+    @Test
+    fun `the New list tile always opens, since a phone list needs no Alfred`() {
+        ShoppingListSummaryAdapter({}, {}, { newListTaps++ }).also {
+            it.submit(null)
+            it.onBindViewHolder(holder, 0)
+        }
+
+        holder.itemView.performClick()
+
+        assertEquals(1, newListTaps)
+    }
+
     private companion object {
         const val LIST_TILE = 0
-        const val NEW_LIST_TILE = 1
+        const val PHONE_TILE = 1
+        const val NEW_LIST_TILE = 2
     }
 }

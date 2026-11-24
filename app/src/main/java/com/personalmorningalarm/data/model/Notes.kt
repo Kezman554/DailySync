@@ -2,6 +2,7 @@ package com.personalmorningalarm.data.model
 
 import com.personalmorningalarm.data.entity.NoteVerb
 import com.personalmorningalarm.data.entity.PendingNoteWrite
+import com.personalmorningalarm.data.phone.ListHome
 import java.util.UUID
 
 /**
@@ -31,7 +32,9 @@ data class NoteRow(
     /** Written on the phone and not in the vault yet. */
     val pending: Boolean = false,
     /** Alfred refused the text; it's kept on the phone until it's edited or deleted. */
-    val refused: Boolean = false
+    val refused: Boolean = false,
+    /** Where the note lives. A PHONE note is never sent and never queued. */
+    val home: ListHome = ListHome.HUB
 )
 
 /** The notepad's rules, with no Android in sight so they can be tested on the JVM. */

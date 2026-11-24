@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.NoteRow
+import com.personalmorningalarm.data.phone.ListHome
 import com.personalmorningalarm.databinding.ItemNoteBinding
 
 /**
@@ -37,6 +38,7 @@ class NoteAdapter(
             binding.tvNotePreview.text = note.preview
             binding.tvNotePending.isVisible = note.pending
             binding.tvNoteRefused.isVisible = note.refused
+            binding.tvNotePhone.isVisible = note.home == ListHome.PHONE
             binding.root.setOnClickListener { onClick(note) }
             binding.root.setOnLongClickListener { onLongPress(note); true }
         }
@@ -53,17 +55,27 @@ class NoteAdapter(
 
 /**
  * The one confirmation for deleting a note, from the list or from emptying it in the
- * editor. [onKeep] runs on Cancel, and on dismissing it with Back or a tap outside.
+ * editor, saying where it's deleted from. [onKeep] runs on Cancel, and on dismissing
+ * it with Back or a tap outside.
  */
 fun showNoteDeleteDialog(
     context: Context,
     title: String,
+    home: ListHome,
     onDelete: () -> Unit,
     onKeep: () -> Unit = {}
 ): AlertDialog =
     MaterialAlertDialogBuilder(context)
         .setTitle(R.string.note_delete_title)
-        .setMessage(context.getString(R.string.note_delete_message, title))
+        .setMessage(
+            context.getString(
+                when (home) {
+                    ListHome.HUB -> R.string.note_delete_message
+                    ListHome.PHONE -> R.string.note_phone_delete_message
+                },
+                title
+            )
+        )
         .setPositiveButton(R.string.delete) { _, _ -> onDelete() }
         .setNegativeButton(R.string.cancel) { _, _ -> onKeep() }
         .setOnCancelListener { onKeep() }

@@ -2,6 +2,7 @@ package com.personalmorningalarm.ui
 
 import androidx.test.core.app.ApplicationProvider
 import com.personalmorningalarm.data.model.NoteRow
+import com.personalmorningalarm.data.phone.ListHome
 import com.personalmorningalarm.data.model.Notes
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
@@ -17,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -54,7 +56,10 @@ class NoteListViewModelTest : ViewModelTestSupport() {
         AlfredReachability.reset()
     }
 
-    private fun list() = track(NoteListViewModel(alfred, sync))
+    private fun list() = track(NoteListViewModel(alfred, sync, phoneStore))
+
+    /** A hub note's row as the list shows it: all a delete needs is its id and home. */
+    private fun hubRow(id: String) = NoteRow(id, id, "")
 
     private fun rows(state: NoteListState): List<NoteRow> =
         Notes.merged(state.result?.dataOrNull().orEmpty(), state.pending)
@@ -106,7 +111,7 @@ class NoteListViewModelTest : ViewModelTestSupport() {
         loaded(vm)
         server.down = true
 
-        vm.delete(OLDER)
+        vm.delete(hubRow(OLDER))
 
         assertEquals(emptyList<NoteRow>(), rows(awaitValue(vm.state) { it.pending.isNotEmpty() }))
     }
@@ -133,7 +138,7 @@ class NoteListViewModelTest : ViewModelTestSupport() {
         val vm = list()
         loaded(vm)
 
-        vm.delete(OLDER)
+        vm.delete(hubRow(OLDER))
         awaitValue(vm.state) { it.pending.isEmpty() && rows(it).isEmpty() }
         server.down = true
 
@@ -148,7 +153,7 @@ class NoteListViewModelTest : ViewModelTestSupport() {
         val vm = list()
         loaded(vm)
         server.down = true
-        vm.delete(OLDER)
+        vm.delete(hubRow(OLDER))
         sync.save(NEWER, "Slow to send")
         val gate = CountDownLatch(1)
         val arrived = CountDownLatch(1)
@@ -190,8 +195,27 @@ class NoteListViewModelTest : ViewModelTestSupport() {
         assertEquals(listOf(NoteRow(NEWER, "Queued first", "")), rows(state))
     }
 
+    // ---- Notes kept on the phone ----
+
+    @Test
+    fun `phone notes are listed with Alfred gone, and deleting one sends and queues nothing`() {
+        server.down = true
+        runBlocking { phoneStore.saveNote(PHONE_NOTE, "Camping kit\ntent, pegs").join() }
+        val vm = list()
+
+        val state = loaded(vm)
+        assertEquals(listOf(PHONE_NOTE), state.phoneNotes.map { it.id })
+
+        vm.delete(NoteRow(PHONE_NOTE, "Camping kit", "tent, pegs", home = ListHome.PHONE))
+
+        awaitValue(vm.state) { it.phoneNotes.isEmpty() }
+        assertTrue(server.writes.isEmpty())
+        assertTrue(runBlocking { sync.queue.first() }.isEmpty())
+    }
+
     private companion object {
         const val OLDER = "11111111-2222-4333-8444-555555555555"
         const val NEWER = "66666666-7777-4888-8999-aaaaaaaaaaaa"
+        const val PHONE_NOTE = "99999999-8888-4777-8666-555555555555"
     }
 }

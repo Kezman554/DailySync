@@ -6,9 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
 import com.personalmorningalarm.data.model.DayAgenda
 import com.personalmorningalarm.data.model.FamilyCalendar
+import com.personalmorningalarm.data.model.PhoneLists
 import com.personalmorningalarm.data.model.RollingTodo
 import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.phone.PhoneListStore
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ChalkboardSync
@@ -36,11 +39,16 @@ import java.time.LocalDate
  * throws: Alfred unreachable comes back as a cached [AlfredResult.Stale] or
  * [AlfredResult.Unavailable], and the dashboard as [PresenceResult.Unreachable],
  * so one feed failing never blanks the others. A null field means "not read yet".
+ *
+ * Lists kept on the phone are read from [phone] as they change. When Settings keeps
+ * the to-do on the phone ([todoHome]), the hub's rolling to-do isn't fetched at all.
  */
 class TilesViewModel(
     private val alfred: AlfredRepository,
     private val sync: ChalkboardSync,
     private val presence: PresenceRepository,
+    private val phone: PhoneListStore,
+    private val todoHome: () -> ListHome = { ListHome.HUB },
     private val today: () -> LocalDate = LocalDate::now
 ) : ViewModel() {
 
@@ -50,20 +58,33 @@ class TilesViewModel(
         val calendar: AlfredResult<*>? = null,
         val todos: AlfredResult<List<RollingTodoItem>>? = null,
         val shopping: AlfredResult<List<ShoppingListSummaryDto>>? = null,
-        val presence: PresenceResult? = null
+        val presence: PresenceResult? = null,
+        /** Which to-do the tile shows: the hub's [todos], or the phone's [phoneTodos]. */
+        val todoHome: ListHome = ListHome.HUB,
+        val phoneTodos: List<RollingTodoItem>? = null,
+        /** The phone's own shopping lists, after the hub's in every listing. */
+        val phoneShopping: List<ShoppingListSummaryDto> = emptyList()
     )
 
-    private val fetched = MutableStateFlow(Fetched())
+    private val fetched = MutableStateFlow(Fetched(todoHome = todoHome()))
 
-    val state: StateFlow<TilesState> = combine(fetched, sync.queue) { f, pending ->
+    val state: StateFlow<TilesState> = combine(
+        fetched,
+        sync.queue,
+        phone.todoItems(),
+        phone.shoppingLists()
+    ) { f, pending, phoneTodos, phoneShopping ->
         TilesState(
             schedule = f.schedule,
             calendar = f.calendar,
             todos = f.chalkboard?.map { RollingTodo.merged(it, pending) },
             shopping = f.shopping,
-            presence = f.presence
+            presence = f.presence,
+            todoHome = f.todoHome,
+            phoneTodos = PhoneLists.todoItems(phoneTodos),
+            phoneShopping = phoneShopping.map(PhoneLists::summary)
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TilesState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TilesState(todoHome = todoHome()))
 
     private var inFlight: Job? = null
 
@@ -72,9 +93,11 @@ class TilesViewModel(
         inFlight = viewModelScope.launch {
             coroutineScope {
                 val date = today()
+                // Read on every refresh: Settings may have moved the to-do since.
+                val home = todoHome()
                 val schedule = async { alfred.getDailySchedule() }
                 val calendar = async { alfred.getCalendarDay(date) }
-                val chalkboard = async { alfred.getChalkboard() }
+                val chalkboard = async { if (home == ListHome.HUB) alfred.getChalkboard() else null }
                 val shopping = async { alfred.getShoppingLists() }
                 val signIn = async { presence.status() }
 
@@ -87,7 +110,8 @@ class TilesViewModel(
                     calendar = calendarResult,
                     chalkboard = chalkboard.await(),
                     shopping = shopping.await(),
-                    presence = signIn.await()
+                    presence = signIn.await(),
+                    todoHome = home
                 )
                 Log.d(TAG, "Home tiles refreshed")
             }
@@ -99,7 +123,8 @@ class TilesViewModel(
         val calendar: AlfredResult<*>? = null,
         val chalkboard: AlfredResult<List<ChalkboardTaskDto>>? = null,
         val shopping: AlfredResult<List<ShoppingListSummaryDto>>? = null,
-        val presence: PresenceResult? = null
+        val presence: PresenceResult? = null,
+        val todoHome: ListHome = ListHome.HUB
     )
 
     private companion object {

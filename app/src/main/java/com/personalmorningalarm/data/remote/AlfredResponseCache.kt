@@ -26,6 +26,9 @@ class AlfredResponseCache(context: Context) {
         return CachedResponse(json, prefs.getLong(timeKey(endpoint), 0L))
     }
 
+    /** Whether Alfred has ever answered this phone: only a successful response is saved. */
+    fun hasAny(): Boolean = prefs.all.keys.any { it.startsWith(BODY_PREFIX) }
+
     fun clear(endpoint: String) {
         prefs.edit().remove(bodyKey(endpoint)).remove(timeKey(endpoint)).apply()
     }
@@ -35,7 +38,9 @@ class AlfredResponseCache(context: Context) {
     private companion object {
         const val PREFS_NAME = "alfred_cache"
 
-        fun bodyKey(endpoint: String) = "body_$endpoint"
+        const val BODY_PREFIX = "body_"
+
+        fun bodyKey(endpoint: String) = "$BODY_PREFIX$endpoint"
         fun timeKey(endpoint: String) = "time_$endpoint"
     }
 }

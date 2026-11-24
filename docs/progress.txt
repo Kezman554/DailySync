@@ -1982,3 +1982,35 @@
     and hash checked, temp cache removed, theme back to dark, auto-rotate restored
   - Real Alfred: GET /notes only ("No notes yet"). No note written. The real-note
     check is Nick's, and 6-life/notes/ arriving in the vault is unconfirmed until then
+
+2026-11-24 Session AY: lists that live on the phone
+  - Shopping lists, notes and (by setting) the to-do can live on the phone. Kept in
+    their own Room file, phone_lists.db (PhoneListDatabase v1, schema committed), so
+    the alarm database needed no migration. PhoneListStore takes no Alfred and no
+    queue: a phone list can't be sent or queued. Same operations as the hub: add,
+    tick, drop, delete a list, free-text notes
+  - Ticked phone items stay struck through for the day and are hidden from the next,
+    worked out on read (the hub's overnight sweep without a job); sweep() only tidies
+  - Store writes run in its own scope under a fair mutex: Room suspends on its own
+    threads, so a one-thread dispatcher alone let two creates of one name both pass
+  - Where it lives: ListHome (HUB/PHONE) on menu tiles, note rows and nav args. New
+    list and new note ask, starting on the hub when one is configured. "Configured"
+    is a saved address OR a saved answer from Alfred: the A32 has no alfred_host
+    saved (its Pi is at the built-in default), so a saved-address-only rule would
+    have moved Nick's to-do to the phone. The to-do's first answer is stored
+  - Settings > Lists > To-Do list: hub rolling to-do or a phone list. Nothing moves
+    between them. Home tiles read phone lists too, with no chalkboard fetch when the
+    to-do is on the phone
+  - Backup rules: data_extraction_rules.xml (cloud + device transfer) and
+    backup_rules.xml (API 26-30) include database, sharedpref and file whole: what
+    was backed up before, plus phone_lists.db. BackupRulesTest reads both files
+  - Tests: 536 pass. Undo-the-fix: dropping the create mutex and excluding
+    phone_lists.db from cloud backup each turned their tests red
+  - A32, update install over real data (hash checked, firstInstallTime unchanged).
+    In airplane mode: phone shopping list made, two items, one ticked; phone note
+    written; app process killed and relaunched, both still there. Queues unchanged,
+    9 NFC tags and 24 alarm events unchanged. Back online: GET /shopping, /notes,
+    /chalkboard and /inbox on Alfred and a grep of the laptop vault found no trace.
+    To-Do switched to the phone (add, drop) and back to the hub, saved as HUB. Test
+    list and note deleted in the app afterwards
+  - Not done: a real restore from Android backup (rules tested, restore not run)

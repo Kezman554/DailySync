@@ -148,8 +148,16 @@
     <string name="shopping_delete_needs_alfred">Deleting a list needs Alfred — try again on home WiFi</string>
     <string name="shopping_left">%1$d left</string>
     <string name="shopping_all_done">All done</string>
-    <string name="shopping_new_list_ready">Create on Alfred</string>
-    <string name="shopping_new_list_offline">Needs Alfred</string>
+    <string name="shopping_new_list_ready">On the hub or this phone</string>
+    <string name="shopping_new_list_hint_hub">New list on the home hub</string>
+    <string name="shopping_new_list_hint_phone">New list on this phone</string>
+    <string name="shopping_tile_on_phone">%1$s · this phone</string>
+    <string name="shopping_menu_hub_unavailable">The hub\'s lists aren\'t on this phone yet — Alfred unreachable</string>
+    <string name="shopping_phone_delete_message">This deletes “%1$s” from this phone.</string>
+    <plurals name="shopping_phone_delete_message_open">
+        <item quantity="one">This deletes “%2$s” from this phone, with %1$d item still open.</item>
+        <item quantity="other">This deletes “%2$s” from this phone, with %1$d items still open.</item>
+    </plurals>
     <string name="shopping_food_note">Food lists live in KitchenSync.</string>
 
     <string name="shopping_list_unavailable">This list isn\'t on this phone yet — Alfred unreachable</string>
@@ -175,6 +183,19 @@
     <string name="note_refused">Alfred refused this note. It\'s safe on the phone: open it to shorten it</string>
     <string name="note_delete_title">Delete this note?</string>
     <string name="note_delete_message">“%1$s” will be deleted from the vault.</string>
+    <string name="note_phone_delete_message">“%1$s” will be deleted from this phone.</string>
+    <string name="note_on_phone">On this phone</string>
+
+    <!-- Lists and notes that live on the phone -->
+    <string name="list_home_question">Where should it live?</string>
+    <string name="list_home_hub">Home hub</string>
+    <string name="list_home_phone">This phone</string>
+    <string name="list_home_next">Next</string>
+    <string name="list_home_meta_phone">This phone</string>
+    <string name="lists_section_title">Lists</string>
+    <string name="todo_home_label">To-Do list</string>
+    <string name="todo_home_help">Where the To-Do tile\'s list lives: the hub\'s rolling to-do, or a list kept on this phone. Nothing is moved between them.</string>
+    <string name="todo_home_dialog_title">To-Do list lives on</string>
 
     <!-- Inbox tile (Alfred /inbox) — read-only list, capture-only write -->
     <string name="inbox_title">Inbox</string>

@@ -17,6 +17,9 @@ class AlfredSettings(context: Context) {
     fun getHost(): String =
         prefs.getString(KEY_HOST, null)?.takeIf { it.isNotBlank() } ?: DEFAULT_HOST
 
+    /** Whether an address was ever saved. [getHost] falls back to [DEFAULT_HOST] when not. */
+    fun isConfigured(): Boolean = !prefs.getString(KEY_HOST, null).isNullOrBlank()
+
     fun setHost(host: String) {
         prefs.edit().putString(KEY_HOST, normalise(host)).apply()
     }

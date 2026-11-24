@@ -20,6 +20,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.Notes
+import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.phone.PhoneListStore
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.NoteSync
@@ -40,6 +42,8 @@ class NoteEditorFragment : Fragment() {
 
     private val isNew: Boolean get() = requireArguments().getBoolean(ARG_IS_NEW)
 
+    private val home: ListHome get() = ListHome.fromName(requireArguments().getString(ARG_HOME))
+
     private val viewModel: NoteEditorViewModel by viewModels {
         viewModelFactory {
             initializer {
@@ -49,7 +53,9 @@ class NoteEditorFragment : Fragment() {
                     NoteSync.getInstance(context),
                     requireArguments().getString(ARG_NOTE_ID).orEmpty(),
                     isNew,
-                    createSavedStateHandle()
+                    createSavedStateHandle(),
+                    home,
+                    PhoneListStore.getInstance(context)
                 )
             }
         }
@@ -136,6 +142,7 @@ class NoteEditorFragment : Fragment() {
         deleteDialog = showNoteDeleteDialog(
             requireContext(),
             title,
+            home,
             onDelete = {
                 viewModel.confirmDelete()
                 close()
@@ -170,5 +177,6 @@ class NoteEditorFragment : Fragment() {
     companion object {
         const val ARG_NOTE_ID = "noteId"
         const val ARG_IS_NEW = "isNew"
+        const val ARG_HOME = "home"
     }
 }

@@ -6,10 +6,13 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
+import com.personalmorningalarm.data.phone.PhoneListDatabase
+import com.personalmorningalarm.data.phone.PhoneListStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +50,10 @@ abstract class ViewModelTestSupport {
     protected val scheduler = TestCoroutineScheduler()
     protected lateinit var db: AppDatabase
     protected lateinit var repo: AlarmRepository
+
+    /** Lists kept on the phone, in memory. Its writes run inline, so they've landed when the call returns. */
+    protected lateinit var phoneDb: PhoneListDatabase
+    protected lateinit var phoneStore: PhoneListStore
     private lateinit var collectorScope: CoroutineScope
     private val viewModels = mutableListOf<ViewModel>()
 
@@ -60,6 +67,12 @@ abstract class ViewModelTestSupport {
             .setTransactionExecutor { it.run() }
             .build()
         repo = AlarmRepository(db)
+        phoneDb = Room.inMemoryDatabaseBuilder(context, PhoneListDatabase::class.java)
+            .allowMainThreadQueries()
+            .setQueryExecutor { it.run() }
+            .setTransactionExecutor { it.run() }
+            .build()
+        phoneStore = PhoneListStore(phoneDb.dao(), CoroutineScope(SupervisorJob() + Dispatchers.Unconfined))
         collectorScope = CoroutineScope(Dispatchers.Main + Job())
     }
 
@@ -70,6 +83,7 @@ abstract class ViewModelTestSupport {
         viewModels.forEach { it.viewModelScope.cancel() }
         viewModels.clear()
         db.close()
+        phoneDb.close()
         Dispatchers.resetMain()
     }
 

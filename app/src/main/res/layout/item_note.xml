@@ -52,6 +52,19 @@
         android:visibility="gone"
         tools:visibility="visible" />
 
+    <!-- Only on notes kept on the phone: never sent to the vault. -->
+    <TextView
+        android:id="@+id/tv_note_phone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/note_on_phone"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
     <!-- Only on notes Alfred refused: the text is safe on the phone, not in the vault. -->
     <TextView
         android:id="@+id/tv_note_refused"

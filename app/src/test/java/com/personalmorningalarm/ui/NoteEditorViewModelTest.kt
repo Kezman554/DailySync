@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import com.personalmorningalarm.data.entity.NoteVerb
 import com.personalmorningalarm.data.model.Notes
+import com.personalmorningalarm.data.phone.ListHome
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResponseCache
@@ -360,6 +361,49 @@ class NoteEditorViewModelTest : ViewModelTestSupport() {
 
         assertEquals("Delivered", restored.draft)
         assertNull(queued().firstOrNull())
+    }
+
+    // ---- A note kept on the phone ----
+
+    private fun phoneEditor(isNew: Boolean, handle: SavedStateHandle = SavedStateHandle()) =
+        track(NoteEditorViewModel(alfred, sync, ID, isNew, handle, ListHome.PHONE, phoneStore))
+
+    @Test
+    fun `a new phone note is kept on the phone as typed, and never sent or queued`() {
+        server.down = true
+        val vm = phoneEditor(isNew = true)
+
+        assertEquals(Notes.Leaving.SAVE, vm.leave("Camping kit\n  tent  "))
+
+        assertEquals("Camping kit\n  tent  ", runBlocking { phoneStore.note(ID) }?.text)
+        assertTrue(server.writes.isEmpty())
+        assertTrue(queued().isEmpty())
+    }
+
+    @Test
+    fun `a phone note opens from the phone with Alfred gone, and emptying it deletes it there`() {
+        server.down = true
+        runBlocking { phoneStore.saveNote(ID, "Camping kit").join() }
+        val vm = phoneEditor(isNew = false)
+        awaitValue(vm.state) { it is EditorState.Ready }
+        assertEquals("Camping kit", vm.draft)
+
+        assertEquals(Notes.Leaving.CONFIRM_DELETE, vm.leave(""))
+        vm.confirmDelete()
+
+        assertEquals(null, runBlocking { phoneStore.note(ID) })
+        assertTrue(server.writes.isEmpty())
+        assertTrue(queued().isEmpty())
+    }
+
+    @Test
+    fun `a phone note that isn't on the phone can't be edited, and Alfred isn't asked for it`() {
+        server.notes[ID] = "The hub's note with the same id"
+        val vm = phoneEditor(isNew = false)
+
+        awaitValue(vm.state) { it is EditorState.Unavailable }
+        assertEquals(Notes.Leaving.NOTHING, vm.leave("Overwrite"))
+        assertTrue(server.writes.isEmpty())
     }
 
     private companion object {
