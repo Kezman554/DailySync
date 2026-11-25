@@ -78,9 +78,11 @@ class ShoppingMenuViewModelTest : ViewModelTestSupport() {
                     return MockResponse().setBody(answer)
                 }
                 deleteGate?.await(5, TimeUnit.SECONDS)
-                deletes += request.path
+                // The path alone: every shopping request also carries ?for= (ShoppingOwnerTest).
+                val path = request.requestUrl.encodedPath()
+                deletes += path
                 deleteAnswer?.let { return it }
-                lists.removeAll { request.path.endsWith("/${it.id}") }
+                lists.removeAll { path.endsWith("/${it.id}") }
                 return MockResponse().setBody(gson.toJson(mapOf("deleted" to GARDEN, "lists" to lists.toList())))
             }
         })

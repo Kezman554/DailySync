@@ -23,8 +23,9 @@ import com.personalmorningalarm.data.model.PhoneLists
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import com.personalmorningalarm.data.phone.ListHome
-import com.personalmorningalarm.data.phone.ListSettings
 import com.personalmorningalarm.data.phone.PhoneListStore
+import com.personalmorningalarm.data.profile.NewListHome
+import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
@@ -109,9 +110,9 @@ class ShoppingMenuFragment : Fragment() {
         FreshnessView.render(binding.freshness, age(state), AlfredReachability.state.value)
     }
 
-    /** The New list tile asks where the list lives, then opens the create field. */
+    /** The New list tile settles where the list lives ([chooseNewListHome]), then opens the create field. */
     private fun openCreate() {
-        showListHomeDialog(requireContext(), ListSettings(requireContext()).defaultHome()) { home ->
+        chooseNewListHome(requireContext()) { home ->
             viewModel.createHome = home
             if (_binding != null) showCreateField(home)
         }
@@ -128,9 +129,13 @@ class ShoppingMenuFragment : Fragment() {
 
     private fun setCreateHint(home: ListHome) {
         binding.etShoppingNewList.hint = getString(
-            when (home) {
-                ListHome.HUB -> R.string.shopping_new_list_hint_hub
-                ListHome.PHONE -> R.string.shopping_new_list_hint_phone
+            when {
+                // Only ever the hub: nothing to say about where, as before phone lists.
+                newListRule() is NewListHome.Always -> R.string.shopping_new_list_hint
+                else -> when (home) {
+                    ListHome.HUB -> R.string.shopping_new_list_hint_hub
+                    ListHome.PHONE -> R.string.shopping_new_list_hint_phone
+                }
             }
         )
     }
@@ -238,7 +243,12 @@ class ShoppingMenuFragment : Fragment() {
         }
 
         // A list for the hub asks Alfred as it's created, and says so if he can't be
-        // reached; a phone list needs nobody. So the create field stays open either way.
+        // reached; a phone list needs nobody. So the create field stays open either way,
+        // where lists can live on the phone. Where they only go to the hub, the tile
+        // needs a live Alfred as it did before phone lists, and the field stands down.
+        val hubOnly = newListRule() is NewListHome.Always
+        val canCreate = !hubOnly || state.lists is AlfredResult.Fresh
+        if (!canCreate && binding.rowShoppingNewList.isVisible) closeCreate()
         val phoneLists = state.phoneLists.orEmpty()
         val body = when {
             lists == null && state.lists == null -> R.string.shopping_menu_loading
@@ -249,8 +259,14 @@ class ShoppingMenuFragment : Fragment() {
         }
         binding.tvShoppingMenuBody.isVisible = body != null
         body?.let(binding.tvShoppingMenuBody::setText)
-        listAdapter.submit(lists, phoneLists.map(PhoneLists::summary))
+        listAdapter.submit(
+            lists,
+            phoneLists.map(PhoneLists::summary),
+            ShoppingListSummaryAdapter.Tile.NewList(hubOnly = hubOnly, canCreate = canCreate)
+        )
     }
+
+    private fun newListRule(): NewListHome? = ProfileSettings(requireContext()).profile()?.newListHome
 
     override fun onDestroyView() {
         super.onDestroyView()

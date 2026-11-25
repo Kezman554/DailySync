@@ -5,6 +5,8 @@
     <dimen name="schedule_column_gap">8dp</dimen>
     <dimen name="schedule_line_gap">4dp</dimen>
     <dimen name="todo_item_gap">10dp</dimen>
+    <!-- Between Home tiles, across and down (TilesFragment.arrangeTiles) -->
+    <dimen name="tile_gap">10dp</dimen>
     <!-- Freshness: the earlier-day notice's padding, and the tile outline instead of it -->
     <dimen name="freshness_notice_padding">12dp</dimen>
     <dimen name="freshness_card_stroke">2dp</dimen>

@@ -1,0 +1,61 @@
+package com.personalmorningalarm.data.profile
+
+import com.personalmorningalarm.data.phone.ListHome
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/** What each profile may ask for, and how it starts. */
+class ProfileTest {
+
+    @Test
+    fun `Jess's profile requests none of the alarm's permissions`() {
+        AlarmPermission.values().forEach {
+            assertFalse("Jess may request $it", Profile.JESS.allows(it))
+            assertFalse("Jess may request $it", Profile.allows(Profile.JESS, it))
+        }
+        assertFalse(Profile.JESS.hasAlarm)
+    }
+
+    @Test
+    fun `Nick's profile still requests every one of them`() {
+        AlarmPermission.values().forEach { assertTrue("Nick may not request $it", Profile.NICK.allows(it)) }
+        assertTrue(Profile.NICK.hasAlarm)
+    }
+
+    @Test
+    fun `before the first-run choice nothing is requested`() {
+        AlarmPermission.values().forEach { assertFalse(Profile.allows(null, it)) }
+    }
+
+    @Test
+    fun `the gated set covers exact alarms, NFC, full-screen intents, battery and notifications`() {
+        assertEquals(
+            setOf("EXACT_ALARM", "NFC", "FULL_SCREEN_INTENT", "BATTERY_OPTIMISATION", "NOTIFICATIONS"),
+            AlarmPermission.values().map { it.name }.toSet()
+        )
+    }
+
+    @Test
+    fun `Nick's new lists go to the hub without asking, Jess is asked starting on the phone`() {
+        assertEquals(NewListHome.Always(ListHome.HUB), Profile.NICK.newListHome)
+        assertEquals(NewListHome.Ask(ListHome.PHONE), Profile.JESS.newListHome)
+    }
+
+    @Test
+    fun `Jess's to-do starts on the phone, Nick's is left where it is`() {
+        assertEquals(ListHome.PHONE, Profile.JESS.setupTodoHome)
+        assertNull(Profile.NICK.setupTodoHome)
+    }
+
+    @Test
+    fun `each profile names itself to the hub as the hub spells it`() {
+        assertEquals("nick", Profile.NICK.wireName)
+        assertEquals("jess", Profile.JESS.wireName)
+        assertEquals(Profile.JESS, Profile.fromWireName("jess"))
+        assertNull(Profile.fromWireName("pending"))
+        assertNull(Profile.fromWireName(null))
+    }
+}

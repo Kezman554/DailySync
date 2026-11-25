@@ -43,6 +43,53 @@
                 android:text="@string/theme_system" />
         </LinearLayout>
 
+        <!-- Profile: whose phone this is (ProfileSettings) -->
+        <TextView
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/profile_section_title" />
+
+        <LinearLayout style="@style/DailySync.SettingsCard">
+
+            <LinearLayout
+                android:id="@+id/row_profile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="vertical"
+                android:paddingVertical="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/profile_label" />
+
+                    <TextView
+                        android:id="@+id/tv_profile"
+                        style="@style/DailySync.RowValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        tools:text="Nick" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/DailySync.RowHelp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/profile_help" />
+            </LinearLayout>
+        </LinearLayout>
+
         <!-- Alfred Vault API and the Home Hub dashboard -->
         <TextView
             style="@style/DailySync.GroupLabel"
@@ -179,12 +226,16 @@
         </LinearLayout>
 
         <!-- Alarm health: each check shows its status; the fix appears only when
-             the check fails (SettingsFragment.renderHealthRow) -->
+             the check fails (SettingsFragment.renderHealthRow). Only for a profile
+             with the alarm -->
         <TextView
+            android:id="@+id/label_health"
             style="@style/DailySync.GroupLabel"
             android:text="@string/health_section_title" />
 
-        <LinearLayout style="@style/DailySync.SettingsCard">
+        <LinearLayout
+            android:id="@+id/card_health"
+            style="@style/DailySync.SettingsCard">
 
             <LinearLayout
                 android:layout_width="match_parent"

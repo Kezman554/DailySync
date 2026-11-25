@@ -10,6 +10,7 @@ import com.personalmorningalarm.data.entity.ContentToggle
 import com.personalmorningalarm.data.entity.StretchExercise
 import com.personalmorningalarm.data.entity.StretchRoutine
 import com.personalmorningalarm.data.model.ContentType
+import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.util.ThemeManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,10 @@ class PersonalMorningAlarmApp : Application() {
         super.onCreate()
         // Apply the saved theme before any activity is created.
         ThemeManager(this).applySaved()
+
+        // Before anything opens the database: whether it is already on disk is how
+        // an install from before profiles is told from a fresh one (ProfileSettings).
+        ProfileSettings(this).settle(existingInstall = getDatabasePath(AppDatabase.DB_NAME).exists())
 
         val repository = AlarmRepository(AppDatabase.getInstance(this))
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {

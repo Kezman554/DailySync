@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.Space
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -22,6 +24,7 @@ import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import com.personalmorningalarm.data.phone.ListHome
 import com.personalmorningalarm.data.phone.ListSettings
 import com.personalmorningalarm.data.phone.PhoneListStore
+import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
@@ -43,11 +46,17 @@ import java.time.ZoneId
  *
  * The tiles only read ([TilesViewModel], refreshed on every start); acting on
  * anything happens on the screen a tile opens.
+ *
+ * Which tiles show, and in what order, is the profile's ([ProfileTiles]); this
+ * screen only arranges what it's given.
  */
 class TilesFragment : Fragment() {
 
     private var _binding: FragmentTilesBinding? = null
     private val binding get() = _binding!!
+
+    /** This profile's tiles, in order. A profile change recreates the view, so read once here. */
+    private val tiles: List<HomeTile> by lazy { profileTiles(requireContext()) }
 
     private val viewModel: TilesViewModel by viewModels {
         viewModelFactory {
@@ -59,6 +68,8 @@ class TilesFragment : Fragment() {
                     ChalkboardSync.getInstance(context),
                     PresenceRepository(context),
                     PhoneListStore.getInstance(context),
+                    // Not [tiles]: the ViewModel outlives the recreate a profile change makes.
+                    tiles = { profileTiles(context) },
                     todoHome = lists::todoHome
                 )
             }
@@ -76,6 +87,7 @@ class TilesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        arrangeTiles()
 
         // The schedule card opens the week pager; the alarm content screen and
         // the Today screen stay today-only.
@@ -142,6 +154,74 @@ class TilesFragment : Fragment() {
         // Every start: plans, lists and the wall's session all change elsewhere.
         viewModel.refresh()
     }
+
+    /**
+     * Lays out [tiles] as [ProfileTiles.rows] says: each tile view moves from the
+     * flat list in the layout into its row, and a tile the profile doesn't show is
+     * left out. Gaps are [R.dimen.tile_gap] across and down. In the bento a tile
+     * that grows shares its column's spare height; the others keep their own.
+     */
+    private fun arrangeTiles() {
+        val views: Map<HomeTile, View> = mapOf(
+            HomeTile.SCHEDULE to binding.cardSchedule,
+            HomeTile.TODO to binding.cardTodo,
+            HomeTile.SHOPPING to binding.cardShopping,
+            HomeTile.NOTES to binding.cardNotes,
+            HomeTile.INBOX to binding.cardInbox,
+            HomeTile.SIGN_IN to binding.cardSignIn,
+            HomeTile.KITCHEN_SYNC to binding.tileKitchenSync,
+            HomeTile.KANBAN to binding.tileKanban
+        )
+        val container = binding.tileRows
+        container.removeAllViews()
+        val gap = resources.getDimensionPixelSize(R.dimen.tile_gap)
+        val match = ViewGroup.LayoutParams.MATCH_PARENT
+        val wrap = ViewGroup.LayoutParams.WRAP_CONTENT
+
+        fun row() = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            isBaselineAligned = false
+        }
+
+        fun column(column: List<HomeTile>) = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            column.forEachIndexed { index, tile ->
+                val grows = tile.growsInColumn
+                addView(
+                    views.getValue(tile),
+                    LinearLayout.LayoutParams(match, if (grows) 0 else wrap, if (grows) 1f else 0f)
+                        .apply { if (index > 0) topMargin = gap }
+                )
+            }
+        }
+
+        /** A half-width cell: [view], or an empty one holding the place of a missing tile. */
+        fun LinearLayout.addHalf(view: View?, first: Boolean, height: Int) = addView(
+            view ?: Space(requireContext()),
+            LinearLayout.LayoutParams(0, height, 1f).apply { if (!first) marginStart = gap }
+        )
+
+        ProfileTiles.rows(tiles).forEachIndexed { index, plan ->
+            val rowView: View = when (plan) {
+                is ProfileTiles.Row.Wide -> views.getValue(plan.tile)
+                is ProfileTiles.Row.Bento -> row().apply {
+                    addHalf(column(plan.left), first = true, height = match)
+                    addHalf(plan.right.takeIf { it.isNotEmpty() }?.let(::column), first = false, height = match)
+                }
+                is ProfileTiles.Row.ComingSoon -> row().apply {
+                    addHalf(views.getValue(plan.tiles[0]), first = true, height = wrap)
+                    addHalf(plan.tiles.getOrNull(1)?.let(views::getValue), first = false, height = wrap)
+                }
+            }
+            container.addView(
+                rowView,
+                LinearLayout.LayoutParams(match, wrap).apply { if (index > 0) topMargin = gap }
+            )
+        }
+    }
+
+    private fun profileTiles(context: android.content.Context): List<HomeTile> =
+        ProfileTiles.tilesFor(ProfileSettings(context).profile())
 
     private fun renderSchedule(result: AlfredResult<DayAgenda>?) {
         val agenda = result?.dataOrNull()

@@ -60,7 +60,9 @@
 
         </LinearLayout>
 
+        <!-- Home | Alarm. Hidden for a profile without the alarm, leaving Home only -->
         <LinearLayout
+            android:id="@+id/pills"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"

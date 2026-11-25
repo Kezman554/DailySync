@@ -1,10 +1,12 @@
 package com.personalmorningalarm.data.remote
 
 import androidx.annotation.VisibleForTesting
+import com.personalmorningalarm.data.profile.Profile
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -23,6 +25,10 @@ import java.util.concurrent.TimeUnit
  * [WRITE_READ_TIMEOUT_SECONDS] to be answered, which covers OkHttp's limit of five
  * calls in flight to a host. Its connect timeout stays short, so an unreachable
  * Alfred still fails fast and the write queues as ever.
+ *
+ * Every shopping request names whose phone this is ([shoppingOwner]): Alfred's
+ * `/shopping` without `for=` answers with everyone's lists, so that default is
+ * never relied on.
  */
 object AlfredClient {
 
@@ -46,16 +52,50 @@ object AlfredClient {
         .addInterceptor(writeTimeout)
         .build()
 
+    /**
+     * Adds `for=<profile>` to every request under `/shopping` (the discovery GET,
+     * create, each list's read and writes), read per request so a profile change
+     * applies at once. With no profile chosen yet the request is refused rather than
+     * sent without one: it fails as unreachable, and nothing is shown.
+     */
+    @VisibleForTesting
+    internal fun shoppingOwner(owner: () -> Profile?) = Interceptor { chain ->
+        val request = chain.request()
+        if (request.url().pathSegments().firstOrNull() != SHOPPING_SEGMENT) {
+            chain.proceed(request)
+        } else {
+            val profile = owner() ?: throw IOException("No profile chosen: shopping request not sent")
+            val url = request.url().newBuilder()
+                .removeAllQueryParameters(OWNER_PARAM)
+                .addQueryParameter(OWNER_PARAM, profile.wireName)
+                .build()
+            chain.proceed(request.newBuilder().url(url).build())
+        }
+    }
+
+    private const val SHOPPING_SEGMENT = "shopping"
+    private const val OWNER_PARAM = "for"
+
     private var cachedBaseUrl: String? = null
     private var cachedService: AlfredApiService? = null
 
+    /**
+     * Where the cached service reads the profile from: the last caller's. Every
+     * caller reads the same saved setting, so which one doesn't matter; keeping the
+     * latest just avoids holding on to a context that has gone.
+     */
+    @Volatile
+    private var owner: () -> Profile? = { null }
+
+    /** The Alfred API at [settings]' address, naming [owner] on shopping requests. */
     @Synchronized
-    fun service(settings: AlfredSettings): AlfredApiService {
+    fun service(settings: AlfredSettings, owner: () -> Profile?): AlfredApiService {
+        this.owner = owner
         val baseUrl = settings.baseUrl()
         cachedService?.let { if (baseUrl == cachedBaseUrl) return it }
         val service = Retrofit.Builder()
             .baseUrl(baseUrl)
-            .client(http)
+            .client(http.newBuilder().addInterceptor(shoppingOwner { this.owner() }).build())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(AlfredApiService::class.java)

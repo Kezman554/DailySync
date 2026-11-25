@@ -15,6 +15,8 @@ import com.personalmorningalarm.data.model.ShoppingItemDto
 import com.personalmorningalarm.data.model.ShoppingListDetailDto
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import com.personalmorningalarm.data.model.WeekScheduleDto
+import com.personalmorningalarm.data.profile.Profile
+import com.personalmorningalarm.data.profile.ProfileSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -40,13 +42,16 @@ import java.time.LocalDate
 class AlfredRepository(
     private val settings: AlfredSettings,
     private val cache: AlfredResponseCache,
-    private val serviceProvider: (AlfredSettings) -> AlfredApiService = AlfredClient::service,
+    /** Without a context to read the profile from, shopping requests name Nick: the app as it was. */
+    private val serviceProvider: (AlfredSettings) -> AlfredApiService = { AlfredClient.service(it) { Profile.NICK } },
     private val clock: () -> Long = System::currentTimeMillis
 ) {
 
+    /** The real client, naming this phone's profile on every shopping request. */
     constructor(context: Context) : this(
         AlfredSettings(context),
-        AlfredResponseCache(context)
+        AlfredResponseCache(context),
+        ProfileSettings(context).let { profiles -> { settings -> AlfredClient.service(settings, profiles::profile) } }
     )
 
     private val gson = Gson()

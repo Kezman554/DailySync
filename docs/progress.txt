@@ -2014,3 +2014,51 @@
     To-Do switched to the phone (add, drop) and back to the hub, saved as HUB. Test
     list and note deleted in the app afterwards
   - Not done: a real restore from Android backup (rules tested, restore not run)
+
+2026-11-25 Session AZ: a Nick or Jess profile, chosen at setup
+  - Profile (data/profile): NICK or JESS, saved with the other settings. A fresh
+    install asks "Whose phone is this?" before anything else (can't be dismissed).
+    An install from before profiles is Nick's without asking: at process start,
+    before the database opens, its existence tells old from new, and the answer is
+    written at once, so a fresh install closed before choosing still asks
+  - Jess has no alarm: no Home | Alarm pills or alarm line (Home only), so no NFC
+    tags, nuclear mode, PIN or dev tools; Settings hides Alarm health. Scheduling
+    never runs: AlarmScheduler refuses for her, AlarmReceiver and BootReceiver
+    stand down, and switching to Jess cancels any armed alarm (Nick's saved alarm
+    stays and re-arms when the app next opens as Nick)
+  - Permissions: the manifest still declares them all (one APK; install-time, no
+    prompt). The runtime asks are gated on AlarmPermission: notifications (asked
+    only for the alarm's sake), the battery prompt, exact alarms, NFC and the
+    full-screen intent are all behind the alarm. Jess and the pre-choice state ask
+    for none
+  - Tiles: ProfileTiles.tilesFor(profile) is the one ordered list per profile.
+    fragment_tiles declares every tile flat and TilesFragment arranges them into
+    rows (wide, a two-column bento, coming-soon pairs). TilesViewModel only fetches
+    what shown tiles need, read per refresh (it outlives the recreate after a choice)
+  - Shopping: AlfredClient adds for=nick / for=jess to every /shopping request; with
+    no profile the request isn't sent. A profile switch clears the saved list summary
+  - AY follow-ups: Jess's to-do is set to This phone at setup. New list / new note
+    on Nick go straight to the hub with no question, and Nick's New list tile is the
+    pre-AY one ("Create on Alfred", "Needs Alfred" offline, "List name" hint). Jess
+    is asked, starting on This phone
+  - Tests: 574 pass, forced rerun. Undo-the-fix: removing each gate (notifications
+    and battery, the scheduler refusal, the for= interceptor, an Inbox tile for Jess,
+    the chooser dismissal, per-refresh tiles) turned its tests red. One unrelated
+    flake seen once under load: TodayViewModelTest's Room "Illegal connection
+    pointer"; passed 3 reruns and the full forced run
+  - A32 as Nick, update install over real data (hash checked, firstInstallTime
+    unchanged): settled as nick, Home pixel-identical to the pre-update screenshot,
+    Alarm tab, Settings (Profile row, Alarm health), New list and new note with no
+    question, nothing written. 9 NFC tags, 24 alarm events, queues unchanged (one
+    failed shopping tick from 14 Nov was already there)
+  - Emulator (API 36) as Jess, fresh install: chooser, then Home only with To-Do,
+    Shopping, Notes and the coming-soon tiles; to-do on This phone; no notification
+    request, no alarm; New list asks, on This phone; Settings has no Alarm health.
+    Switching to Nick in Settings brought the full Home and Nick's first-launch
+    prompts; switching back restored Jess's. App uninstalled from the emulator
+  - Hub: GET /shopping?for= confirmed live on the Pi (unknown name 400). Only that
+    route reads it; POST /shopping (create) ignores it, so a hub list Jess creates is
+    owned by Nick (frontmatter default) and won't show in her for=jess list unless
+    shared. Needs a hub card: create should take the owner from for=
+  - Not changed: "MorningSync" still names the app in the notifications-blocked
+    dialog (pre-existing string)

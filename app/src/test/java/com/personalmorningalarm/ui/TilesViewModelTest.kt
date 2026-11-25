@@ -1,0 +1,124 @@
+package com.personalmorningalarm.ui
+
+import androidx.test.core.app.ApplicationProvider
+import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.profile.Profile
+import com.personalmorningalarm.data.remote.AlfredClient
+import com.personalmorningalarm.data.remote.AlfredReachability
+import com.personalmorningalarm.data.remote.AlfredRepository
+import com.personalmorningalarm.data.remote.AlfredResponseCache
+import com.personalmorningalarm.data.remote.AlfredSettings
+import com.personalmorningalarm.data.remote.ChalkboardSync
+import com.personalmorningalarm.data.remote.DashboardSettings
+import com.personalmorningalarm.data.remote.PresenceRepository
+import okhttp3.mockwebserver.Dispatcher
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import java.net.InetAddress
+import java.util.Collections
+import java.util.concurrent.TimeUnit
+
+/**
+ * Home fetches only what the profile's tiles need, read afresh on each refresh,
+ * since the ViewModel outlives the recreate that follows choosing a profile.
+ */
+@RunWith(RobolectricTestRunner::class)
+class TilesViewModelTest : ViewModelTestSupport() {
+
+    private val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    private val server = MockWebServer()
+    private val paths: MutableList<String> = Collections.synchronizedList(mutableListOf())
+
+    private var profile: Profile? = null
+    private var todoHome = ListHome.HUB
+
+    @Before
+    fun setUp() {
+        server.setDispatcher(object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                paths += request.path
+                val path = request.requestUrl.encodedPath()
+                return MockResponse().setBody(
+                    when {
+                        path == "/api/presence" -> """{"open":false}"""
+                        path.startsWith("/calendar") -> """{"events":[]}"""
+                        else -> "[]"
+                    }
+                )
+            }
+        })
+        server.start(InetAddress.getByName("127.0.0.1"), 0)
+        AlfredSettings(context).setHost("127.0.0.1:${server.port}")
+        DashboardSettings(context).setHost("127.0.0.1:${server.port}")
+    }
+
+    @After
+    fun tearDown() {
+        server.shutdown()
+        AlfredReachability.reset()
+    }
+
+    private fun viewModel(): TilesViewModel {
+        val alfred = AlfredRepository(
+            AlfredSettings(context),
+            AlfredResponseCache(context),
+            { AlfredClient.service(it) { profile } }
+        )
+        return track(
+            TilesViewModel(
+                alfred,
+                ChalkboardSync(alfred, db.pendingChalkboardWriteDao()),
+                PresenceRepository(DashboardSettings(context)),
+                phoneStore,
+                tiles = { ProfileTiles.tilesFor(profile) },
+                todoHome = { todoHome }
+            )
+        )
+    }
+
+    private fun drainRequests(): List<String> {
+        while (server.takeRequest(300, TimeUnit.MILLISECONDS) != null) Unit
+        return paths.sorted().also { paths.clear() }
+    }
+
+    @Test
+    fun `before the choice nothing is fetched, and once Jess is chosen only her lists are`() {
+        val vm = viewModel()
+        keepSubscribed(vm.state)
+        vm.refresh()
+        awaitValue(vm.state) { true }
+        assertTrue(drainRequests().isEmpty())
+
+        // Chosen at first run: the same ViewModel, recreated around it.
+        profile = Profile.JESS
+        todoHome = ListHome.PHONE
+        vm.refresh()
+        awaitValue(vm.state) { it.shopping != null }
+
+        assertEquals(listOf("/shopping?for=jess"), drainRequests())
+    }
+
+    @Test
+    fun `Nick's Home fetches everything it always did, his lists by name`() {
+        profile = Profile.NICK
+        val vm = viewModel()
+        keepSubscribed(vm.state)
+        vm.refresh()
+        awaitValue(vm.state) { it.shopping != null && it.presence != null && it.todos != null && it.schedule != null }
+
+        val requests = drainRequests()
+        assertTrue(requests.toString(), "/shopping?for=nick" in requests)
+        assertTrue(requests.toString(), "/chalkboard" in requests)
+        assertTrue(requests.toString(), "/daily-schedule" in requests)
+        assertTrue(requests.toString(), "/api/presence" in requests)
+        assertTrue(requests.toString(), requests.any { it.startsWith("/calendar/events") })
+    }
+}

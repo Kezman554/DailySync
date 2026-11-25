@@ -149,6 +149,9 @@
     <string name="shopping_left">%1$d left</string>
     <string name="shopping_all_done">All done</string>
     <string name="shopping_new_list_ready">On the hub or this phone</string>
+    <!-- The New list tile where lists only go to the hub (Nick's profile): as before phone lists -->
+    <string name="shopping_new_list_hub_ready">Create on Alfred</string>
+    <string name="shopping_new_list_offline">Needs Alfred</string>
     <string name="shopping_new_list_hint_hub">New list on the home hub</string>
     <string name="shopping_new_list_hint_phone">New list on this phone</string>
     <string name="shopping_tile_on_phone">%1$s · this phone</string>
@@ -196,6 +199,15 @@
     <string name="todo_home_label">To-Do list</string>
     <string name="todo_home_help">Where the To-Do tile\'s list lives: the hub\'s rolling to-do, or a list kept on this phone. Nothing is moved between them.</string>
     <string name="todo_home_dialog_title">To-Do list lives on</string>
+
+    <!-- Profile: whose phone this is (data/profile/Profile) -->
+    <string name="profile_section_title">Profile</string>
+    <string name="profile_label">This phone is</string>
+    <string name="profile_help">Jess\'s profile has no wake-up alarm, and asks where each new list or note lives. Changing it takes you back to Home.</string>
+    <string name="profile_nick">Nick</string>
+    <string name="profile_jess">Jess</string>
+    <string name="profile_setup_title">Whose phone is this?</string>
+    <string name="profile_dialog_title">This phone is</string>
 
     <!-- Inbox tile (Alfred /inbox) — read-only list, capture-only write -->
     <string name="inbox_title">Inbox</string>

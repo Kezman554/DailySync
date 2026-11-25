@@ -18,7 +18,6 @@ import com.personalmorningalarm.data.model.NoteRow
 import com.personalmorningalarm.data.model.Notes
 import com.personalmorningalarm.data.model.PhoneLists
 import com.personalmorningalarm.data.phone.ListHome
-import com.personalmorningalarm.data.phone.ListSettings
 import com.personalmorningalarm.data.phone.PhoneListStore
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
@@ -73,7 +72,7 @@ class NotesFragment : Fragment() {
         // The id is made here, not in the editor, so it travels in the nav arguments
         // and a restored editor is still the same note.
         binding.fabNewNote.setOnClickListener {
-            showListHomeDialog(requireContext(), ListSettings(requireContext()).defaultHome()) { home ->
+            chooseNewListHome(requireContext()) { home ->
                 if (_binding != null) open(Notes.newId(), isNew = true, home)
             }
         }

@@ -8,6 +8,8 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.util.Log
+import com.personalmorningalarm.data.profile.AlarmPermission
+import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.receiver.AlarmReceiver
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -20,6 +22,9 @@ import java.time.ZoneId
  * Doze. On API 31+ exact alarms require the SCHEDULE_EXACT_ALARM permission;
  * callers should check [canScheduleExactAlarms] first and, if false, send the
  * user to [exactAlarmSettingsIntent]. On API 30 and below it is auto-granted.
+ *
+ * A profile without the alarm (Jess's) never schedules: [scheduleAlarm] refuses,
+ * whoever calls it, so no path can arm an alarm on her phone.
  */
 class AlarmScheduler(private val context: Context) {
 
@@ -38,6 +43,10 @@ class AlarmScheduler(private val context: Context) {
      * Returns false if exact alarms aren't permitted (API 31+ without permission).
      */
     fun scheduleAlarm(triggerAtMillis: Long, requestCode: Int = DEFAULT_REQUEST_CODE): Boolean {
+        if (!ProfileSettings(context).allows(AlarmPermission.EXACT_ALARM)) {
+            Log.d(TAG, "Not scheduling: this profile has no alarm")
+            return false
+        }
         if (!canScheduleExactAlarms()) {
             Log.w(TAG, "Cannot schedule exact alarm: permission not granted")
             return false

@@ -61,7 +61,8 @@ class ShoppingListViewModelTest : ViewModelTestSupport() {
     fun setUp() {
         server.setDispatcher(object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse {
-                val path = request.path
+                // The path alone: every shopping request also carries ?for= (ShoppingOwnerTest).
+                val path = request.requestUrl.encodedPath()
                 if (request.method == "GET") {
                     return MockResponse().setBody(gson.toJson(ShoppingListDetailDto(null, vault.toList())))
                 }

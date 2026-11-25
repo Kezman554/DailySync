@@ -6,6 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
+import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.service.AlarmService
 import com.personalmorningalarm.service.NuclearAlarmService
 import com.personalmorningalarm.ui.AlarmDismissalActivity
@@ -26,6 +27,12 @@ import java.util.Locale
 class AlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
+        // Only an alarm armed before a switch to a profile without one can get here.
+        if (ProfileSettings(context).profile()?.hasAlarm != true) {
+            Log.d(TAG, "Alarm fired but this profile has no alarm — ignoring, and not re-arming")
+            AlarmScheduler(context).cancelAlarm()
+            return
+        }
         val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
         if (AlarmDismissalActivity.isSessionActive || NuclearAlarmService.isRunning) {
             Log.d(TAG, "Alarm fired at $now but a wake session/nuclear alarm is active — ignoring")

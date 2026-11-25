@@ -63,7 +63,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pendingNoteWriteDao(): PendingNoteWriteDao
 
     companion object {
-        private const val DB_NAME = "personal_morning_alarm.db"
+        const val DB_NAME = "personal_morning_alarm.db"
 
         // v2: stretch duration on content_toggles. Non-destructive so registered
         // NFC tags and seeded quotes survive the upgrade.

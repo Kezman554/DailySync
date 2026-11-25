@@ -12,6 +12,7 @@ import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import com.personalmorningalarm.data.phone.ListHome
 import com.personalmorningalarm.data.phone.PhoneListStore
+import com.personalmorningalarm.data.profile.Profile
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ChalkboardSync
@@ -42,12 +43,18 @@ import java.time.LocalDate
  *
  * Lists kept on the phone are read from [phone] as they change. When Settings keeps
  * the to-do on the phone ([todoHome]), the hub's rolling to-do isn't fetched at all.
+ *
+ * Only the feeds the shown [tiles] need are fetched: a profile without the Daily
+ * Schedule card or the sign-in tile never asks for the plan, calendar or wall. Read
+ * on every refresh, like [todoHome]: this ViewModel outlives the recreate that
+ * follows choosing a profile.
  */
 class TilesViewModel(
     private val alfred: AlfredRepository,
     private val sync: ChalkboardSync,
     private val presence: PresenceRepository,
     private val phone: PhoneListStore,
+    private val tiles: () -> List<HomeTile> = { ProfileTiles.tilesFor(Profile.NICK) },
     private val todoHome: () -> ListHome = { ListHome.HUB },
     private val today: () -> LocalDate = LocalDate::now
 ) : ViewModel() {
@@ -95,18 +102,22 @@ class TilesViewModel(
                 val date = today()
                 // Read on every refresh: Settings may have moved the to-do since.
                 val home = todoHome()
-                val schedule = async { alfred.getDailySchedule() }
-                val calendar = async { alfred.getCalendarDay(date) }
-                val chalkboard = async { if (home == ListHome.HUB) alfred.getChalkboard() else null }
-                val shopping = async { alfred.getShoppingLists() }
-                val signIn = async { presence.status() }
+                val shows = tiles().toSet()
+                val withSchedule = HomeTile.SCHEDULE in shows
+                val schedule = async { if (withSchedule) alfred.getDailySchedule() else null }
+                val calendar = async { if (withSchedule) alfred.getCalendarDay(date) else null }
+                val chalkboard = async {
+                    if (HomeTile.TODO in shows && home == ListHome.HUB) alfred.getChalkboard() else null
+                }
+                val shopping = async { if (HomeTile.SHOPPING in shows) alfred.getShoppingLists() else null }
+                val signIn = async { if (HomeTile.SIGN_IN in shows) presence.status() else null }
 
                 val calendarResult = calendar.await()
-                val events = FamilyCalendar.byDate(calendarResult.dataOrNull())[date].orEmpty()
+                val events = FamilyCalendar.byDate(calendarResult?.dataOrNull())[date].orEmpty()
                 fetched.value = Fetched(
                     // The calendar is optional: with Alfred's plan unavailable there's
                     // no schedule to show, but a missing calendar just means vault only.
-                    schedule = schedule.await().map { FamilyCalendar.agenda(it, events) },
+                    schedule = schedule.await()?.map { FamilyCalendar.agenda(it, events) },
                     calendar = calendarResult,
                     chalkboard = chalkboard.await(),
                     shopping = shopping.await(),

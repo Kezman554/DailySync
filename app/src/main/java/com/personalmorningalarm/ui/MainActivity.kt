@@ -24,6 +24,10 @@ import com.personalmorningalarm.R
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
 import com.personalmorningalarm.data.entity.AlarmConfig
+import com.personalmorningalarm.data.profile.AlarmPermission
+import com.personalmorningalarm.data.profile.Profile
+import com.personalmorningalarm.data.profile.ProfileSettings
+import com.personalmorningalarm.data.profile.ProfileSetup
 import com.personalmorningalarm.data.remote.ChalkboardSync
 import com.personalmorningalarm.data.remote.InboxSync
 import com.personalmorningalarm.data.remote.NoteSync
@@ -53,6 +57,13 @@ class MainActivity : AppCompatActivity() {
     /** Guards against stacking a second dialog when onStart runs again. */
     private var notificationDialogShown = false
 
+    /** Whose phone this is, or null until the first-run choice. Read once: a change recreates. */
+    private lateinit var profiles: ProfileSettings
+    private var profile: Profile? = null
+
+    /** Set when a profile was just chosen, so the recreated screen runs first-launch prompts. */
+    private var profileJustChosen = false
+
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             Log.d(TAG, "POST_NOTIFICATIONS granted=$granted")
@@ -71,17 +82,58 @@ class MainActivity : AppCompatActivity() {
         val navHostFragment = supportFragmentManager
             .findFragmentById(binding.navHostFragment.id) as NavHostFragment
         navController = navHostFragment.navController
+        profiles = ProfileSettings(this)
+        profile = profiles.profile()
         setUpHeader()
 
         rearmAlarmIfEnabled()
 
+        // First run: nothing else until we know whose phone this is.
+        if (profile == null) {
+            if (supportFragmentManager.findFragmentByTag(ProfileChooserDialog.TAG) == null) {
+                ProfileChooserDialog().show(supportFragmentManager, ProfileChooserDialog.TAG)
+            }
+            return
+        }
+        dismissProfileChooser()
+
         // Once, on first launch, nudge the user to whitelist the app so alarms fire
         // reliably. savedInstanceState guards against re-showing on recreation
-        // (e.g. when a theme change recreates the activity).
-        if (savedInstanceState == null && BatteryOptimisationHelper.shouldPromptOnLaunch(this)) {
+        // (e.g. when a theme change recreates the activity), except the one that
+        // follows choosing a profile, which is the first launch in all but name.
+        val firstStart = savedInstanceState == null ||
+            savedInstanceState.getBoolean(STATE_PROFILE_JUST_CHOSEN)
+        if (firstStart &&
+            profiles.allows(AlarmPermission.BATTERY_OPTIMISATION) &&
+            BatteryOptimisationHelper.shouldPromptOnLaunch(this)
+        ) {
             BatteryOptimisationHelper.markPrompted(this)
             BatteryOptimisationHelper.showExplanationDialog(this)
         }
+    }
+
+    /**
+     * A profile was chosen, at first run or in Settings. Recreated, on Home, so
+     * every screen, the header and Home's tiles read it afresh.
+     */
+    fun onProfileChosen(chosen: Profile) {
+        ProfileSetup.choose(applicationContext, chosen)
+        profileJustChosen = true
+        // Gone before the recreate, or the fragment manager would restore it.
+        dismissProfileChooser()
+        // From Settings: back to Home first, so the recreated screen opens there.
+        navController.popBackStack(R.id.tilesFragment, false)
+        recreate()
+    }
+
+    private fun dismissProfileChooser() {
+        (supportFragmentManager.findFragmentByTag(ProfileChooserDialog.TAG) as? ProfileChooserDialog)
+            ?.dismissNow()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_PROFILE_JUST_CHOSEN, profileJustChosen)
     }
 
     /**
@@ -95,12 +147,22 @@ class MainActivity : AppCompatActivity() {
         binding.pillAlarm.setOnClickListener { openTopLevel(R.id.homeFragment) }
         binding.btnSettings.setOnClickListener { navController.navigate(R.id.settingsFragment) }
 
+        // Without the alarm there's no Alarm tab: no pills, no alarm line, Home only.
+        val hasAlarm = profile?.hasAlarm == true
+        binding.pills.isVisible = hasAlarm
+
         navController.addOnDestinationChangedListener { _, destination, _ ->
             val id = destination.id
+            // A back stack saved before a switch to Jess can still hold the Alarm tab.
+            if (!hasAlarm && id == R.id.homeFragment) {
+                // Posted: navigating from inside this callback would re-enter it.
+                binding.root.post { openTopLevel(R.id.tilesFragment) }
+                return@addOnDestinationChangedListener
+            }
             binding.header.isVisible = id == R.id.tilesFragment || id == R.id.homeFragment
             binding.pillHome.isSelected = id == R.id.tilesFragment
             binding.pillAlarm.isSelected = id == R.id.homeFragment
-            binding.tvHeaderAlarm.isVisible = id == R.id.tilesFragment
+            binding.tvHeaderAlarm.isVisible = hasAlarm && id == R.id.tilesFragment
             renderHeaderDate()
             renderHeaderAlarm()
         }
@@ -304,7 +366,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Notifications are asked for only for the alarm's sake, so only by a profile with one. */
     private fun ensureNotificationsEnabled() {
+        if (!profiles.allows(AlarmPermission.NOTIFICATIONS)) return
         if (NotificationPermissionHelper.areNotificationsEnabled(this)) {
             notificationDialogShown = false
             return
@@ -336,6 +400,7 @@ class MainActivity : AppCompatActivity() {
      * uses FLAG_UPDATE_CURRENT, so a re-arm just overwrites any existing alarm.
      */
     private fun rearmAlarmIfEnabled() {
+        if (profile?.hasAlarm != true) return
         val appContext = applicationContext
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -357,6 +422,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "PMA"
+        private const val STATE_PROFILE_JUST_CHOSEN = "profile_just_chosen"
         private val HEADER_DATE_FORMAT = DateTimeFormatter.ofPattern("EEEE d MMM", Locale.getDefault())
         private val ALARM_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm")
     }

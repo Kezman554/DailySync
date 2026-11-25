@@ -6,6 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
+import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.util.AlarmScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,10 @@ class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent?.action != Intent.ACTION_BOOT_COMPLETED) return
+        if (ProfileSettings(context).profile()?.hasAlarm != true) {
+            Log.d(TAG, "Boot: this profile has no alarm — nothing to schedule")
+            return
+        }
 
         // DB read must happen off the main thread; keep the process alive for it.
         val pendingResult = goAsync()

@@ -12,6 +12,9 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.phone.ListSettings
+import com.personalmorningalarm.data.profile.AlarmPermission
+import com.personalmorningalarm.data.profile.Profile
+import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.data.remote.AlfredSettings
 import com.personalmorningalarm.data.remote.DashboardSettings
 import com.personalmorningalarm.databinding.DialogAlfredHostBinding
@@ -23,9 +26,10 @@ import com.personalmorningalarm.util.ThemeManager
 import com.personalmorningalarm.util.ThemeMode
 
 /**
- * Settings, behind the header's cog: Appearance, the Alfred and dashboard
- * addresses, where the To-Do list lives, and Alarm health. Everything about the alarm itself lives on the
- * Alarm tab's tiles.
+ * Settings, behind the header's cog: Appearance, whose phone this is, the Alfred
+ * and dashboard addresses, where the To-Do list lives, and Alarm health (for a
+ * profile with the alarm). Everything about the alarm itself lives on the Alarm
+ * tab's tiles.
  */
 class SettingsFragment : Fragment() {
 
@@ -73,6 +77,20 @@ class SettingsFragment : Fragment() {
                 themeManager.setThemeMode(mode)
             }
         }
+
+        val profiles = ProfileSettings(requireContext())
+        val profile = profiles.profile() ?: Profile.NICK
+        binding.tvProfile.setText(profile.label())
+        binding.rowProfile.setOnClickListener {
+            showProfileDialog(requireContext(), profile) { chosen ->
+                if (chosen != profile) (activity as? MainActivity)?.onProfileChosen(chosen)
+            }
+        }
+
+        // The battery and notification checks are there for the alarm alone.
+        val health = profiles.allows(AlarmPermission.BATTERY_OPTIMISATION)
+        binding.labelHealth.isVisible = health
+        binding.cardHealth.isVisible = health
 
         binding.btnBattery.setOnClickListener {
             BatteryOptimisationHelper.showExplanationDialog(requireContext())
