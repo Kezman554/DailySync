@@ -2109,3 +2109,22 @@
   - Not seen: the hub's own 03:07 sweep removing the three ticked "DailySync BA
     test" items (two family, one Nick's). They should be gone tomorrow morning
   - Not done: an undo-the-fix pass over the new tests
+
+2026-11-25 Session BA, pre-push checks (A32 as Nick)
+  - Offline queue: one family item added online as a tick target. In airplane
+    mode (hub unreachable, confirmed by ping), a Family add and a tick of the
+    target queued as two family writes ("2 changes waiting to sync"). Back online,
+    the app's network-change trigger flushed them: "2 delivered, 0 conflicted",
+    the queue was empty, and the hub showed the add open and the target ticked
+  - From All with the picker untouched (it opens on Mine, "Your list"), the add
+    landed on Nick's rolling to-do, not the family list. In All on Nick's phone
+    every family row carried the Family tag and Mine rows did not
+  - Undo-the-fix, each restored from git afterwards: default picker All -> Family
+    turned 10 tests red (TodoBoardTest's picker default, TodoViewModelTest's
+    add-from-All and the tests resting on it); Jess's Mine following Settings
+    turned ProfileTest's routing test red (the only guard: the fragments that call
+    mineTodoHome aren't unit-tested); Family filter letting everything through, and
+    Mine likewise, each turned TodoBoardTest's filter test red
+  - Test items: the open ones (the offline add, the all-default add) were dropped.
+    Ticked ones can't be dropped (the hub targets unticked lines only), so four
+    remain ticked for the 03:07 sweep: three on the family chalkboard, one on Nick's
