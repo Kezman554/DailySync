@@ -1,5 +1,6 @@
 package com.personalmorningalarm.data.remote
 
+import com.personalmorningalarm.data.model.ChalkboardList
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.personalmorningalarm.data.model.CalendarEventDto
@@ -69,14 +70,14 @@ class AlfredRepositoryTest {
                     return calendarResponse ?: throw IOException("Alfred unreachable")
                 }
 
-                override suspend fun getChalkboard(): List<ChalkboardTaskDto> =
+                override suspend fun getChalkboard(list: String, includeTicked: Boolean): List<ChalkboardTaskDto> =
                     chalkboardResponse ?: throw IOException("Alfred unreachable")
 
-                override suspend fun addChalkboardItem(body: ChalkboardAddRequest): Response<Unit> = write()
+                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest): Response<Unit> = write()
 
-                override suspend fun tickChalkboardItem(body: ChalkboardLineRequest): Response<Unit> = write()
+                override suspend fun tickChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> = write()
 
-                override suspend fun dropChalkboardItem(body: ChalkboardLineRequest): Response<Unit> = write()
+                override suspend fun dropChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> = write()
 
                 override suspend fun getShoppingLists(): List<ShoppingListSummaryDto> =
                     shoppingListsResponse ?: throw IOException("Alfred unreachable")
@@ -204,14 +205,14 @@ class AlfredRepositoryTest {
     fun `a write the queue would keep is unreachable, a stale-target 404 is an answer`() = runBlocking {
         val error = { code: Int -> Response.error<Unit>(code, ResponseBody.create(MediaType.parse("application/json"), "{}")) }
 
-        assertEquals(AlfredWriteResult.Unreachable, repository(writeResponse = { error(503) }).addChalkboardItem("x"))
+        assertEquals(AlfredWriteResult.Unreachable, repository(writeResponse = { error(503) }).addChalkboardItem(ChalkboardList.NICK, "x"))
         assertEquals(AlfredReachability.State.UNREACHABLE, AlfredReachability.state.value)
 
         // A 404 whose body isn't the list is still a failed write — but Alfred answered it.
-        repository(writeResponse = { error(404) }).tickChalkboardItem("- [ ] x")
+        repository(writeResponse = { error(404) }).tickChalkboardItem(ChalkboardList.NICK, "- [ ] x")
         assertEquals(AlfredReachability.State.REACHABLE, AlfredReachability.state.value)
 
-        repository().addChalkboardItem("x") // transport failure
+        repository().addChalkboardItem(ChalkboardList.NICK, "x") // transport failure
         assertEquals(AlfredReachability.State.UNREACHABLE, AlfredReachability.state.value)
     }
 
@@ -375,42 +376,47 @@ class AlfredRepositoryTest {
     fun `a landed write reports done`() = runBlocking {
         val repo = repository(writeResponse = { Response.success(Unit) })
 
-        assertEquals(AlfredWriteResult.Done, repo.addChalkboardItem("Fix fence"))
-        assertEquals(AlfredWriteResult.Done, repo.tickChalkboardItem("- [ ] Fix fence"))
-        assertEquals(AlfredWriteResult.Done, repo.dropChalkboardItem("- [ ] Fix fence"))
+        assertEquals(AlfredWriteResult.Done, repo.addChalkboardItem(ChalkboardList.NICK, "Fix fence"))
+        assertEquals(AlfredWriteResult.Done, repo.tickChalkboardItem(ChalkboardList.NICK, "- [ ] Fix fence"))
+        assertEquals(AlfredWriteResult.Done, repo.dropChalkboardItem(ChalkboardList.NICK, "- [ ] Fix fence"))
     }
 
     @Test
     fun `a write against an unreachable Alfred fails quietly, not an exception`() = runBlocking {
-        assertEquals(AlfredWriteResult.Unreachable, repository().tickChalkboardItem("- [ ] Fix fence"))
+        assertEquals(AlfredWriteResult.Unreachable, repository().tickChalkboardItem(ChalkboardList.NICK, "- [ ] Fix fence"))
     }
 
     @Test
-    fun `a stale target returns the current list and refreshes the cache in the same round trip`() =
+    fun `a stale target returns the open list, and leaves the saved copy with its ticked rows`() =
         runBlocking {
+            val saved = listOf(
+                ChalkboardTaskDto("Oil the gate", null, "- [x] Oil the gate", ticked = true),
+                ChalkboardTaskDto("Long gone", null, "- [ ] Long gone", ticked = false)
+            )
+            repository(chalkboardResponse = saved).getChalkboard() // the saved copy
             val current = listOf(ChalkboardTaskDto("Fix fence", null, "- [ ] Fix fence"))
             val repo = repository(writeResponse = { Response.error(404, staleTargetBody(current)) })
 
-            val result = repo.tickChalkboardItem("- [ ] Long gone")
+            val result = repo.tickChalkboardItem(ChalkboardList.NICK, "- [ ] Long gone")
 
             assertEquals(current, (result as AlfredWriteResult.StaleTarget).current)
-            // The 404 body refreshed the cache: a now-dead Alfred serves that list stale.
+            // The 404's list has no ticked rows, so it isn't saved over the copy that has them.
             val stale = repository().getChalkboard()
-            assertEquals(current, (stale as AlfredResult.Stale).data)
+            assertEquals(saved, (stale as AlfredResult.Stale).data)
         }
 
     @Test
     fun `a 404 without a usable list body is just a failed write`() = runBlocking {
         val repo = repository(writeResponse = { Response.error(404, jsonBody("{not json")) })
 
-        assertEquals(AlfredWriteResult.Unreachable, repo.dropChalkboardItem("- [ ] Fix fence"))
+        assertEquals(AlfredWriteResult.Unreachable, repo.dropChalkboardItem(ChalkboardList.NICK, "- [ ] Fix fence"))
     }
 
     @Test
     fun `an unexpected server error is a failed write, not an exception`() = runBlocking {
         val repo = repository(writeResponse = { Response.error(500, jsonBody("boom")) })
 
-        assertEquals(AlfredWriteResult.Unreachable, repo.addChalkboardItem("Fix fence"))
+        assertEquals(AlfredWriteResult.Unreachable, repo.addChalkboardItem(ChalkboardList.NICK, "Fix fence"))
     }
 
     @Test

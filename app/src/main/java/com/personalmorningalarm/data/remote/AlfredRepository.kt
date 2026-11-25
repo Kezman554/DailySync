@@ -5,6 +5,7 @@ import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.personalmorningalarm.data.model.CalendarEventsDto
+import com.personalmorningalarm.data.model.ChalkboardList
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
 import com.personalmorningalarm.data.model.InboxCaptureDto
 import com.personalmorningalarm.data.model.NoteDto
@@ -98,24 +99,28 @@ class AlfredRepository(
             type = CalendarEventsDto::class.java
         ) { it.getCalendarEvents(start.toString(), endExclusive.toString()) }
 
-    /** The rolling to-do from Alfred, falling back to the last one it served. */
-    suspend fun getChalkboard(): AlfredResult<List<ChalkboardTaskDto>> =
+    /**
+     * One chalkboard list from Alfred, ticked items included (greyed until the
+     * sweep), falling back to the last copy served for that list. Nick's by
+     * default: the alarm's content screen reads it this way.
+     */
+    suspend fun getChalkboard(list: ChalkboardList = ChalkboardList.NICK): AlfredResult<List<ChalkboardTaskDto>> =
         fetch(
-            endpoint = ENDPOINT_CHALKBOARD,
+            endpoint = list.cacheKey,
             type = CHALKBOARD_TYPE
-        ) { it.getChalkboard() }
+        ) { it.getChalkboard(list.wireName, includeTicked = true) }
 
-    /** Adds an item to the rolling to-do. Alfred appends the checkbox and today's date. */
-    suspend fun addChalkboardItem(task: String): AlfredWriteResult =
-        write("add") { it.addChalkboardItem(ChalkboardAddRequest(task)) }
+    /** Adds an item to [list]. Alfred appends the checkbox and today's date. */
+    suspend fun addChalkboardItem(list: ChalkboardList, task: String): AlfredWriteResult =
+        write(list, "add") { it.addChalkboardItem(list.wireName, ChalkboardAddRequest(task)) }
 
-    /** Ticks the item whose raw vault line is [line]. It stays listed until the sweep. */
-    suspend fun tickChalkboardItem(line: String): AlfredWriteResult =
-        write("tick") { it.tickChalkboardItem(ChalkboardLineRequest(line)) }
+    /** Ticks the item on [list] whose raw vault line is [line]. It stays listed until the sweep. */
+    suspend fun tickChalkboardItem(list: ChalkboardList, line: String): AlfredWriteResult =
+        write(list, "tick") { it.tickChalkboardItem(list.wireName, ChalkboardLineRequest(line)) }
 
-    /** Drops the item whose raw vault line is [line] — no longer relevant, not done. */
-    suspend fun dropChalkboardItem(line: String): AlfredWriteResult =
-        write("drop") { it.dropChalkboardItem(ChalkboardLineRequest(line)) }
+    /** Drops the item on [list] whose raw vault line is [line] — no longer relevant, not done. */
+    suspend fun dropChalkboardItem(list: ChalkboardList, line: String): AlfredWriteResult =
+        write(list, "drop") { it.dropChalkboardItem(list.wireName, ChalkboardLineRequest(line)) }
 
     /** Every active shopping list from Alfred, falling back to the last one it served. */
     suspend fun getShoppingLists(): AlfredResult<List<ShoppingListSummaryDto>> =
@@ -349,10 +354,10 @@ class AlfredRepository(
 
     /**
      * Runs a chalkboard write. A 404 means the targeting line went stale; its body
-     * carries the current list, which is cached (it is the freshest state we have)
-     * and handed back so the caller can resync in the same round trip.
+     * carries the list's open items, handed back so the caller can resync at once.
      */
     private suspend fun write(
+        list: ChalkboardList,
         verb: String,
         request: suspend (AlfredApiService) -> Response<Unit>
     ): AlfredWriteResult = withContext(Dispatchers.IO) {
@@ -361,7 +366,7 @@ class AlfredRepository(
             reportAnswer(response.isSuccessful || response.code() == 404)
             when {
                 response.isSuccessful -> AlfredWriteResult.Done
-                response.code() == 404 -> staleTarget(verb, response)
+                response.code() == 404 -> staleTarget(list, verb, response)
                 else -> {
                     Log.w(TAG, "Chalkboard $verb rejected: HTTP ${response.code()}")
                     AlfredWriteResult.Unreachable
@@ -381,7 +386,12 @@ class AlfredRepository(
         data class Detail(val items: List<ChalkboardTaskDto>?)
     }
 
-    private fun staleTarget(verb: String, response: Response<Unit>): AlfredWriteResult {
+    /**
+     * The 404's list holds unticked items only (a write has no include_ticked), so
+     * it isn't saved over the list's copy, which still has the greyed ticked rows:
+     * the caller refetches to bring those back.
+     */
+    private fun staleTarget(list: ChalkboardList, verb: String, response: Response<Unit>): AlfredWriteResult {
         val current: List<ChalkboardTaskDto>? = try {
             gson.fromJson(response.errorBody()?.string(), StaleTargetBody::class.java)
                 ?.detail?.items
@@ -393,8 +403,7 @@ class AlfredRepository(
             Log.w(TAG, "Chalkboard $verb 404 without a usable list body")
             return AlfredWriteResult.Unreachable
         }
-        Log.d(TAG, "Chalkboard $verb hit a stale line — resynced ${current.size} items")
-        cache.put(ENDPOINT_CHALKBOARD, gson.toJson(current), clock())
+        Log.d(TAG, "Chalkboard ${list.wireName} $verb hit a stale line — ${current.size} items open")
         return AlfredWriteResult.StaleTarget(current)
     }
 
@@ -514,7 +523,6 @@ class AlfredRepository(
 
         const val ENDPOINT_DAILY_SCHEDULE = "daily-schedule"
         const val ENDPOINT_WEEK_SCHEDULE = "daily-schedule/week"
-        const val ENDPOINT_CHALKBOARD = "chalkboard"
 
         /** Both hit GET /calendar/events; they cache apart because their ranges differ. */
         const val ENDPOINT_CALENDAR_WEEK = "calendar/events/week"

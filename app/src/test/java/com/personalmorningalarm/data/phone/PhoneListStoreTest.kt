@@ -21,6 +21,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.time.LocalDate
+import java.time.LocalTime
 
 /** Lists and notes kept on the phone: the same operations as the hub's, in Room. */
 @RunWith(RobolectricTestRunner::class)
@@ -31,6 +32,8 @@ class PhoneListStoreTest {
     /** The store's real scope: one write at a time, in order, outliving any screen. */
     private val writeScope = PhoneListStore.defaultScope()
     private var today: LocalDate = LocalDate.of(2026, 3, 14)
+    /** The time of day on [today]: midday, well clear of the 03:07 clear, unless a test moves it. */
+    private var time: LocalTime = LocalTime.NOON
     private var now = 1_000L
     private lateinit var store: PhoneListStore
 
@@ -39,7 +42,7 @@ class PhoneListStoreTest {
         db = Room.inMemoryDatabaseBuilder(context, PhoneListDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        store = PhoneListStore(db.dao(), writeScope, today = { today }, clock = { now++ })
+        store = PhoneListStore(db.dao(), writeScope, now = { today.atTime(time) }, clock = { now++ })
     }
 
     @After
@@ -129,6 +132,48 @@ class PhoneListStoreTest {
         // The sweep only tidies what the read already hides.
         store.sweep().done()
         assertEquals(listOf("Rope"), runBlocking { db.dao().allItems(list.id) }.map { it.text })
+    }
+
+    @Test
+    fun `a tick late at night stays greyed until the 0307 clear, and is gone from then`() {
+        val list = created("Camping")
+        store.add(list.id, "Matches").done()
+        time = LocalTime.of(23, 30)
+        store.tick(items(list.id).single().id).done()
+
+        today = today.plusDays(1)
+        time = LocalTime.of(3, 6)
+        assertTrue(items(list.id).single().ticked)
+
+        time = LocalTime.of(3, 7)
+        assertTrue(items(list.id).isEmpty())
+        store.sweep().done()
+        assertTrue(runBlocking { db.dao().allItems(list.id) }.isEmpty())
+    }
+
+    @Test
+    fun `a tick in the small hours clears at 0307 the same night`() {
+        store.addTodo("Water the ferns").done()
+        time = LocalTime.of(1, 0)
+        store.tick(runBlocking { store.todoItems().first() }.single().id).done()
+
+        time = LocalTime.of(3, 6)
+        assertEquals(1, runBlocking { store.todoItems().first() }.size)
+        // The early sweep leaves it: it was ticked in the current sweep day.
+        store.sweep().done()
+        assertEquals(1, runBlocking { db.dao().allItems(PhoneListStore.TODO_LIST_ID) }.size)
+
+        time = LocalTime.of(3, 7)
+        assertTrue(runBlocking { store.todoItems().first() }.isEmpty())
+    }
+
+    @Test
+    fun `the sweep day turns over at 0307, not midnight`() {
+        val day = LocalDate.of(2026, 11, 25)
+        assertEquals(day.minusDays(1), PhoneListStore.sweepDayOf(day.atTime(0, 0)))
+        assertEquals(day.minusDays(1), PhoneListStore.sweepDayOf(day.atTime(3, 6, 59)))
+        assertEquals(day, PhoneListStore.sweepDayOf(day.atTime(3, 7)))
+        assertEquals(day, PhoneListStore.sweepDayOf(day.atTime(23, 59)))
     }
 
     @Test

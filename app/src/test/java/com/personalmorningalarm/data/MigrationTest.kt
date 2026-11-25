@@ -23,7 +23,7 @@ import java.io.File
 /**
  * Upgrading a phone with data on it. The old database is built from the committed
  * 8.json, seeded, then opened the way the app opens it, so Room's own schema check
- * runs as it does on the device: a table that doesn't match 9.json fails the open.
+ * runs as it does on the device: a table that doesn't match 10.json fails the open.
  * That check let a missing unique index through, so the last test proves it directly.
  *
  * On the JVM with Robolectric, not MigrationTestHelper: that's an instrumented test,
@@ -109,10 +109,17 @@ class MigrationTest {
             .also { opened = it }
 
     @Test
-    fun `upgrading to 9 passes Room's schema check`() {
+    fun `upgrading to 10 passes Room's schema check`() {
         val db = upgrade()
 
-        assertEquals(9, db.openHelper.writableDatabase.version)
+        assertEquals(10, db.openHelper.writableDatabase.version)
+    }
+
+    @Test
+    fun `a chalkboard write queued before there were two lists replays to Nick's`() = runBlocking {
+        val db = upgrade()
+
+        assertEquals("nick", db.pendingChalkboardWriteDao().getPending().single().list)
     }
 
     @Test

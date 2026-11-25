@@ -56,24 +56,29 @@ interface AlfredApiService {
     ): CalendarEventsDto
 
     /**
-     * The rolling to-do, including items ticked but not yet swept by the Pi's
-     * overnight housekeeping. Each item carries its raw vault [ChalkboardTaskDto.line],
+     * One chalkboard list ([list] is a [com.personalmorningalarm.data.model.ChalkboardList]
+     * wire name, always sent). With [includeTicked] the items ticked but not yet
+     * swept come back too, every item marked [ChalkboardTaskDto.ticked]; without it,
+     * unticked items only. Each item carries its raw vault [ChalkboardTaskDto.line],
      * the targeting key for the writes below.
      */
     @GET("chalkboard")
-    suspend fun getChalkboard(): List<ChalkboardTaskDto>
+    suspend fun getChalkboard(
+        @Query("list") list: String,
+        @Query("include_ticked") includeTicked: Boolean
+    ): List<ChalkboardTaskDto>
 
-    /** Adds an item. The API appends "- [ ] text (today's date)" itself — no date is sent. */
+    /** Adds an item to [list]. The API appends "- [ ] text (today's date)" itself — no date is sent. */
     @POST("chalkboard")
-    suspend fun addChalkboardItem(@Body body: ChalkboardAddRequest): Response<Unit>
+    suspend fun addChalkboardItem(@Query("list") list: String, @Body body: ChalkboardAddRequest): Response<Unit>
 
-    /** Flips the targeted item to done. It stays in the list, ticked, until the sweep. */
+    /** Flips the targeted item to done. It stays in the file, ticked, until the sweep. */
     @POST("chalkboard/tick")
-    suspend fun tickChalkboardItem(@Body body: ChalkboardLineRequest): Response<Unit>
+    suspend fun tickChalkboardItem(@Query("list") list: String, @Body body: ChalkboardLineRequest): Response<Unit>
 
     /** Removes the targeted item as no longer relevant (the API archives it as dropped). */
     @POST("chalkboard/drop")
-    suspend fun dropChalkboardItem(@Body body: ChalkboardLineRequest): Response<Unit>
+    suspend fun dropChalkboardItem(@Query("list") list: String, @Body body: ChalkboardLineRequest): Response<Unit>
 
     /** Every active shopping list in the vault — the list-picker menu's discovery source. */
     @GET("shopping")

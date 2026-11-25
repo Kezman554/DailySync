@@ -38,7 +38,7 @@ class TilesViewModelTest : ViewModelTestSupport() {
     private val paths: MutableList<String> = Collections.synchronizedList(mutableListOf())
 
     private var profile: Profile? = null
-    private var todoHome = ListHome.HUB
+    private var mineHome = ListHome.HUB
 
     @Before
     fun setUp() {
@@ -79,7 +79,7 @@ class TilesViewModelTest : ViewModelTestSupport() {
                 PresenceRepository(DashboardSettings(context)),
                 phoneStore,
                 tiles = { ProfileTiles.tilesFor(profile) },
-                todoHome = { todoHome }
+                mineHome = { mineHome }
             )
         )
     }
@@ -99,11 +99,15 @@ class TilesViewModelTest : ViewModelTestSupport() {
 
         // Chosen at first run: the same ViewModel, recreated around it.
         profile = Profile.JESS
-        todoHome = ListHome.PHONE
+        mineHome = ListHome.PHONE
         vm.refresh()
-        awaitValue(vm.state) { it.shopping != null }
+        awaitValue(vm.state) { it.shopping != null && it.familyTodos != null }
 
-        assertEquals(listOf("/shopping?for=jess"), drainRequests())
+        // The family chalkboard, by name; never Nick's rolling to-do.
+        assertEquals(
+            listOf("/chalkboard?list=family&include_ticked=true", "/shopping?for=jess"),
+            drainRequests()
+        )
     }
 
     @Test
@@ -112,11 +116,15 @@ class TilesViewModelTest : ViewModelTestSupport() {
         val vm = viewModel()
         keepSubscribed(vm.state)
         vm.refresh()
-        awaitValue(vm.state) { it.shopping != null && it.presence != null && it.todos != null && it.schedule != null }
+        awaitValue(vm.state) {
+            it.shopping != null && it.presence != null && it.familyTodos != null && it.mineTodos != null &&
+                it.schedule != null
+        }
 
         val requests = drainRequests()
         assertTrue(requests.toString(), "/shopping?for=nick" in requests)
-        assertTrue(requests.toString(), "/chalkboard" in requests)
+        assertTrue(requests.toString(), "/chalkboard?list=nick&include_ticked=true" in requests)
+        assertTrue(requests.toString(), "/chalkboard?list=family&include_ticked=true" in requests)
         assertTrue(requests.toString(), "/daily-schedule" in requests)
         assertTrue(requests.toString(), "/api/presence" in requests)
         assertTrue(requests.toString(), requests.any { it.startsWith("/calendar/events") })

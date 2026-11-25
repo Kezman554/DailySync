@@ -13,10 +13,7 @@
         tools:layout="@layout/fragment_tiles">
         <action
             android:id="@+id/action_tiles_to_todo"
-            app:destination="@id/rollingTodoFragment" />
-        <action
-            android:id="@+id/action_tiles_to_phoneTodo"
-            app:destination="@id/phoneTodoFragment" />
+            app:destination="@id/todoFragment" />
         <action
             android:id="@+id/action_tiles_to_week"
             app:destination="@id/weekScheduleFragment" />
@@ -150,19 +147,12 @@
         android:label="@string/alarm_tab_pin"
         tools:layout="@layout/fragment_alarm_pin" />
 
-    <!-- The To-Do tile: the rolling to-do, read-write. -->
+    <!-- The To-Do tile: Family and Mine in one, read-write. -->
     <fragment
-        android:id="@+id/rollingTodoFragment"
-        android:name="com.personalmorningalarm.ui.RollingTodoFragment"
+        android:id="@+id/todoFragment"
+        android:name="com.personalmorningalarm.ui.TodoFragment"
         android:label="@string/todo_title"
-        tools:layout="@layout/fragment_rolling_todo" />
-
-    <!-- The To-Do tile when Settings keeps its list on the phone. -->
-    <fragment
-        android:id="@+id/phoneTodoFragment"
-        android:name="com.personalmorningalarm.ui.PhoneTodoFragment"
-        android:label="@string/todo_title"
-        tools:layout="@layout/fragment_rolling_todo" />
+        tools:layout="@layout/fragment_todo" />
 
     <!-- Shopping Lists tile: discovery menu + create, then one screen per list. -->
     <fragment

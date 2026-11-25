@@ -35,6 +35,19 @@ enum class Profile(
             JESS -> NewListHome.Ask(ListHome.PHONE)
         }
 
+    /**
+     * Where the To-do tile's Mine list lives, given Settings' choice [setting]. The
+     * hub's rolling to-do is Nick's own list, so only Nick's Mine can be it (and is,
+     * unless he moved it to the phone); Jess's Mine is always her phone list.
+     */
+    fun mineTodoHome(setting: ListHome): ListHome = when (this) {
+        NICK -> setting
+        JESS -> ListHome.PHONE
+    }
+
+    /** Whether Settings offers the "To-Do list lives on" choice: only where [mineTodoHome] heeds it. */
+    val choosesTodoHome: Boolean get() = this == NICK
+
     /** Where the to-do starts when this profile is set up, or null to leave it be. */
     val setupTodoHome: ListHome?
         get() = when (this) {

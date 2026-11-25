@@ -483,6 +483,21 @@
         <item name="android:focusable">true</item>
     </style>
 
+    <!-- The small "Family" tag on a to-do row and the Home tile's preview -->
+    <style name="DailySync.Tag" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingStart">6dp</item>
+        <item name="android:paddingEnd">6dp</item>
+        <item name="android:paddingTop">1dp</item>
+        <item name="android:paddingBottom">1dp</item>
+        <item name="android:background">@drawable/bg_tag</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:text">@string/todo_tag_family</item>
+    </style>
+
     <!-- A row in a manage list (tags, quotes, routines, stretches): its own card -->
     <style name="DailySync.ListCard" parent="">
         <item name="android:layout_marginBottom">8dp</item>

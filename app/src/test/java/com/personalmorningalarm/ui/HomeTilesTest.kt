@@ -5,7 +5,6 @@ import com.personalmorningalarm.data.model.AgendaEntry
 import com.personalmorningalarm.data.model.AgendaGroup
 import com.personalmorningalarm.data.model.DayAgenda
 import com.personalmorningalarm.data.model.FamilyCalendar
-import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.data.model.ScheduleTaskDto
 import com.personalmorningalarm.data.model.SchedulePeriod
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
@@ -103,16 +102,7 @@ class HomeTilesTest {
         )
     }
 
-    // --- To-do and shopping ---
-
-    @Test
-    fun openTodos_skipsTicked_andTakesThree() {
-        val items = listOf(
-            RollingTodoItem("a", null), RollingTodoItem("ticked", null, done = true),
-            RollingTodoItem("b", null), RollingTodoItem("c", null), RollingTodoItem("d", null)
-        )
-        assertEquals(listOf("a", "b", "c"), HomeTiles.openTodos(items).map { it.task })
-    }
+    // --- Shopping (the to-do tile's preview is TodoBoardTest's) ---
 
     @Test
     fun activeShoppingList_isTheFirstWithItemsLeft() {

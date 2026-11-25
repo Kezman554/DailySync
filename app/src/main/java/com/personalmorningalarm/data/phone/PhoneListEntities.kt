@@ -60,9 +60,11 @@ data class PhoneListItem(
     /** The day it went on the list, as an epoch day: the to-do's date and "oldest" count. */
     @ColumnInfo(name = "addedOn") val addedOnEpochDay: Long,
     /**
-     * The day it was ticked, as an epoch day; null while it's still to do. A ticked
-     * item stays on the list, struck through, for the rest of that day and is gone
-     * from the next: the hub's overnight sweep, worked out on read.
+     * The sweep day it was ticked in, as an epoch day; null while it's still to do.
+     * A sweep day starts at 03:07 ([PhoneListStore.sweepDayOf]), so a ticked item
+     * stays on the list, struck through, until the next 03:07 and is gone after: the
+     * hub's overnight sweep, worked out on read. (Rows ticked before that rule
+     * carry the calendar day, which at worst clears them at 03:07 rather than midnight.)
      */
     @ColumnInfo(name = "tickedOn") val tickedOnEpochDay: Long? = null
 ) {

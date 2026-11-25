@@ -44,7 +44,7 @@ import com.personalmorningalarm.data.entity.StretchRoutine
         PendingInboxWrite::class,
         PendingNoteWrite::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -181,10 +181,20 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // v10: a queued chalkboard write names its list (Nick's rolling to-do or the
+        // family chalkboard). Everything queued before then was Nick's.
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `pending_chalkboard_writes` ADD COLUMN `list` TEXT NOT NULL DEFAULT 'nick'"
+                )
+            }
+        }
+
         /** Every migration, in order: what the app opens with, and what the migration test opens with. */
         internal val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-            MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9
+            MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10
         )
 
         @Volatile

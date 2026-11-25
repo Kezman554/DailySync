@@ -47,6 +47,7 @@ import com.personalmorningalarm.data.model.ContentType
 import com.personalmorningalarm.data.model.FamilyCalendar
 import com.personalmorningalarm.data.model.FamilyEvent
 import com.personalmorningalarm.data.model.MorningGoal
+import com.personalmorningalarm.data.model.ChalkboardList
 import com.personalmorningalarm.data.model.RollingTodo
 import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.data.model.ScheduleTaskDto
@@ -954,8 +955,8 @@ class AlarmDismissalActivity : AppCompatActivity() {
     }
 
     /**
-     * Ticks a rolling to-do item through to Alfred, the same two ways the Today
-     * screen does: straight to the API while the list is fresh, into the offline
+     * Ticks an item on Nick's rolling to-do through to Alfred, the same two ways
+     * the To-do screen does: straight to the API while the list is fresh, into the offline
      * queue (flushed when Alfred is back) when it's a saved copy or the write
      * finds Alfred gone.
      */
@@ -963,16 +964,16 @@ class AlarmDismissalActivity : AppCompatActivity() {
         val line = item.line ?: return
         lifecycleScope.launch {
             if (!fresh) {
-                ChalkboardSync.getInstance(applicationContext).enqueue(ChalkboardVerb.TICK, item.task, line)
+                ChalkboardSync.getInstance(applicationContext).enqueue(ChalkboardList.NICK, ChalkboardVerb.TICK, item.task, line)
                 Log.d(TAG, "Chalkboard tick queued (saved copy on screen)")
                 return@launch
             }
-            when (alfredRepository.tickChalkboardItem(line)) {
+            when (alfredRepository.tickChalkboardItem(ChalkboardList.NICK, line)) {
                 AlfredWriteResult.Done -> Log.d(TAG, "Chalkboard tick landed")
                 is AlfredWriteResult.StaleTarget ->
                     Log.d(TAG, "Chalkboard tick: the list had changed on Alfred — not ticked")
                 AlfredWriteResult.Unreachable -> {
-                    ChalkboardSync.getInstance(applicationContext).enqueue(ChalkboardVerb.TICK, item.task, line)
+                    ChalkboardSync.getInstance(applicationContext).enqueue(ChalkboardList.NICK, ChalkboardVerb.TICK, item.task, line)
                     Log.d(TAG, "Chalkboard tick didn't land — queued")
                 }
             }

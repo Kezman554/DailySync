@@ -58,4 +58,14 @@ class ProfileTest {
         assertNull(Profile.fromWireName("pending"))
         assertNull(Profile.fromWireName(null))
     }
+
+    @Test
+    fun `Nick's Mine to-do follows Settings, Jess's is always her phone list`() {
+        assertEquals(ListHome.HUB, Profile.NICK.mineTodoHome(ListHome.HUB))
+        assertEquals(ListHome.PHONE, Profile.NICK.mineTodoHome(ListHome.PHONE))
+        // The hub's rolling to-do is Nick's own: Jess never gets it, whatever is saved.
+        assertEquals(ListHome.PHONE, Profile.JESS.mineTodoHome(ListHome.HUB))
+        assertTrue(Profile.NICK.choosesTodoHome)
+        assertFalse(Profile.JESS.choosesTodoHome)
+    }
 }

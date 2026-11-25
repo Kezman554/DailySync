@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One rolling to-do row: a positive checkbox, the task, the date it went on the
-     list on the right. Tap ticks, long-press drops. -->
+<!-- One to-do row: a positive checkbox, the task (with a Family tag in All), the
+     date it went on the list on the right. Tap ticks, long-press drops. -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -41,18 +41,37 @@
             android:textSize="15sp"
             tools:text="Plant the bamboo" />
 
-        <!-- Only on items still waiting in the offline queue. -->
-        <TextView
-            android:id="@+id/tv_todo_pending"
+        <!-- The Family tag (in All), then the waiting-to-sync note; the row is
+             gone when neither applies. -->
+        <LinearLayout
+            android:id="@+id/row_todo_marks"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="@string/chalkboard_item_pending"
-            android:textColor="?attr/colorPrimary"
-            android:textSize="12sp"
-            android:textStyle="bold|italic"
+            android:layout_marginTop="3dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:visibility="gone"
-            tools:visibility="visible" />
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/tv_todo_tag"
+                style="@style/DailySync.Tag"
+                android:layout_marginEnd="8dp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <!-- Only on items still waiting in the offline queue. -->
+            <TextView
+                android:id="@+id/tv_todo_pending"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chalkboard_item_pending"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="12sp"
+                android:textStyle="bold|italic"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
     </LinearLayout>
 
     <TextView

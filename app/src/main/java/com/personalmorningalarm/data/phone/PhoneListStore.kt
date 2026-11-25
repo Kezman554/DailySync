@@ -14,6 +14,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.util.UUID
 
 /**
@@ -33,7 +35,7 @@ import java.util.UUID
 class PhoneListStore(
     private val dao: PhoneListDao,
     private val scope: CoroutineScope = defaultScope(),
-    private val today: () -> LocalDate = LocalDate::now,
+    private val now: () -> LocalDateTime = LocalDateTime::now,
     private val clock: () -> Long = System::currentTimeMillis
 ) {
 
@@ -51,7 +53,7 @@ class PhoneListStore(
 
     /** Every phone shopping list with its counts, oldest first. */
     fun shoppingLists(): Flow<List<PhoneListSummary>> =
-        dao.observeSummaries(PhoneListKind.SHOPPING.name, todayDay())
+        dao.observeSummaries(PhoneListKind.SHOPPING.name, sweepDay())
 
     /**
      * Makes a shopping list called [title], trimmed. Runs in [scope], so it finishes
@@ -82,8 +84,8 @@ class PhoneListStore(
 
     // Items, on any phone list
 
-    /** What's showing on [listId], in the order added: still to do, and today's ticks. */
-    fun items(listId: String): Flow<List<PhoneListItem>> = dao.observeItems(listId, todayDay())
+    /** What's showing on [listId], in the order added: still to do, and ticks not yet cleared. */
+    fun items(listId: String): Flow<List<PhoneListItem>> = dao.observeItems(listId, sweepDay())
 
     /** Adds [text] as one item: line breaks become spaces, as on the hub. Blank is ignored. */
     fun add(listId: String, text: String): Job = write("add") {
@@ -92,17 +94,19 @@ class PhoneListStore(
         dao.insertItem(PhoneListItem(listId = listId, text = task, addedOnEpochDay = todayDay()))
     }
 
-    /** Bought, or done: struck through for the rest of today, gone tomorrow. */
-    fun tick(itemId: Long): Job = write("tick") { dao.tick(itemId, todayDay()) }
+    /** Bought, or done: struck through until the next overnight clear ([SWEEP_TIME]). */
+    fun tick(itemId: Long): Job = write("tick") { dao.tick(itemId, sweepDay()) }
 
     /** No longer wanted: gone now. */
     fun drop(itemId: Long): Job = write("drop") { dao.deleteItem(itemId) }
 
     /**
-     * Clears items ticked before today. The lists already hide them on read; this is
-     * only the tidying, so a screen calls it on opening and it never has to run on time.
+     * The daily local clear: deletes items ticked before the last [SWEEP_TIME]. The
+     * lists already hide them on read, from that moment; this is only the tidying,
+     * so a screen calls it on opening and it never has to run on time. No job is
+     * scheduled for it: there's nothing for a sleeping or killed phone to miss.
      */
-    fun sweep(): Job = write("sweep") { dao.deleteTickedBefore(todayDay()) }
+    fun sweep(): Job = write("sweep") { dao.deleteTickedBefore(sweepDay()) }
 
     // The to-do
 
@@ -131,7 +135,11 @@ class PhoneListStore(
         )
     }
 
-    private fun todayDay(): Long = today().toEpochDay()
+    /** The calendar day: what an item's added date is. */
+    private fun todayDay(): Long = now().toLocalDate().toEpochDay()
+
+    /** The day the clock is in for ticks and clearing, which turns over at [SWEEP_TIME]. */
+    private fun sweepDay(): Long = sweepDayOf(now()).toEpochDay()
 
     private fun write(what: String, block: suspend () -> Unit): Job = scope.launch {
         try {
@@ -145,6 +153,20 @@ class PhoneListStore(
 
     companion object {
         private const val TAG = "PMA"
+
+        /**
+         * When ticked items clear overnight: the hub's sweep time (its cron runs at
+         * 03:07), so a phone list and a hub list grey and clear alike.
+         */
+        val SWEEP_TIME: LocalTime = LocalTime.of(3, 7)
+
+        /**
+         * The sweep day [at] falls in. It starts at [SWEEP_TIME], not midnight: a tick
+         * at 23:00 stays greyed until 03:07, and one at 01:00 clears at 03:07 the same
+         * night. An item ticked in an earlier sweep day than now's has been cleared.
+         */
+        fun sweepDayOf(at: LocalDateTime): LocalDate =
+            at.minusHours(SWEEP_TIME.hour.toLong()).minusMinutes(SWEEP_TIME.minute.toLong()).toLocalDate()
 
         /** The phone to-do's fixed id: there is one, and it needs no name. */
         const val TODO_LIST_ID = "todo"

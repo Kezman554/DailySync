@@ -6,6 +6,7 @@ import com.personalmorningalarm.data.AppDatabase
 import com.personalmorningalarm.data.dao.PendingChalkboardWriteDao
 import com.personalmorningalarm.data.entity.ChalkboardVerb
 import com.personalmorningalarm.data.entity.PendingChalkboardWrite
+import com.personalmorningalarm.data.model.ChalkboardList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -14,7 +15,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Store-and-forward for rolling to-do writes: anything captured while Alfred is
+ * Store-and-forward for chalkboard writes, both lists in one FIFO queue: anything captured while Alfred is
  * unreachable waits in a Room-backed FIFO queue and is replayed when he's back.
  * This is capture, not live sync — nothing here polls; [flush] runs only on the
  * event-driven triggers (app foreground, network change, manual refresh).
@@ -51,16 +52,17 @@ class ChalkboardSync(
         val changedAnything: Boolean get() = delivered > 0 || conflicted > 0
     }
 
-    suspend fun enqueue(verb: ChalkboardVerb, text: String, line: String? = null) {
+    suspend fun enqueue(list: ChalkboardList, verb: ChalkboardVerb, text: String, line: String? = null) {
         dao.insert(
             PendingChalkboardWrite(
                 verb = verb.name,
                 text = text,
                 line = line,
-                createdAt = System.currentTimeMillis()
+                createdAt = System.currentTimeMillis(),
+                list = list.wireName
             )
         )
-        Log.d(TAG, "Chalkboard ${verb.name} queued for sync")
+        Log.d(TAG, "Chalkboard ${list.wireName} ${verb.name} queued for sync")
     }
 
     /** Cheap guard for the app-foreground trigger: don't touch the network for an empty queue. */
@@ -87,8 +89,8 @@ class ChalkboardSync(
                     delivered++
                 }
                 is AlfredWriteResult.StaleTarget -> {
-                    // The repository already cached the 404's list — the freshest
-                    // state we have. This entry is spent; the rest still get their go.
+                    // This entry is spent; the rest still get their go. The flush
+                    // event makes an open screen refetch the list it hit.
                     dao.markFailed(entry.id)
                     conflicted++
                     Log.d(TAG, "Queued ${entry.verb} hit a stale line — kept for the notice")
@@ -106,10 +108,12 @@ class ChalkboardSync(
     }
 
     private suspend fun replay(entry: PendingChalkboardWrite): AlfredWriteResult {
+        // A list this build doesn't know is never guessed at: it could reach the wall.
+        val list = ChalkboardList.fromWireName(entry.list) ?: return failEntry(entry)
         return when (ChalkboardVerb.fromName(entry.verb)) {
-            ChalkboardVerb.ADD -> alfred.addChalkboardItem(entry.text)
-            ChalkboardVerb.TICK -> alfred.tickChalkboardItem(entry.line ?: return failEntry(entry))
-            ChalkboardVerb.DROP -> alfred.dropChalkboardItem(entry.line ?: return failEntry(entry))
+            ChalkboardVerb.ADD -> alfred.addChalkboardItem(list, entry.text)
+            ChalkboardVerb.TICK -> alfred.tickChalkboardItem(list, entry.line ?: return failEntry(entry))
+            ChalkboardVerb.DROP -> alfred.dropChalkboardItem(list, entry.line ?: return failEntry(entry))
             // A verb this build doesn't know (downgrade after a newer build queued
             // it): failing it keeps the notice honest and the queue moving.
             null -> failEntry(entry)

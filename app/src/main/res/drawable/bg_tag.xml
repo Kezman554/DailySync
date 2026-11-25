@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The small "Family" tag on a to-do row and the Home tile: a tinted chip. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="6dp" />
+    <solid android:color="?attr/colorSurface2" />
+</shape>

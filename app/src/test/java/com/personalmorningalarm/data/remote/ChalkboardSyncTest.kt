@@ -1,5 +1,6 @@
 package com.personalmorningalarm.data.remote
 
+import com.personalmorningalarm.data.model.ChalkboardList
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
@@ -55,16 +56,16 @@ class ChalkboardSyncTest {
                 override suspend fun getWeekSchedule(): WeekScheduleDto = throw IOException()
                 override suspend fun getCalendarEvents(start: String, end: String): CalendarEventsDto =
                     throw IOException()
-                override suspend fun getChalkboard(): List<ChalkboardTaskDto> = throw IOException()
+                override suspend fun getChalkboard(list: String, includeTicked: Boolean): List<ChalkboardTaskDto> = throw IOException()
 
-                override suspend fun addChalkboardItem(body: ChalkboardAddRequest): Response<Unit> =
-                    write("ADD:${body.text}")
+                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest): Response<Unit> =
+                    write(list, "ADD:${body.text}")
 
-                override suspend fun tickChalkboardItem(body: ChalkboardLineRequest): Response<Unit> =
-                    write("TICK:${body.line}")
+                override suspend fun tickChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> =
+                    write(list, "TICK:${body.line}")
 
-                override suspend fun dropChalkboardItem(body: ChalkboardLineRequest): Response<Unit> =
-                    write("DROP:${body.line}")
+                override suspend fun dropChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> =
+                    write(list, "DROP:${body.line}")
 
                 override suspend fun getShoppingLists(): List<com.personalmorningalarm.data.model.ShoppingListSummaryDto> =
                     throw IOException()
@@ -99,8 +100,9 @@ class ChalkboardSyncTest {
 
                 override suspend fun capture(body: okhttp3.RequestBody): Response<Unit> = throw IOException()
 
-                private fun write(label: String): Response<Unit> {
-                    writesSeen += label
+                private fun write(list: String, label: String): Response<Unit> {
+                    // Nick's writes read as before; any other list says which.
+                    writesSeen += if (list == "nick") label else "$list $label"
                     val next = responses.removeFirstOrNull() ?: throw IOException("Alfred unreachable")
                     return next()
                 }
@@ -123,10 +125,40 @@ class ChalkboardSyncTest {
     }
 
     @Test
+    fun `each queued write goes back to the list it was made on`() = runBlocking {
+        sync.enqueue(ChalkboardList.FAMILY, ChalkboardVerb.ADD, "Bins out")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.ADD, "Buy stamps")
+        sync.enqueue(ChalkboardList.FAMILY, ChalkboardVerb.TICK, "Book the boiler", "- [ ] Book the boiler")
+        repeat(3) { responses += accept() }
+
+        sync.flush()
+
+        assertEquals(
+            listOf("family ADD:Bins out", "ADD:Buy stamps", "family TICK:- [ ] Book the boiler"),
+            writesSeen
+        )
+    }
+
+    @Test
+    fun `a write queued for a list this build doesn't know is failed, never guessed at`() = runBlocking {
+        dao.insert(
+            com.personalmorningalarm.data.entity.PendingChalkboardWrite(
+                verb = ChalkboardVerb.ADD.name, text = "Somewhere new", line = null, createdAt = 1, list = "garage"
+            )
+        )
+        responses += accept()
+
+        val outcome = sync.flush()
+
+        assertTrue(writesSeen.isEmpty())
+        assertEquals(1, outcome.conflicted)
+    }
+
+    @Test
     fun `flush replays the queue in capture order and empties it`() = runBlocking {
-        sync.enqueue(ChalkboardVerb.ADD, "Buy stamps")
-        sync.enqueue(ChalkboardVerb.TICK, "Fix fence", "- [ ] Fix fence")
-        sync.enqueue(ChalkboardVerb.DROP, "Old idea", "- [ ] Old idea")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.ADD, "Buy stamps")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.TICK, "Fix fence", "- [ ] Fix fence")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.DROP, "Old idea", "- [ ] Old idea")
         repeat(3) { responses += accept() }
 
         val outcome = sync.flush()
@@ -142,8 +174,8 @@ class ChalkboardSyncTest {
 
     @Test
     fun `an unreachable Alfred stops the flush and keeps everything queued`() = runBlocking {
-        sync.enqueue(ChalkboardVerb.ADD, "Buy stamps")
-        sync.enqueue(ChalkboardVerb.ADD, "Call the dentist")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.ADD, "Buy stamps")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.ADD, "Call the dentist")
         // No responses queued: the first write throws.
 
         val outcome = sync.flush()
@@ -157,8 +189,8 @@ class ChalkboardSyncTest {
 
     @Test
     fun `a partial flush keeps only what Alfred didn't take`() = runBlocking {
-        sync.enqueue(ChalkboardVerb.ADD, "Buy stamps")
-        sync.enqueue(ChalkboardVerb.ADD, "Call the dentist")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.ADD, "Buy stamps")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.ADD, "Call the dentist")
         responses += accept() // first lands, then Alfred vanishes
 
         val outcome = sync.flush()
@@ -175,8 +207,8 @@ class ChalkboardSyncTest {
 
     @Test
     fun `a stale target is failed and kept, and never blocks the rest of the queue`() = runBlocking {
-        sync.enqueue(ChalkboardVerb.TICK, "Long gone", "- [ ] Long gone")
-        sync.enqueue(ChalkboardVerb.ADD, "Buy stamps")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.TICK, "Long gone", "- [ ] Long gone")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.ADD, "Buy stamps")
         responses += staleTarget()
         responses += accept()
 
@@ -199,7 +231,7 @@ class ChalkboardSyncTest {
 
     @Test
     fun `dismissing failed entries clears the notice`() = runBlocking {
-        sync.enqueue(ChalkboardVerb.TICK, "Long gone", "- [ ] Long gone")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.TICK, "Long gone", "- [ ] Long gone")
         responses += staleTarget()
         sync.flush()
         assertEquals(1, dao.observeAllOnce().size)
@@ -219,7 +251,7 @@ class ChalkboardSyncTest {
                 createdAt = 0L
             )
         )
-        sync.enqueue(ChalkboardVerb.ADD, "Buy stamps")
+        sync.enqueue(ChalkboardList.NICK, ChalkboardVerb.ADD, "Buy stamps")
         responses += accept()
 
         val outcome = sync.flush()

@@ -267,4 +267,25 @@ class RollingTodoTest {
 
         assertEquals(listOf(true), items.map { it.done })
     }
+
+    @Test
+    fun `the ticked flag decides done when the read carries it`() {
+        val items = RollingTodo.items(
+            listOf(
+                ChalkboardTaskDto("Fix fence", null, "- [x] Fix fence", ticked = true),
+                ChalkboardTaskDto("Oil the gate", null, "- [ ] Oil the gate", ticked = false)
+            )
+        )
+
+        assertEquals(listOf(true, false), items.map { it.done })
+    }
+
+    @Test
+    fun `only the list's own queued writes are laid over it`() {
+        val familyAdd = pending(ChalkboardVerb.ADD, "Bins out").copy(list = ChalkboardList.FAMILY.wireName)
+        val nickAdd = pending(ChalkboardVerb.ADD, "Buy stamps")
+
+        assertEquals(listOf("Buy stamps"), RollingTodo.merged(emptyList(), listOf(familyAdd, nickAdd), ChalkboardList.NICK).map { it.task })
+        assertEquals(listOf("Bins out"), RollingTodo.merged(emptyList(), listOf(familyAdd, nickAdd), ChalkboardList.FAMILY).map { it.task })
+    }
 }

@@ -39,8 +39,8 @@ object RollingTodo {
     // shown as sent rather than guessed at or dropped.
     private val DISPLAY_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.UK)
 
-    // "- [x]" at the start of the raw line. Done state lives in the markdown
-    // itself — the API sends no separate flag.
+    // "- [x]" at the start of the raw line: the done state when the read carried
+    // no [ChalkboardTaskDto.ticked] (the plain read, or a copy saved before it).
     private val TICKED = Regex("""^\s*-\s*\[[xX]]""")
 
     fun items(tasks: List<ChalkboardTaskDto>): List<RollingTodoItem> =
@@ -53,7 +53,7 @@ object RollingTodo {
                     date = displayDate(it.date),
                     addedOn = parseDate(it.date),
                     line = it.line,
-                    done = it.line != null && TICKED.containsMatchIn(it.line)
+                    done = it.ticked ?: (it.line != null && TICKED.containsMatchIn(it.line))
                 )
             }
 
@@ -62,10 +62,15 @@ object RollingTodo {
      * queued edits laid over the top — adds appended, ticks flipped, drops gone —
      * each marked [RollingTodoItem.pending] so the not-yet-synced state is honest.
      * Failed entries are excluded: they're a notice, not part of the list.
+     * Only [list]'s queued writes count: the queue holds both lists'.
      */
-    fun merged(tasks: List<ChalkboardTaskDto>, pending: List<PendingChalkboardWrite>): List<RollingTodoItem> {
+    fun merged(
+        tasks: List<ChalkboardTaskDto>,
+        pending: List<PendingChalkboardWrite>,
+        list: ChalkboardList = ChalkboardList.NICK
+    ): List<RollingTodoItem> {
         var result = items(tasks)
-        pending.filterNot { it.failed }.forEach { write ->
+        pending.filterNot { it.failed }.filter { it.list == list.wireName }.forEach { write ->
             result = when (ChalkboardVerb.fromName(write.verb)) {
                 ChalkboardVerb.ADD -> result + RollingTodoItem(
                     task = VaultText.resolveLinks(write.text),

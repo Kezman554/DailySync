@@ -3,7 +3,6 @@ package com.personalmorningalarm.ui
 import com.personalmorningalarm.data.entity.AlarmConfig
 import com.personalmorningalarm.data.model.DayAgenda
 import com.personalmorningalarm.data.model.FamilyCalendar
-import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.data.model.SchedulePeriod
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import java.time.LocalDateTime
@@ -68,10 +67,6 @@ object HomeTiles {
         }
     }
 
-    /** The first [count] items still to do — ticked ones wait for the sweep, so skip them. */
-    fun openTodos(items: List<RollingTodoItem>, count: Int = TODO_PREVIEW): List<RollingTodoItem> =
-        items.filterNot { it.done }.take(count)
-
     /**
      * The first list with anything left on it, the hub's lists as Alfred orders them
      * and then the phone's [phoneLists]; null if none.
@@ -83,5 +78,4 @@ object HomeTiles {
         (lists + phoneLists).firstOrNull { (it.unticked ?: 0) > 0 && !it.title.isNullOrBlank() }
 
     private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-    const val TODO_PREVIEW = 3
 }

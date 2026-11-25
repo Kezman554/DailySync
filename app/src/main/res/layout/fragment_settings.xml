@@ -178,12 +178,16 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Lists: where the To-Do tile's list lives (ListSettings.todoHome) -->
+        <!-- Lists: where the To-do tile's Mine list lives (ListSettings.todoHome).
+             Only for a profile whose Mine heeds it (Profile.choosesTodoHome) -->
         <TextView
+            android:id="@+id/label_lists"
             style="@style/DailySync.GroupLabel"
             android:text="@string/lists_section_title" />
 
-        <LinearLayout style="@style/DailySync.SettingsCard">
+        <LinearLayout
+            android:id="@+id/card_lists"
+            style="@style/DailySync.SettingsCard">
 
             <LinearLayout
                 android:id="@+id/row_todo_home"

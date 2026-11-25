@@ -1,6 +1,7 @@
 package com.personalmorningalarm.ui
 
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,12 +19,15 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.DayAgenda
-import com.personalmorningalarm.data.model.RollingTodoItem
+import com.personalmorningalarm.data.model.TodoBoard
+import com.personalmorningalarm.data.model.TodoRow
+import com.personalmorningalarm.data.model.TodoSource
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import com.personalmorningalarm.data.phone.ListHome
 import com.personalmorningalarm.data.phone.ListSettings
 import com.personalmorningalarm.data.phone.PhoneListStore
+import com.personalmorningalarm.data.profile.Profile
 import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
@@ -63,6 +67,7 @@ class TilesFragment : Fragment() {
             initializer {
                 val context = requireContext().applicationContext
                 val lists = ListSettings(context)
+                val profiles = ProfileSettings(context)
                 TilesViewModel(
                     AlfredRepository(context),
                     ChalkboardSync.getInstance(context),
@@ -70,7 +75,7 @@ class TilesFragment : Fragment() {
                     PhoneListStore.getInstance(context),
                     // Not [tiles]: the ViewModel outlives the recreate a profile change makes.
                     tiles = { profileTiles(context) },
-                    todoHome = lists::todoHome
+                    mineHome = { (profiles.profile() ?: Profile.NICK).mineTodoHome(lists.todoHome()) }
                 )
             }
         }
@@ -100,12 +105,7 @@ class TilesFragment : Fragment() {
         // still intercepts a drag), so the whole card opens the week.
         binding.scheduleStrip.setOnClickListener(openWeek)
         binding.cardTodo.setOnClickListener {
-            findNavController().navigate(
-                when (ListSettings(requireContext()).todoHome()) {
-                    ListHome.HUB -> R.id.action_tiles_to_todo
-                    ListHome.PHONE -> R.id.action_tiles_to_phoneTodo
-                }
-            )
+            findNavController().navigate(R.id.action_tiles_to_todo)
         }
         binding.cardShopping.setOnClickListener {
             findNavController().navigate(R.id.action_tiles_to_shoppingMenu)
@@ -239,34 +239,62 @@ class TilesFragment : Fragment() {
         binding.tvScheduleNote.text = note
     }
 
+    /** Both lists' open counts, then the first few open items, family ones tagged. */
     private fun renderTodos(state: TilesViewModel.TilesState) {
-        val onPhone = state.todoHome == ListHome.PHONE
-        val result = state.todos
-        val all = if (onPhone) state.phoneTodos else result?.dataOrNull()
-        val items = all?.let { HomeTiles.openTodos(it) }.orEmpty()
+        val family = state.familyTodos?.dataOrNull()
+        val mine = state.mineItems
+        val rows = state.todoRows
+        val preview = TodoBoard.preview(rows)
+
+        binding.tvTodoCounts.isVisible = family != null || mine != null
+        binding.tvTodoCounts.text = getString(
+            R.string.tiles_todo_counts,
+            family?.let { TodoBoard.openCount(rows, TodoSource.FAMILY).toString() } ?: getString(R.string.todo_stat_unknown),
+            mine?.let { TodoBoard.openCount(rows, TodoSource.MINE).toString() } ?: getString(R.string.todo_stat_unknown)
+        )
+
         binding.todoItems.removeAllViews()
-        items.forEach { item ->
+        preview.forEach { row ->
             val hairline = View(requireContext(), null, 0, R.style.DailySync_Hairline)
             binding.todoItems.addView(
                 hairline,
                 ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, hairlineHeight())
                     .apply { topMargin = resources.getDimensionPixelSize(R.dimen.todo_item_gap) }
             )
-            val row = TextView(requireContext(), null, 0, R.style.DailySync_TileListItem)
-            row.text = MarkdownRenderer.render(requireContext(), item.task)
-            binding.todoItems.addView(row)
+            binding.todoItems.addView(previewRow(row))
         }
 
         val note = when {
-            onPhone && all == null -> getString(R.string.tiles_todo_loading)
-            onPhone -> getString(R.string.tiles_todo_empty).takeIf { items.isEmpty() }
-            result == null -> getString(R.string.tiles_todo_loading)
-            result is AlfredResult.Unavailable -> getString(R.string.tiles_todo_unavailable)
-            items.isEmpty() -> getString(R.string.tiles_todo_empty)
+            // Neither list known yet: still asking, or (no copy anywhere) never loaded.
+            family == null && mine == null -> getString(
+                if (state.familyTodos is AlfredResult.Unavailable) {
+                    R.string.tiles_todo_unavailable
+                } else {
+                    R.string.tiles_todo_loading
+                }
+            )
+            preview.isEmpty() -> getString(R.string.tiles_todo_empty)
             else -> null
         }
         binding.tvTodoNote.isVisible = note != null
         binding.tvTodoNote.text = note
+    }
+
+    /** One preview line: the task, and a Family tag after it when it's on the family list. */
+    private fun previewRow(row: TodoRow): View {
+        val text = TextView(requireContext(), null, 0, R.style.DailySync_TileListItem)
+        text.text = MarkdownRenderer.render(requireContext(), row.item.task)
+        if (row.source != TodoSource.FAMILY) return text
+        return LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(text, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(
+                TextView(requireContext(), null, 0, R.style.DailySync_Tag),
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                    .apply { marginStart = resources.getDimensionPixelSize(R.dimen.todo_item_gap) }
+            )
+        }
     }
 
     private fun renderShopping(
@@ -294,8 +322,11 @@ class TilesFragment : Fragment() {
         val calendar = Freshness.of(state.calendar, now, zone).takeIf { state.schedule?.dataOrNull() != null }
         return listOf(
             Freshness.worst(Freshness.of(state.schedule, now, zone), calendar),
-            // A to-do kept on the phone is never out of date.
-            Freshness.of(state.todos, now, zone).takeIf { state.todoHome == ListHome.HUB },
+            // The hub's lists only: a to-do kept on the phone is never out of date.
+            Freshness.worst(
+                Freshness.of(state.familyTodos, now, zone),
+                Freshness.of(state.mineTodos, now, zone).takeIf { state.mineHome == ListHome.HUB }
+            ),
             Freshness.of(state.shopping, now, zone)
         )
     }

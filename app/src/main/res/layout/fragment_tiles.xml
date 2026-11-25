@@ -127,7 +127,17 @@
                     android:layout_marginTop="12dp"
                     android:text="@string/tiles_todo" />
 
-                <!-- First open items, hairline above each (TilesFragment) -->
+                <!-- "4 family · 3 mine": open items on each list -->
+                <TextView
+                    android:id="@+id/tv_todo_counts"
+                    style="@style/DailySync.TileSubtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="gone"
+                    tools:text="4 family · 3 mine"
+                    tools:visibility="visible" />
+
+                <!-- First open items of both lists, family ones tagged, hairline above each (TilesFragment) -->
                 <LinearLayout
                     android:id="@+id/todo_items"
                     android:layout_width="match_parent"

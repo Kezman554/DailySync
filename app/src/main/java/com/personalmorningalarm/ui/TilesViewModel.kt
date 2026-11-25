@@ -3,6 +3,7 @@ package com.personalmorningalarm.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.personalmorningalarm.data.model.ChalkboardList
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
 import com.personalmorningalarm.data.model.DayAgenda
 import com.personalmorningalarm.data.model.FamilyCalendar
@@ -10,6 +11,8 @@ import com.personalmorningalarm.data.model.PhoneLists
 import com.personalmorningalarm.data.model.RollingTodo
 import com.personalmorningalarm.data.model.RollingTodoItem
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.model.TodoBoard
+import com.personalmorningalarm.data.model.TodoRow
 import com.personalmorningalarm.data.phone.ListHome
 import com.personalmorningalarm.data.phone.PhoneListStore
 import com.personalmorningalarm.data.profile.Profile
@@ -41,12 +44,13 @@ import java.time.LocalDate
  * [AlfredResult.Unavailable], and the dashboard as [PresenceResult.Unreachable],
  * so one feed failing never blanks the others. A null field means "not read yet".
  *
- * Lists kept on the phone are read from [phone] as they change. When Settings keeps
- * the to-do on the phone ([todoHome]), the hub's rolling to-do isn't fetched at all.
+ * The To-do tile shows two lists: the hub's family chalkboard, and the person's own
+ * (Mine), which lives where [mineHome] says. Lists kept on the phone are read from
+ * [phone] as they change; with Mine on the phone, Nick's rolling to-do isn't fetched.
  *
  * Only the feeds the shown [tiles] need are fetched: a profile without the Daily
  * Schedule card or the sign-in tile never asks for the plan, calendar or wall. Read
- * on every refresh, like [todoHome]: this ViewModel outlives the recreate that
+ * on every refresh, like [mineHome]: this ViewModel outlives the recreate that
  * follows choosing a profile.
  */
 class TilesViewModel(
@@ -55,7 +59,7 @@ class TilesViewModel(
     private val presence: PresenceRepository,
     private val phone: PhoneListStore,
     private val tiles: () -> List<HomeTile> = { ProfileTiles.tilesFor(Profile.NICK) },
-    private val todoHome: () -> ListHome = { ListHome.HUB },
+    private val mineHome: () -> ListHome = { ListHome.HUB },
     private val today: () -> LocalDate = LocalDate::now
 ) : ViewModel() {
 
@@ -63,17 +67,27 @@ class TilesViewModel(
         val schedule: AlfredResult<DayAgenda>? = null,
         /** The calendar layered into [schedule], kept for its age alone — the card shows the older of the two. */
         val calendar: AlfredResult<*>? = null,
-        val todos: AlfredResult<List<RollingTodoItem>>? = null,
+        /** The family chalkboard, queued edits laid over it. */
+        val familyTodos: AlfredResult<List<RollingTodoItem>>? = null,
+        /** Nick's rolling to-do as Mine, queued edits laid over it; null when Mine is on the phone. */
+        val mineTodos: AlfredResult<List<RollingTodoItem>>? = null,
         val shopping: AlfredResult<List<ShoppingListSummaryDto>>? = null,
         val presence: PresenceResult? = null,
-        /** Which to-do the tile shows: the hub's [todos], or the phone's [phoneTodos]. */
-        val todoHome: ListHome = ListHome.HUB,
+        /** Where Mine lives: the hub's [mineTodos], or the phone's [phoneTodos]. */
+        val mineHome: ListHome = ListHome.HUB,
         val phoneTodos: List<RollingTodoItem>? = null,
         /** The phone's own shopping lists, after the hub's in every listing. */
         val phoneShopping: List<ShoppingListSummaryDto> = emptyList()
-    )
+    ) {
+        /** Mine's items wherever it lives; null until known. */
+        val mineItems: List<RollingTodoItem>?
+            get() = if (mineHome == ListHome.PHONE) phoneTodos else mineTodos?.dataOrNull()
 
-    private val fetched = MutableStateFlow(Fetched(todoHome = todoHome()))
+        /** Both lists merged, as the To-do screen's All shows them. */
+        val todoRows: List<TodoRow> get() = TodoBoard.merge(familyTodos?.dataOrNull(), mineItems)
+    }
+
+    private val fetched = MutableStateFlow(Fetched(mineHome = mineHome()))
 
     val state: StateFlow<TilesState> = combine(
         fetched,
@@ -84,14 +98,15 @@ class TilesViewModel(
         TilesState(
             schedule = f.schedule,
             calendar = f.calendar,
-            todos = f.chalkboard?.map { RollingTodo.merged(it, pending) },
+            familyTodos = f.family?.map { RollingTodo.merged(it, pending, ChalkboardList.FAMILY) },
+            mineTodos = f.mine?.map { RollingTodo.merged(it, pending, ChalkboardList.NICK) },
             shopping = f.shopping,
             presence = f.presence,
-            todoHome = f.todoHome,
+            mineHome = f.mineHome,
             phoneTodos = PhoneLists.todoItems(phoneTodos),
             phoneShopping = phoneShopping.map(PhoneLists::summary)
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TilesState(todoHome = todoHome()))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TilesState(mineHome = mineHome()))
 
     private var inFlight: Job? = null
 
@@ -101,13 +116,15 @@ class TilesViewModel(
             coroutineScope {
                 val date = today()
                 // Read on every refresh: Settings may have moved the to-do since.
-                val home = todoHome()
+                val home = mineHome()
                 val shows = tiles().toSet()
                 val withSchedule = HomeTile.SCHEDULE in shows
                 val schedule = async { if (withSchedule) alfred.getDailySchedule() else null }
                 val calendar = async { if (withSchedule) alfred.getCalendarDay(date) else null }
-                val chalkboard = async {
-                    if (HomeTile.TODO in shows && home == ListHome.HUB) alfred.getChalkboard() else null
+                val withTodo = HomeTile.TODO in shows
+                val family = async { if (withTodo) alfred.getChalkboard(ChalkboardList.FAMILY) else null }
+                val mine = async {
+                    if (withTodo && home == ListHome.HUB) alfred.getChalkboard(ChalkboardList.NICK) else null
                 }
                 val shopping = async { if (HomeTile.SHOPPING in shows) alfred.getShoppingLists() else null }
                 val signIn = async { if (HomeTile.SIGN_IN in shows) presence.status() else null }
@@ -119,10 +136,11 @@ class TilesViewModel(
                     // no schedule to show, but a missing calendar just means vault only.
                     schedule = schedule.await()?.map { FamilyCalendar.agenda(it, events) },
                     calendar = calendarResult,
-                    chalkboard = chalkboard.await(),
+                    family = family.await(),
+                    mine = mine.await(),
                     shopping = shopping.await(),
                     presence = signIn.await(),
-                    todoHome = home
+                    mineHome = home
                 )
                 Log.d(TAG, "Home tiles refreshed")
             }
@@ -132,10 +150,11 @@ class TilesViewModel(
     private data class Fetched(
         val schedule: AlfredResult<DayAgenda>? = null,
         val calendar: AlfredResult<*>? = null,
-        val chalkboard: AlfredResult<List<ChalkboardTaskDto>>? = null,
+        val family: AlfredResult<List<ChalkboardTaskDto>>? = null,
+        val mine: AlfredResult<List<ChalkboardTaskDto>>? = null,
         val shopping: AlfredResult<List<ShoppingListSummaryDto>>? = null,
         val presence: PresenceResult? = null,
-        val todoHome: ListHome = ListHome.HUB
+        val mineHome: ListHome = ListHome.HUB
     )
 
     private companion object {

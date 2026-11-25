@@ -62,10 +62,10 @@ class ShoppingSyncTest {
                 override suspend fun getWeekSchedule(): WeekScheduleDto = throw IOException()
                 override suspend fun getCalendarEvents(start: String, end: String): CalendarEventsDto =
                     throw IOException()
-                override suspend fun getChalkboard(): List<ChalkboardTaskDto> = throw IOException()
-                override suspend fun addChalkboardItem(body: ChalkboardAddRequest): Response<Unit> = throw IOException()
-                override suspend fun tickChalkboardItem(body: ChalkboardLineRequest): Response<Unit> = throw IOException()
-                override suspend fun dropChalkboardItem(body: ChalkboardLineRequest): Response<Unit> = throw IOException()
+                override suspend fun getChalkboard(list: String, includeTicked: Boolean): List<ChalkboardTaskDto> = throw IOException()
+                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest): Response<Unit> = throw IOException()
+                override suspend fun tickChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> = throw IOException()
+                override suspend fun dropChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> = throw IOException()
 
                 override suspend fun getShoppingLists(): List<ShoppingListSummaryDto> = throw IOException()
                 override suspend fun getShoppingList(listId: String): com.personalmorningalarm.data.model.ShoppingListDetailDto =

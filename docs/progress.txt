@@ -2062,3 +2062,50 @@
     shared. Needs a hub card: create should take the owner from for=
   - Not changed: "MorningSync" still names the app in the notifications-blocked
     dialog (pre-existing string)
+
+2026-11-25 Session BA: one To-do tile, family and mine
+  - One To-Do tile and screen on both profiles (TodoFragment, TodoViewModel),
+    replacing RollingTodoFragment, PhoneTodoFragment and TodayViewModel. Two
+    sources behind TodoListSource: HubTodoSource (a ChalkboardList, list= always
+    sent) and PhoneTodoSource. Family = the hub's family chalkboard. Mine =
+    Profile.mineTodoHome: Nick's follows Settings (hub, his rolling to-do, unless
+    moved to the phone); Jess's is always her phone list, and her Settings hides
+    the "My to-do" row
+  - Screen: All | Family | Mine filter, opening on All; family rows tagged in All;
+    footnote "Family items are also on the kitchen wall." wherever family rows
+    show. Add picker Mine / Family above the field, following the filter (Mine
+    from All); hint "Goes on the kitchen wall" / "Stays on this phone" / "Your
+    list". Pure logic in TodoBoard (merge by added date keeping each list's order,
+    filter, addTarget, addHint, counts, preview)
+  - Hub reads use include_ticked=true (hub Session BZ); ChalkboardTaskDto.ticked
+    decides done, the [x] in the line only as fallback. Ticked hub rows take no
+    tick or drop (the hub targets unticked lines only). Each list caches under its
+    own key; Nick's keeps "chalkboard". A 404's list (unticked only) is no longer
+    saved over the copy; the source re-reads instead
+  - Offline queue: pending_chalkboard_writes gains `list` (DB v10, default
+    'nick'). An unknown list is failed, never guessed. Phone writes never queue
+  - Phone lists clear ticked items at 03:07, the hub's sweep time, worked out on
+    read (PhoneListStore.sweepDayOf), with no scheduled job. Shopping phone lists
+    too
+  - Home tile: "N family · N mine" (a dash while unknown), then the first three
+    open items of both, family ones tagged
+  - The alarm's content screen still reads and ticks Nick's list, now explicitly
+  - Notifications-blocked dialog says DailySync, not MorningSync
+  - Tests: 596 pass, forced rerun. New: TodoBoardTest, TodoViewModelTest (ported
+    from TodayViewModelTest, plus filter/picker, per-list queue, phone Mine),
+    03:07 clear in PhoneListStoreTest, family replay and unknown-list in
+    ChalkboardSyncTest, migration to 10 with a pre-existing queued write
+  - A32 as Nick, update install over real data (hash checked, firstInstallTime
+    unchanged): DB 9 -> 10, 9 NFC tags, 24 alarm events, 1 queued shopping write
+    unchanged. Home "0 family · 9 mine" matched the hub. From All: the Mine add
+    landed on the rolling to-do only; the Family add on the family chalkboard and
+    through the wall's 8500 origin. Both ticked: greyed and struck through, still
+    there after reopening (read back from the hub)
+  - Emulator (API 36) as Jess, fresh install: Mine add stayed on the phone (not on
+    the hub, nothing queued); Family add reached the chalkboard; Home tile
+    "1 family · 1 mine" with the tag. Both ticked and greyed. With the emulator
+    clock moved, her ticked phone item was still there at 03:06 and gone at 03:07.
+    Settings screenshot: no Lists section. App uninstalled, emulator stopped
+  - Not seen: the hub's own 03:07 sweep removing the three ticked "DailySync BA
+    test" items (two family, one Nick's). They should be gone tomorrow morning
+  - Not done: an undo-the-fix pass over the new tests

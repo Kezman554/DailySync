@@ -109,7 +109,7 @@ class ShoppingOwnerTest {
         repository.getChalkboard()
         repository.getNotes()
 
-        assertEquals(listOf("/chalkboard", "/notes"), List(2) { nextPath() })
+        assertEquals(listOf("/chalkboard?list=nick&include_ticked=true", "/notes"), List(2) { nextPath() })
     }
 
     @Test

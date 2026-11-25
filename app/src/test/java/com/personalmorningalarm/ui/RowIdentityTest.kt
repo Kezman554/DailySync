@@ -1,5 +1,8 @@
 package com.personalmorningalarm.ui
 
+import com.personalmorningalarm.data.model.RollingTodoItem
+import com.personalmorningalarm.data.model.TodoRow
+import com.personalmorningalarm.data.model.TodoSource
 import com.personalmorningalarm.data.entity.ChalkboardVerb
 import com.personalmorningalarm.data.entity.PendingChalkboardWrite
 import com.personalmorningalarm.data.entity.PendingShoppingWrite
@@ -54,7 +57,7 @@ class RowIdentityTest {
         val (first, second) = RollingTodo.merged(listOf(milkTodo, milkTodo), emptyList())
 
         assertEquals(listOf(0, 1), listOf(first.occurrence, second.occurrence))
-        assertFalse(RollingTodoAdapter.DIFF.areItemsTheSame(first, second))
+        assertFalse(RollingTodoAdapter.DIFF.areItemsTheSame(mine(first), mine(second)))
     }
 
     @Test
@@ -62,10 +65,10 @@ class RowIdentityTest {
         val before = RollingTodo.merged(listOf(milkTodo, milkTodo), emptyList())
         val after = RollingTodo.merged(listOf(milkTodo, milkTodo), listOf(queuedTodoTick()))
 
-        assertTrue(RollingTodoAdapter.DIFF.areItemsTheSame(before[0], after[0]))
-        assertFalse(RollingTodoAdapter.DIFF.areContentsTheSame(before[0], after[0]))
-        assertTrue(RollingTodoAdapter.DIFF.areItemsTheSame(before[1], after[1]))
-        assertTrue(RollingTodoAdapter.DIFF.areContentsTheSame(before[1], after[1]))
+        assertTrue(RollingTodoAdapter.DIFF.areItemsTheSame(mine(before[0]), mine(after[0])))
+        assertFalse(RollingTodoAdapter.DIFF.areContentsTheSame(mine(before[0]), mine(after[0])))
+        assertTrue(RollingTodoAdapter.DIFF.areItemsTheSame(mine(before[1]), mine(after[1])))
+        assertTrue(RollingTodoAdapter.DIFF.areContentsTheSame(mine(before[1]), mine(after[1])))
     }
 
     @Test
@@ -75,6 +78,17 @@ class RowIdentityTest {
         val rows = RollingTodo.merged(listOf(older, milkTodo), emptyList())
 
         assertEquals(listOf(0, 0), rows.map { it.occurrence })
-        assertFalse(RollingTodoAdapter.DIFF.areItemsTheSame(rows[0], rows[1]))
+        assertFalse(RollingTodoAdapter.DIFF.areItemsTheSame(mine(rows[0]), mine(rows[1])))
     }
+
+    @Test
+    fun `the same text on both lists is two rows to the diff`() {
+        val item = RollingTodo.merged(listOf(milkTodo), emptyList()).single()
+
+        assertFalse(
+            RollingTodoAdapter.DIFF.areItemsTheSame(TodoRow(item, TodoSource.MINE), TodoRow(item, TodoSource.FAMILY))
+        )
+    }
+
+    private fun mine(item: RollingTodoItem) = TodoRow(item, TodoSource.MINE)
 }

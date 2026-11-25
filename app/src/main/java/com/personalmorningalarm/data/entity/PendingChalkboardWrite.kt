@@ -1,11 +1,12 @@
 package com.personalmorningalarm.data.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * One rolling to-do write made while Alfred was unreachable, queued until it can
- * be delivered. Room-backed so the queue survives restarts and reboots — offline
+ * One chalkboard write (Nick's rolling to-do or the family chalkboard) made while
+ * Alfred was unreachable, queued until it can be delivered. Room-backed so the queue survives restarts and reboots — offline
  * capture is the whole point, and losing an entry to a process death would make
  * the optimistic display a lie.
  *
@@ -23,7 +24,12 @@ data class PendingChalkboardWrite(
     /** The targeting line for TICK/DROP, taken from the snapshot the user acted on. Null for ADD. */
     val line: String?,
     val createdAt: Long,
-    val failed: Boolean = false
+    val failed: Boolean = false,
+    /**
+     * Which chalkboard it goes to: a [com.personalmorningalarm.data.model.ChalkboardList]
+     * wire name. Writes queued before there were two lists were all Nick's, hence the default.
+     */
+    @ColumnInfo(defaultValue = "nick") val list: String = "nick"
 )
 
 /** The three chalkboard writes the queue can hold. */

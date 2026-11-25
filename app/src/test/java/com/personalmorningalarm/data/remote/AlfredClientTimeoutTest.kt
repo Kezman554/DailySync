@@ -1,5 +1,6 @@
 package com.personalmorningalarm.data.remote
 
+import com.personalmorningalarm.data.model.ChalkboardList
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -122,9 +123,9 @@ class AlfredClientTimeoutTest {
         answerAfterSeconds = 5
 
         val results = listOf(
-            async { repository.addChalkboardItem("Oil the gate") },
-            async { repository.tickChalkboardItem("- [ ] Oil the gate") },
-            async { repository.dropChalkboardItem("- [ ] Oil the gate") },
+            async { repository.addChalkboardItem(ChalkboardList.NICK, "Oil the gate") },
+            async { repository.tickChalkboardItem(ChalkboardList.NICK, "- [ ] Oil the gate") },
+            async { repository.dropChalkboardItem(ChalkboardList.NICK, "- [ ] Oil the gate") },
             async { repository.addShoppingItem("groceries", "Oat milk") },
             async { repository.captureToInbox("A passing thought") }
         ).awaitAll()
@@ -166,7 +167,7 @@ class AlfredClientTimeoutTest {
         settings.setHost("$LOCALHOST:${closedPort()}")
 
         val started = System.currentTimeMillis()
-        val result = repository.addChalkboardItem("Oil the gate")
+        val result = repository.addChalkboardItem(ChalkboardList.NICK, "Oil the gate")
 
         assertEquals(AlfredWriteResult.Unreachable, result)
         assertTrue(System.currentTimeMillis() - started < 3_000)

@@ -106,6 +106,9 @@ class SettingsFragment : Fragment() {
         renderDashboardHost()
 
         listSettings = ListSettings(requireContext())
+        // Jess's Mine is always her phone list, so there's nothing to choose.
+        binding.labelLists.isVisible = profile.choosesTodoHome
+        binding.cardLists.isVisible = profile.choosesTodoHome
         binding.rowTodoHome.setOnClickListener {
             showListHomeDialog(
                 requireContext(),
