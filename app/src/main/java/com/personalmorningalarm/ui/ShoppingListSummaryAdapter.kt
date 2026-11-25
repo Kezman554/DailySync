@@ -9,7 +9,9 @@ import com.google.android.material.color.MaterialColors
 import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.model.ShoppingSharing
 import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.profile.Profile
 import com.personalmorningalarm.databinding.ItemShoppingListBinding
 
 /**
@@ -19,10 +21,13 @@ import com.personalmorningalarm.databinding.ItemShoppingListBinding
  * on the phone anywhere, and one for the hub says so if Alfred can't be reached.
  * Where they only go to the hub ([Tile.NewList.hubOnly], Nick's profile), it is the
  * tile from before phone lists: "Create on Alfred", and "Needs Alfred", untappable,
- * while he can't be reached. A list tile opens on a tap and offers deletion
- * on a long press; the New list tile has no long press.
+ * while he can't be reached. A hub list says "Shared" when it is, and the owner's
+ * name when it's the other person's. A list tile opens on a tap and offers sharing
+ * and deletion on a long press; the New list tile has no long press.
  */
 class ShoppingListSummaryAdapter(
+    /** Whose phone this is: a hub list that's someone else's says so, and one shared says that. */
+    private val me: Profile?,
     private val onClick: (Tile.ListTile) -> Unit,
     private val onLongPress: (Tile.ListTile) -> Unit,
     private val onNewList: () -> Unit
@@ -79,9 +84,15 @@ class ShoppingListSummaryAdapter(
             } else {
                 resources.getString(R.string.shopping_all_done)
             }
-            binding.tvShoppingListCount.text = when (tile.home) {
-                ListHome.HUB -> count
-                ListHome.PHONE -> resources.getString(R.string.shopping_tile_on_phone, count)
+            binding.tvShoppingListCount.text = when {
+                tile.home == ListHome.PHONE -> resources.getString(R.string.shopping_tile_on_phone, count)
+                me != null && !ShoppingSharing.isMine(summary, me) -> resources.getString(
+                    R.string.shopping_tile_from,
+                    resources.getString((ShoppingSharing.ownerOf(summary) ?: me.other).label()),
+                    count
+                )
+                ShoppingSharing.isShared(summary) -> resources.getString(R.string.shopping_tile_shared, count)
+                else -> count
             }
             binding.tvShoppingListCount.setTextColor(if (left > 0) secondary else positive)
 

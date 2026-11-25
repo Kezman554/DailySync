@@ -106,6 +106,13 @@ class AlfredRepositoryTest {
                     throw java.io.IOException()
                 override suspend fun deleteNote(noteId: String): Response<Unit> = throw java.io.IOException()
 
+                override suspend fun setShoppingShared(listId: String, body: com.personalmorningalarm.data.remote.ShoppingShareRequest): Response<Unit> =
+                    throw java.io.IOException()
+                override suspend fun uploadShoppingList(body: com.personalmorningalarm.data.remote.ShoppingUploadRequest): Response<com.personalmorningalarm.data.remote.ShoppingUploadResponse> =
+                    throw java.io.IOException()
+                override suspend fun pullBackShoppingList(listId: String): Response<com.personalmorningalarm.data.remote.ShoppingPullBackResponse> =
+                    throw java.io.IOException()
+
                 override suspend fun getInbox(): List<InboxCaptureDto> =
                     inboxResponse ?: throw IOException("Alfred unreachable")
 

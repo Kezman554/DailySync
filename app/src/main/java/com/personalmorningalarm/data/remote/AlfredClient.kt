@@ -3,7 +3,10 @@ package com.personalmorningalarm.data.remote
 import androidx.annotation.VisibleForTesting
 import com.personalmorningalarm.data.profile.Profile
 import okhttp3.Interceptor
+import okhttp3.MediaType
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody
+import okio.BufferedSink
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
@@ -45,11 +48,39 @@ object AlfredClient {
         }
     }
 
+    /**
+     * An upload is never sent twice by the client. OkHttp quietly resends a request
+     * whose connection dropped after it went out; for an upload that makes a second
+     * (and third) shared list, since the hub names a repeat "-2" rather than refusing
+     * it. A one-shot body is never resent: a lost answer reaches ShoppingShare, which
+     * looks for the list it made instead.
+     */
+    private val uploadSentOnce = Interceptor { chain ->
+        val request = chain.request()
+        val body = request.body()
+        if (request.method() != "POST" || body == null || request.url().pathSegments() != UPLOAD_PATH) {
+            chain.proceed(request)
+        } else {
+            chain.proceed(request.newBuilder().method("POST", OneShotBody(body)).build())
+        }
+    }
+
+    /** [delegate], marked as a body OkHttp must not send a second time. */
+    private class OneShotBody(private val delegate: RequestBody) : RequestBody() {
+        override fun contentType(): MediaType? = delegate.contentType()
+        override fun contentLength(): Long = delegate.contentLength()
+        override fun writeTo(sink: BufferedSink) = delegate.writeTo(sink)
+        override fun isOneShot(): Boolean = true
+    }
+
+    private val UPLOAD_PATH = listOf("shopping", "upload")
+
     @VisibleForTesting
     internal val http = OkHttpClient.Builder()
         .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .addInterceptor(writeTimeout)
+        .addInterceptor(uploadSentOnce)
         .build()
 
     /**

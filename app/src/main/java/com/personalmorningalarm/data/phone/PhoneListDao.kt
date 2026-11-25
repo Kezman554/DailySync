@@ -4,7 +4,12 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
+
+/** Lists whose hub copy is the one to show: shared (upload answered) or being pulled back. */
+private const val HIDDEN_BY_MOVE =
+    "SELECT phoneListId FROM list_moves WHERE direction = 'PULL_BACK' OR hubId IS NOT NULL"
 
 /** Everything kept in [PhoneListDatabase]. Only [PhoneListStore] uses it. */
 @Dao
@@ -31,7 +36,8 @@ interface PhoneListDao {
 
     /**
      * Each list of [kind] with its counts, oldest first. Items ticked before
-     * [today] are swept and so don't count.
+     * [today] are swept and so don't count. A list part-way through a move that
+     * has the hub's copy showing instead ([ListMove]) is left out.
      */
     @Query(
         "SELECT l.id AS id, l.title AS title, " +
@@ -39,7 +45,7 @@ interface PhoneListDao {
             "COALESCE(SUM(CASE WHEN i.id IS NOT NULL AND i.tickedOn IS NULL THEN 1 ELSE 0 END), 0) AS `left` " +
             "FROM phone_lists l " +
             "LEFT JOIN phone_list_items i ON i.listId = l.id AND (i.tickedOn IS NULL OR i.tickedOn >= :today) " +
-            "WHERE l.kind = :kind " +
+            "WHERE l.kind = :kind AND l.id NOT IN ($HIDDEN_BY_MOVE) " +
             "GROUP BY l.id ORDER BY l.createdAt ASC, l.id ASC"
     )
     fun observeSummaries(kind: String, today: Long): Flow<List<PhoneListSummary>>
@@ -66,9 +72,77 @@ interface PhoneListDao {
     @Query("DELETE FROM phone_list_items WHERE id = :id")
     suspend fun deleteItem(id: Long): Int
 
+    @Query("SELECT listId FROM phone_list_items WHERE id = :id")
+    suspend fun listOfItem(id: Long): String?
+
     /** The overnight sweep: items ticked on an earlier day than [today]. */
     @Query("DELETE FROM phone_list_items WHERE tickedOn IS NOT NULL AND tickedOn < :today")
     suspend fun deleteTickedBefore(today: Long): Int
+
+    /** Items still showing on [listId], in order: what a share uploads. */
+    @Query(
+        "SELECT * FROM phone_list_items WHERE listId = :listId " +
+            "AND (tickedOn IS NULL OR tickedOn >= :today) ORDER BY id ASC"
+    )
+    suspend fun visibleItems(listId: String, today: Long): List<PhoneListItem>
+
+    @Insert
+    suspend fun insertItems(items: List<PhoneListItem>)
+
+    @Query("DELETE FROM phone_list_items WHERE listId = :listId")
+    suspend fun deleteItemsOf(listId: String): Int
+
+    // Moves between the phone and the hub
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertMove(move: ListMove)
+
+    @Query("SELECT * FROM list_moves WHERE phoneListId = :phoneListId")
+    suspend fun move(phoneListId: String): ListMove?
+
+    @Query("SELECT * FROM list_moves WHERE direction = :direction AND hubId = :hubId")
+    suspend fun moveForHub(direction: String, hubId: String): ListMove?
+
+    @Query("SELECT * FROM list_moves ORDER BY startedAt ASC")
+    suspend fun moves(): List<ListMove>
+
+    @Query("UPDATE list_moves SET hubId = :hubId WHERE phoneListId = :phoneListId")
+    suspend fun setMoveHubId(phoneListId: String, hubId: String): Int
+
+    @Query("DELETE FROM list_moves WHERE phoneListId = :phoneListId")
+    suspend fun deleteMove(phoneListId: String): Int
+
+    /** A share is done: the phone copy and its move record go together. */
+    @Transaction
+    suspend fun finishShare(phoneListId: String) {
+        deleteList(phoneListId)
+        deleteMove(phoneListId)
+    }
+
+    /** A pull-back begins: the list, its items as last read, and the move record, all or none. */
+    @Transaction
+    suspend fun beginPullBack(list: PhoneList, items: List<PhoneListItem>, move: ListMove) {
+        insertList(list)
+        insertItems(items)
+        insertMove(move)
+    }
+
+    /** A pull-back is done: the hub's answer (or, with null, the snapshot) stays and the list shows. */
+    @Transaction
+    suspend fun finishPullBack(phoneListId: String, items: List<PhoneListItem>?) {
+        if (items != null) {
+            deleteItemsOf(phoneListId)
+            insertItems(items)
+        }
+        deleteMove(phoneListId)
+    }
+
+    /** A pull-back that didn't happen: the snapshot list goes, the hub's copy is still the list. */
+    @Transaction
+    suspend fun abandonPullBack(phoneListId: String) {
+        deleteList(phoneListId)
+        deleteMove(phoneListId)
+    }
 
     // Notes
 

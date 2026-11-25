@@ -69,6 +69,24 @@ class ShoppingSync(
         result
     }
 
+    /**
+     * Runs [block] with the queue held: no flush replays anything until it returns.
+     * A pull-back uses it so nothing lands on a list in the moment it leaves the hub.
+     * [block] must not call [flush] or [deleteList], which take the same lock.
+     */
+    suspend fun <T> holding(block: suspend (Held) -> T): T = mutex.withLock { block(held) }
+
+    /** What [holding]'s block may do with the queue. */
+    inner class Held internal constructor() {
+        /** Writes for [listId] still waiting to be sent. */
+        suspend fun pendingFor(listId: String): Int = dao.countPendingForList(listId)
+
+        /** [listId] has left the hub: nothing queued for it has anywhere to land. */
+        suspend fun forget(listId: String) = dao.deleteForList(listId)
+    }
+
+    private val held = Held()
+
     /** Replays the whole queue, across every list, in order. Safe to call speculatively. */
     suspend fun flush(): FlushOutcome {
         val outcome = mutex.withLock { runFlush() }

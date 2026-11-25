@@ -37,7 +37,7 @@ class PhoneListStore(
     private val scope: CoroutineScope = defaultScope(),
     private val now: () -> LocalDateTime = LocalDateTime::now,
     private val clock: () -> Long = System::currentTimeMillis
-) {
+) : ShoppingMoveStore {
 
     /** Fair, so writes take it in the order [scope] started them. */
     private val mutex = Mutex()
@@ -79,8 +79,11 @@ class PhoneListStore(
         return CreateResult.Created(list)
     }
 
-    /** The list and everything on it. */
-    fun deleteList(listId: String): Job = write("delete list") { dao.deleteList(listId) }
+    /** The list and everything on it. Not while it's moving to or from the hub. */
+    fun deleteList(listId: String): Job = write("delete list") {
+        if (moving(listId)) return@write
+        dao.deleteList(listId)
+    }
 
     // Items, on any phone list
 
@@ -90,15 +93,22 @@ class PhoneListStore(
     /** Adds [text] as one item: line breaks become spaces, as on the hub. Blank is ignored. */
     fun add(listId: String, text: String): Job = write("add") {
         val task = clean(text) ?: return@write
+        if (moving(listId)) return@write
         if (listId == TODO_LIST_ID) ensureTodoList()
         dao.insertItem(PhoneListItem(listId = listId, text = task, addedOnEpochDay = todayDay()))
     }
 
     /** Bought, or done: struck through until the next overnight clear ([SWEEP_TIME]). */
-    fun tick(itemId: Long): Job = write("tick") { dao.tick(itemId, sweepDay()) }
+    fun tick(itemId: Long): Job = write("tick") {
+        if (itemMoving(itemId)) return@write
+        dao.tick(itemId, sweepDay())
+    }
 
     /** No longer wanted: gone now. */
-    fun drop(itemId: Long): Job = write("drop") { dao.deleteItem(itemId) }
+    fun drop(itemId: Long): Job = write("drop") {
+        if (itemMoving(itemId)) return@write
+        dao.deleteItem(itemId)
+    }
 
     /**
      * The daily local clear: deletes items ticked before the last [SWEEP_TIME]. The
@@ -136,6 +146,100 @@ class PhoneListStore(
     }
 
     /** The calendar day: what an item's added date is. */
+    // Moving a shopping list to or from the hub (ShoppingMoveStore). Each step runs in
+    // [scope] under [mutex], so it finishes even if the caller is cancelled and never
+    // interleaves with an edit; unlike [write], a failure is thrown to the caller.
+
+    override suspend fun shareSnapshot(listId: String): ShoppingMoveStore.Snapshot? = step {
+        val list = dao.list(listId) ?: return@step null
+        ShoppingMoveStore.Snapshot(
+            title = list.title,
+            items = dao.visibleItems(listId, sweepDay()).map { MovingItem(it.text, it.ticked) }
+        )
+    }
+
+    override suspend fun move(phoneListId: String): ListMove? = step { dao.move(phoneListId) }
+
+    override suspend fun pullBackFrom(hubId: String): ListMove? =
+        step { dao.moveForHub(MoveDirection.PULL_BACK.name, hubId) }
+
+    override suspend fun moves(): List<ListMove> = step { dao.moves() }
+
+    override suspend fun beginShare(listId: String, title: String, hubIdsBefore: List<String>) = step {
+        dao.insertMove(
+            ListMove(
+                phoneListId = listId,
+                direction = MoveDirection.SHARE.name,
+                title = title,
+                hubId = null,
+                hubIdsBefore = hubIdsBefore.joinToString("\n"),
+                startedAt = clock()
+            )
+        )
+    }
+
+    override suspend fun recordUpload(listId: String, hubId: String) = step {
+        dao.setMoveHubId(listId, hubId)
+        Unit
+    }
+
+    override suspend fun finishShare(listId: String) = step { dao.finishShare(listId) }
+
+    override suspend fun cancelMove(listId: String) = step {
+        dao.deleteMove(listId)
+        Unit
+    }
+
+    override suspend fun beginPullBack(title: String, hubId: String, items: List<MovingItem>): String = step {
+        val list = PhoneList(
+            id = UUID.randomUUID().toString(),
+            kind = PhoneListKind.SHOPPING.name,
+            title = title,
+            createdAt = clock()
+        )
+        dao.beginPullBack(
+            list,
+            rowsFor(list.id, items),
+            ListMove(
+                phoneListId = list.id,
+                direction = MoveDirection.PULL_BACK.name,
+                title = title,
+                hubId = hubId,
+                startedAt = clock()
+            )
+        )
+        list.id
+    }
+
+    override suspend fun finishPullBack(listId: String, items: List<MovingItem>?) = step {
+        dao.finishPullBack(listId, items?.let { rowsFor(listId, it) })
+    }
+
+    override suspend fun abandonPullBack(listId: String) = step { dao.abandonPullBack(listId) }
+
+    /** Rows for [items] on [listId], ticks kept: a ticked one clears at the next 03:07, as on the hub. */
+    private fun rowsFor(listId: String, items: List<MovingItem>): List<PhoneListItem> {
+        val added = todayDay()
+        val sweep = sweepDay()
+        return items.mapNotNull { item ->
+            clean(item.text)?.let {
+                PhoneListItem(
+                    listId = listId,
+                    text = it,
+                    addedOnEpochDay = added,
+                    tickedOnEpochDay = if (item.ticked) sweep else null
+                )
+            }
+        }
+    }
+
+    private suspend fun <T> step(block: suspend () -> T): T = scope.async { mutex.withLock { block() } }.await()
+
+    private suspend fun moving(listId: String): Boolean =
+        (dao.move(listId) != null).also { if (it) Log.d(TAG, "Phone list is moving to or from the hub — edit ignored") }
+
+    private suspend fun itemMoving(itemId: Long): Boolean = dao.listOfItem(itemId)?.let { moving(it) } ?: false
+
     private fun todayDay(): Long = now().toLocalDate().toEpochDay()
 
     /** The day the clock is in for ticks and clearing, which turns over at [SWEEP_TIME]. */

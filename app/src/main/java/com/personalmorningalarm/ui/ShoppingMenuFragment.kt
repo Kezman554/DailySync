@@ -14,6 +14,8 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -22,13 +24,16 @@ import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.PhoneLists
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.model.ShoppingSharing
 import com.personalmorningalarm.data.phone.ListHome
 import com.personalmorningalarm.data.phone.PhoneListStore
 import com.personalmorningalarm.data.profile.NewListHome
+import com.personalmorningalarm.data.profile.Profile
 import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.ShoppingShare
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.databinding.FragmentShoppingMenuBinding
 import kotlinx.coroutines.launch
@@ -59,8 +64,14 @@ class ShoppingMenuFragment : Fragment() {
         )
     }
 
+    private val shareViewModel: ShoppingShareViewModel by viewModels {
+        viewModelFactory { initializer { ShoppingShareViewModel(ShoppingShare.getInstance(requireContext())) } }
+    }
+
+    private val me: Profile? by lazy { ProfileSettings(requireContext()).profile() }
+
     private val listAdapter by lazy {
-        ShoppingListSummaryAdapter(onClick = ::openList, onLongPress = ::confirmDelete, onNewList = ::openCreate)
+        ShoppingListSummaryAdapter(me, onClick = ::openList, onLongPress = ::showListActions, onNewList = ::openCreate)
     }
 
     override fun onCreateView(
@@ -93,8 +104,16 @@ class ShoppingMenuFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.state.collect(::render) }
                 launch { viewModel.events.collect(::showEvent) }
+                launch {
+                    shareViewModel.results.collect {
+                        showShareResult(binding.root, it)
+                        viewModel.refresh(quiet = true)
+                    }
+                }
             }
         }
+        // A move left part-way (no network, the app closed) is settled here, quietly.
+        if (savedInstanceState == null) shareViewModel.resume()
         FreshnessWatch.start(
             viewLifecycleOwner,
             render = { renderFreshness(viewModel.state.value) },
@@ -170,6 +189,47 @@ class ShoppingMenuFragment : Fragment() {
                 ShoppingListFragment.ARG_LIST_TITLE to (summary.title ?: id)
             )
         )
+    }
+
+    /**
+     * The long press: Share (or Stop sharing) and Delete. The other person's list
+     * offers neither, only who it belongs to: only its owner changes its sharing or
+     * deletes it.
+     */
+    private fun showListActions(tile: ShoppingListSummaryAdapter.Tile.ListTile) {
+        val summary = tile.summary
+        val profile = me
+        val title = summary.title ?: summary.id.orEmpty()
+        if (tile.home == ListHome.HUB && profile != null && !ShoppingSharing.isMine(summary, profile)) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(ShoppingList.shortTitle(title))
+                .setMessage(getString(R.string.shopping_owner_only, ownerName(summary, profile)))
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            return
+        }
+        val shared = tile.home == ListHome.HUB && ShoppingSharing.isShared(summary)
+        val actions = listOfNotNull(
+            (if (shared) R.string.shopping_menu_unshare else R.string.shopping_menu_share).takeIf { profile != null },
+            R.string.shopping_delete_confirm
+        )
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(ShoppingList.shortTitle(title))
+            .setItems(actions.map(::getString).toTypedArray()) { _, which ->
+                when (actions[which]) {
+                    R.string.shopping_menu_share -> when (tile.home) {
+                        ListHome.PHONE -> confirmShare(title, profile, onConfirm = {
+                            shareViewModel.sharePhoneList(summary.id ?: return@confirmShare, title)
+                        })
+                        ListHome.HUB -> shareViewModel.setShared(summary, true)
+                    }
+                    R.string.shopping_menu_unshare -> profile?.let {
+                        confirmUnshare(summary, it, onConfirm = { shareViewModel.setShared(summary, false) })
+                    }
+                    else -> confirmDelete(tile)
+                }
+            }
+            .show()
     }
 
     /**
@@ -267,6 +327,16 @@ class ShoppingMenuFragment : Fragment() {
     }
 
     private fun newListRule(): NewListHome? = ProfileSettings(requireContext()).profile()?.newListHome
+
+    /**
+     * Back on screen (from a list, say), read the hub again: a list may have moved
+     * there or away while this screen sat underneath, and its tile should follow.
+     * Quiet, and ignored while a read is already running.
+     */
+    override fun onStart() {
+        super.onStart()
+        viewModel.refresh(quiet = true)
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

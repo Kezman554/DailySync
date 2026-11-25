@@ -22,6 +22,9 @@ import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.ShoppingItem
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.phone.PhoneListStore
+import com.personalmorningalarm.data.profile.Profile
+import com.personalmorningalarm.data.profile.ProfileSettings
+import com.personalmorningalarm.data.remote.ShoppingShare
 import com.personalmorningalarm.databinding.FragmentShoppingListBinding
 import kotlinx.coroutines.launch
 
@@ -47,6 +50,12 @@ class PhoneShoppingListFragment : Fragment() {
             }
         }
     }
+
+    private val shareViewModel: ShoppingShareViewModel by viewModels {
+        viewModelFactory { initializer { ShoppingShareViewModel(ShoppingShare.getInstance(requireContext())) } }
+    }
+
+    private val me: Profile? by lazy { ProfileSettings(requireContext()).profile() }
 
     private val itemAdapter by lazy { ShoppingItemAdapter(onTick = viewModel::tickItem, onDrop = ::confirmDrop) }
 
@@ -79,6 +88,8 @@ class PhoneShoppingListFragment : Fragment() {
             }
         )
 
+        binding.switchShare.setOnClickListener { onShareToggled() }
+
         binding.etShoppingAdd.setHint(R.string.shopping_add_hint)
         binding.btnShoppingAdd.setOnClickListener { submitAdd() }
         binding.etShoppingAdd.setOnEditorActionListener { _, actionId, _ ->
@@ -92,9 +103,41 @@ class PhoneShoppingListFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.items.collect(::render)
+                launch { viewModel.items.collect(::render) }
+                launch { shareViewModel.working.collect { renderShare() } }
+                launch { shareViewModel.results.collect(::onShareResult) }
             }
         }
+    }
+
+    /** Sharing moves the list to the hub: asked first, and the switch shows off until it's done. */
+    private fun onShareToggled() {
+        binding.switchShare.isChecked = false
+        confirmShare(listTitle, me, onConfirm = { shareViewModel.sharePhoneList(listId, listTitle) })
+    }
+
+    private fun onShareResult(result: ShoppingShareViewModel.Result) {
+        showShareResult(binding.root, result)
+        openMovedList(result.outcome, R.id.phoneShoppingListFragment)
+    }
+
+    /** A phone list is never shared: the toggle offers the move, and says where it would go. */
+    private fun renderShare() {
+        val profile = me
+        binding.rowShare.isVisible = profile != null
+        if (profile == null) return
+        val working = shareViewModel.working.value
+        binding.switchShare.isChecked = false
+        binding.switchShare.isEnabled = !working
+        binding.switchShare.text = getString(R.string.shopping_share_with, otherName(profile))
+        binding.tvShareNote.text = if (working) {
+            getString(R.string.shopping_share_working)
+        } else {
+            getString(R.string.shopping_share_note_phone, otherName(profile))
+        }
+        // Mid-move the phone list takes no edits (the store ignores them too): they'd be lost with it.
+        binding.etShoppingAdd.isEnabled = !working
+        binding.btnShoppingAdd.isEnabled = !working
     }
 
     private fun submitAdd() {

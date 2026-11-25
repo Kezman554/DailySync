@@ -2128,3 +2128,48 @@
   - Test items: the open ones (the offline add, the all-default add) were dropped.
     Ticked ones can't be dropped (the hub targets unticked lines only), so four
     remain ticked for the 03:07 sweep: three on the family chalkboard, one on Nick's
+
+2026-11-25 Session BB: share a shopping list
+  - A share toggle on each list screen, and on the menu tile's long press (Share /
+    Stop sharing, then Delete). Hub tiles say "Shared · n left" for your own shared
+    list and "Jess's · n left" / "Nick's · n left" for the other person's
+  - Rules (ShoppingSharing): no owner means Nick's. Only the owner changes a list's
+    sharing; the other person can edit its items, and their long press only says
+    whose it is (delete is the owner's too). Sharing your own hub list sets the flag.
+    Unsharing: Nick's list clears the flag and stays on the hub; Jess's list is
+    pulled back to her phone (Profile.unsharedListHome)
+  - Moves (ShoppingShare), never copies. Share: upload, then delete the phone copy.
+    Pull-back: save the hub's items to a hidden phone list first, then pull back
+    (which deletes the hub copy as it answers), keep the hub's answer, then confirm
+    the hub copy is gone. Each step is recorded in list_moves (phone DB v2) before
+    the next call; a moving list takes no edits. A lost answer is settled by asking
+    the hub (a new list of ours not there before = the upload's; the list gone = the
+    pull-back happened), never by re-uploading. With no hub to ask, the move waits
+    and resume() (on opening Shopping) settles it. No hub at all: "Sharing needs the
+    hub, and it can't be reached. Nothing has moved." Nothing is queued. A pull-back
+    flushes the list's queued edits first and waits if any can't be delivered
+  - Found and fixed: OkHttp silently resent an upload whose answer was lost; one
+    share made three hub lists. The upload body is now one-shot (AlfredClient), and
+    the lost-answer test goes red without it. Other writes (adds, ticks) still use
+    OkHttp's default retry, so a lost answer can still duplicate an add: not
+    changed here
+  - Found on device and fixed: returning from a list screen showed the menu's old
+    copy, so a moved list's tile didn't switch. The menu now rereads on every return
+  - Tests: 619 pass, forced rerun. ShoppingShareTest (16) runs against a fake hub
+    over real HTTP: both directions; failure after upload and before the local
+    delete; killed before the upload was recorded; lost upload answer, with and
+    without the hub afterwards; upload refused; pull-back lost answer, with and
+    without the hub afterwards; queued edits first; owner rules. Also
+    ShoppingSharingTest, tile labels, phone DB migration 1 -> 2
+  - A32 as Nick (update install, hash checked, firstInstallTime unchanged): phone
+    DB 1 -> 2 with its list kept; 9 NFC tags, 24 alarm events, 1 queued shopping
+    write unchanged. Emulator (API 36) as Jess, fresh install
+  - Both ways on two devices: Jess shared a phone list (one item ticked); offline
+    first, it said so and nothing moved; online it moved to the hub owned by Jess,
+    tick kept, no copy left on her phone. Nick saw "Jess's · 1 left", added an
+    item, and his toggle was locked. Nick made a hub list and shared it from the
+    long press; Jess saw "Nick's", and her long press only said it was his. Nick
+    unshared it: it stayed on the hub and left Jess's view. Jess unshared hers: it
+    came back to her phone with Nick's item, left the hub, and her tile switched
+  - Hub left as found: test lists deleted or pulled back; emulator app uninstalled
+  - Not seen on a device: a move interrupted part-way (unit-tested only)

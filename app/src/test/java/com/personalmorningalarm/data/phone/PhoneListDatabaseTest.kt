@@ -19,9 +19,9 @@ import java.io.File
 
 /**
  * The phone-list database as a phone will have it: built from the committed 1.json,
- * seeded, then opened the way the app opens it, so Room's schema check runs as on the
- * device. Version 1 has nothing to migrate; this is the harness the first migration
- * gets, the way [com.personalmorningalarm.data.MigrationTest] works for AppDatabase.
+ * seeded, then opened the way the app opens it, so the migrations run and Room's
+ * schema check compares the result with 2.json, as on the device. The way
+ * [com.personalmorningalarm.data.MigrationTest] works for AppDatabase.
  * On the JVM, because instrumented tests never run against the A32 (see CLAUDE.md).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -87,10 +87,10 @@ class PhoneListDatabaseTest {
             .also { opened = it }
 
     @Test
-    fun `the committed schema is the one the app opens, and what was kept is still there`() = runBlocking {
+    fun `upgrading to 2 passes Room's schema check, and what was kept is still there`() = runBlocking {
         val db = open()
 
-        assertEquals(1, db.openHelper.writableDatabase.version)
+        assertEquals(2, db.openHelper.writableDatabase.version)
         assertEquals(listOf("Tent pegs"), db.dao().observeItems("invented-list", today = 0).first().map { it.text })
         assertEquals("Boiler questions", db.dao().note("invented-note")?.text)
     }
@@ -101,6 +101,21 @@ class PhoneListDatabaseTest {
 
         db.dao().deleteList("invented-list")
 
+        assertEquals(emptyList<PhoneListItem>(), db.dao().allItems("invented-list"))
+    }
+
+    @Test
+    fun `after the upgrade a list can be moved, and a moving list is hidden from the menu`() = runBlocking {
+        val db = open()
+        assertEquals(emptyList<ListMove>(), db.dao().moves())
+
+        db.dao().insertMove(
+            ListMove("invented-list", MoveDirection.SHARE.name, "Camping", hubId = "6-life/shopping/camping.md", startedAt = 1)
+        )
+
+        assertEquals(emptyList<PhoneListSummary>(), db.dao().observeSummaries("SHOPPING", today = 0).first())
+        db.dao().finishShare("invented-list")
+        assertEquals(emptyList<ListMove>(), db.dao().moves())
         assertEquals(emptyList<PhoneListItem>(), db.dao().allItems("invented-list"))
     }
 }

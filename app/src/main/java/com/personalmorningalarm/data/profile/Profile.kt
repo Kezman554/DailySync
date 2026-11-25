@@ -45,6 +45,24 @@ enum class Profile(
         JESS -> ListHome.PHONE
     }
 
+    /** The other person: who a list this person shares is shared with. */
+    val other: Profile
+        get() = when (this) {
+            NICK -> JESS
+            JESS -> NICK
+        }
+
+    /**
+     * Where a shopping list this person owns lives when it isn't shared. Nick's lists
+     * live on the hub, so unsharing one only clears the flag; Jess's live on her
+     * phone, so unsharing one pulls it back there.
+     */
+    val unsharedListHome: ListHome
+        get() = when (this) {
+            NICK -> ListHome.HUB
+            JESS -> ListHome.PHONE
+        }
+
     /** Whether Settings offers the "To-Do list lives on" choice: only where [mineTodoHome] heeds it. */
     val choosesTodoHome: Boolean get() = this == NICK
 

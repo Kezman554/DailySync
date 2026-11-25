@@ -24,6 +24,9 @@ interface PendingShoppingWriteDao {
     @Query("SELECT COUNT(*) FROM pending_shopping_writes WHERE failed = 0")
     suspend fun countPending(): Int
 
+    @Query("SELECT COUNT(*) FROM pending_shopping_writes WHERE failed = 0 AND listId = :listId")
+    suspend fun countPendingForList(listId: String): Int
+
     /** Everything, pending and failed, across every list — a screen filters to its own [PendingShoppingWrite.listId]. */
     @Query("SELECT * FROM pending_shopping_writes ORDER BY id ASC")
     fun observeAll(): Flow<List<PendingShoppingWrite>>

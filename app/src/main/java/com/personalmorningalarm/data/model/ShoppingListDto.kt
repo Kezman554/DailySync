@@ -9,7 +9,15 @@ data class ShoppingListSummaryDto(
     val id: String?,
     val title: String?,
     val total: Int?,
-    val unticked: Int?
+    val unticked: Int?,
+    /**
+     * Whose list it is, as the hub names people ("nick", "jess"). Sent with `?for=`,
+     * which the app always uses; absent means Nick's, the hub's default for a list
+     * written before lists had owners.
+     */
+    val owner: String? = null,
+    /** Whether the other person sees it too. Absent means not shared. */
+    val shared: Boolean? = null
 )
 
 /** `GET /shopping/{listId}` — one list's items, ticked included, each with its raw vault line. */

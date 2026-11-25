@@ -163,6 +163,39 @@
     </plurals>
     <string name="shopping_food_note">Food lists live in KitchenSync.</string>
 
+    <!-- Sharing a list (ShoppingShare). %1$s / %2$s are people's names -->
+    <string name="shopping_tile_shared">Shared · %1$s</string>
+    <string name="shopping_tile_from">%1$s’s · %2$s</string>
+    <string name="shopping_share_with">Shared with %1$s</string>
+    <string name="shopping_share_by">Shared by %1$s</string>
+    <string name="shopping_share_note_phone">On this phone. Sharing moves it to the hub, where %1$s can see and edit it.</string>
+    <string name="shopping_share_note_hub_shared">On the hub. %1$s can see and edit it.</string>
+    <string name="shopping_share_note_hub_private">On the hub, just yours.</string>
+    <string name="shopping_share_note_pull">Stopping sharing moves it back to this phone.</string>
+    <string name="shopping_share_note_not_owner">%1$s’s list. Only %1$s can change its sharing.</string>
+    <string name="shopping_share_working">Moving the list…</string>
+    <string name="shopping_share_title">Share this list?</string>
+    <string name="shopping_share_message">“%1$s” moves to the home hub, where %2$s can see and edit it. It leaves this phone.</string>
+    <string name="shopping_share_confirm">Share</string>
+    <string name="shopping_unshare_title">Stop sharing?</string>
+    <string name="shopping_unshare_pull_message">“%1$s” moves back to this phone, and %2$s won’t see it any more.</string>
+    <string name="shopping_unshare_flag_message">%2$s won’t see “%1$s” any more. It stays on the hub.</string>
+    <string name="shopping_unshare_confirm">Stop sharing</string>
+    <string name="shopping_owner_only">%1$s’s list. Only %1$s can change its sharing or delete it.</string>
+    <string name="shopping_share_moved_hub">“%1$s” is shared. It now lives on the hub</string>
+    <string name="shopping_share_moved_phone">“%1$s” is back on this phone</string>
+    <string name="shopping_share_moved_phone_unconfirmed">“%1$s” is on this phone, but the hub didn’t confirm its copy is gone</string>
+    <string name="shopping_share_flag_on">“%1$s” is shared</string>
+    <string name="shopping_share_flag_off">“%1$s” is no longer shared</string>
+    <string name="shopping_share_unreachable">Sharing needs the hub, and it can’t be reached. Nothing has moved.</string>
+    <string name="shopping_share_unfinished">The hub stopped answering part-way. Nothing is lost: the move finishes when the hub is back.</string>
+    <string name="shopping_share_changes_waiting">Changes to this list are still waiting to sync. Try again once they have.</string>
+    <string name="shopping_share_not_owner">Only the person whose list it is can change its sharing.</string>
+    <string name="shopping_share_gone">That list isn’t on the hub any more.</string>
+    <string name="shopping_share_refused">The hub refused that. Nothing has moved.</string>
+    <string name="shopping_share_busy">This list is already moving.</string>
+    <string name="shopping_menu_share">Share</string>
+    <string name="shopping_menu_unshare">Stop sharing</string>
     <string name="shopping_list_unavailable">This list isn\'t on this phone yet — Alfred unreachable</string>
     <string name="shopping_list_empty">Nothing on this list — all clear</string>
     <string name="shopping_add_hint">Add to the list</string>

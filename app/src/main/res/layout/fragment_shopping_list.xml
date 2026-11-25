@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  One shopping list: the name with "9 left", the sync line, the items in one card
+  One shopping list: the name with "9 left", the share toggle, the sync line, the items in one card
   (tap ticks, long-press drops), and the add bar docked at the bottom. Writes go
   straight to Alfred, or queue on the phone when it's unreachable.
 -->
@@ -16,6 +16,32 @@
     <include
         android:id="@+id/title_bar"
         layout="@layout/view_screen_title" />
+
+    <!-- Sharing: the toggle and a line on where the list lives (ShoppingSharing) -->
+    <LinearLayout
+        android:id="@+id/row_share"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_card"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="12dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switch_share"
+            style="@style/DailySync.SwitchRow"
+            tools:text="Shared with Nick" />
+
+        <TextView
+            android:id="@+id/tv_share_note"
+            style="@style/DailySync.RowHelp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="On this phone. Sharing moves it to the hub, where Nick can see and edit it." />
+    </LinearLayout>
 
     <!-- How old the Alfred data below is (FreshnessView) -->
     <include

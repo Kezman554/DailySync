@@ -87,3 +87,41 @@ data class PhoneListSummary(
     val total: Int,
     val left: Int
 )
+
+/** Which way a [ListMove] is going. */
+enum class MoveDirection {
+    /** A phone list going to the hub as a shared list (upload, then the phone copy is deleted). */
+    SHARE,
+    /** A hub list coming back to the phone (pull-back, which deletes the hub copy). */
+    PULL_BACK
+}
+
+/**
+ * A list part-way between the phone and the hub. Written before anything leaves the
+ * phone and deleted only once the move is complete, so a move cut short (no network,
+ * the app killed) is finished or undone next time rather than half done.
+ *
+ * While a row exists its phone list takes no edits, so the two copies can't drift. The
+ * phone list is hidden from the menu once the hub has it ([hubId] set on a share) and
+ * throughout a pull-back (the hub's copy is still the one showing).
+ */
+@Entity(tableName = "list_moves")
+data class ListMove(
+    /** The phone list moving: the one being shared, or the one a pull-back is filling. */
+    @PrimaryKey val phoneListId: String,
+    /** A [MoveDirection] name. */
+    val direction: String,
+    val title: String,
+    /**
+     * SHARE: the hub id the upload answered with, once known; null until then.
+     * PULL_BACK: the hub list being pulled back.
+     */
+    val hubId: String?,
+    /**
+     * SHARE only: the hub's list ids just before the upload, one per line. If the
+     * upload's answer is lost, a new list of ours with this title that isn't among
+     * them is the one it made, so the upload is never repeated into a duplicate.
+     */
+    val hubIdsBefore: String = "",
+    val startedAt: Long
+)

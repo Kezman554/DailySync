@@ -11,6 +11,8 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.color.MaterialColors
@@ -21,9 +23,13 @@ import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.ShoppingItem
 import com.personalmorningalarm.data.model.ShoppingItemDto
 import com.personalmorningalarm.data.model.ShoppingList
+import com.personalmorningalarm.data.model.ShoppingSharing
+import com.personalmorningalarm.data.profile.Profile
+import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.ShoppingShare
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.databinding.FragmentShoppingListBinding
 import kotlinx.coroutines.launch
@@ -51,6 +57,12 @@ class ShoppingListFragment : Fragment() {
             listId
         )
     }
+
+    private val shareViewModel: ShoppingShareViewModel by viewModels {
+        viewModelFactory { initializer { ShoppingShareViewModel(ShoppingShare.getInstance(requireContext())) } }
+    }
+
+    private val me: Profile? by lazy { ProfileSettings(requireContext()).profile() }
 
     private val itemAdapter by lazy {
         ShoppingItemAdapter(
@@ -85,6 +97,7 @@ class ShoppingListFragment : Fragment() {
         )
 
         binding.btnShoppingConflictDismiss.setOnClickListener { viewModel.dismissFailed() }
+        binding.switchShare.setOnClickListener { onShareToggled() }
         binding.btnShoppingAdd.setOnClickListener { submitAdd() }
         binding.etShoppingAdd.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -99,6 +112,8 @@ class ShoppingListFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.state.collect(::render) }
                 launch { viewModel.events.collect(::showEvent) }
+                launch { shareViewModel.working.collect { renderShare(viewModel.state.value) } }
+                launch { shareViewModel.results.collect(::onShareResult) }
             }
         }
         FreshnessWatch.start(
@@ -114,6 +129,58 @@ class ShoppingListFragment : Fragment() {
 
     private fun renderFreshness(state: ShoppingListViewModel.ShoppingListState) {
         FreshnessView.render(binding.freshness, age(state), AlfredReachability.state.value)
+    }
+
+    /**
+     * The switch only asks: it's put back at once, and shows the new state when the
+     * hub has it (render reads it from the list's summary).
+     */
+    private fun onShareToggled() {
+        val wanted = binding.switchShare.isChecked
+        binding.switchShare.isChecked = !wanted
+        val list = viewModel.state.value.summary ?: return
+        val profile = me ?: return
+        when {
+            wanted -> shareViewModel.setShared(list, true)
+            else -> confirmUnshare(list, profile, onConfirm = { shareViewModel.setShared(list, false) })
+        }
+    }
+
+    private fun onShareResult(result: ShoppingShareViewModel.Result) {
+        showShareResult(binding.root, result)
+        when (result.outcome) {
+            is ShoppingShare.Outcome.MovedToPhone -> openMovedList(result.outcome, R.id.shoppingListFragment)
+            else -> viewModel.refresh(quiet = true)
+        }
+    }
+
+    /**
+     * The share row: for the owner, a toggle; for the other person's list, its name
+     * and a toggle that can't be changed. Hidden until the list's summary is known.
+     */
+    private fun renderShare(state: ShoppingListViewModel.ShoppingListState) {
+        val list = state.summary
+        val profile = me
+        binding.rowShare.isVisible = list != null && profile != null
+        if (list == null || profile == null) return
+        val working = shareViewModel.working.value
+        val shared = ShoppingSharing.isShared(list)
+        val mine = ShoppingSharing.isMine(list, profile)
+        binding.switchShare.isChecked = shared
+        binding.switchShare.isEnabled = mine && !working
+        binding.switchShare.text =
+            if (mine) getString(R.string.shopping_share_with, otherName(profile)) else getString(R.string.shopping_share_by, ownerName(list, profile))
+        binding.tvShareNote.text = when {
+            working -> getString(R.string.shopping_share_working)
+            !mine -> getString(R.string.shopping_share_note_not_owner, ownerName(list, profile))
+            !shared -> getString(R.string.shopping_share_note_hub_private)
+            ShoppingSharing.toggle(profile, list, shared = false) == ShoppingSharing.Toggle.PULL_BACK ->
+                getString(R.string.shopping_share_note_pull)
+            else -> getString(R.string.shopping_share_note_hub_shared, otherName(profile))
+        }
+        // Mid-move the list takes no edits here either: they'd be stranded on the copy that goes.
+        binding.etShoppingAdd.isEnabled = !working
+        binding.btnShoppingAdd.isEnabled = !working
     }
 
     private fun submitAdd() {
@@ -143,6 +210,7 @@ class ShoppingListFragment : Fragment() {
 
     private fun render(state: ShoppingListViewModel.ShoppingListState) {
         binding.swipeRefresh.isRefreshing = state.loading
+        renderShare(state)
 
         val queued = state.pending.filterNot { it.failed }
         val failed = state.pending.filter { it.failed }

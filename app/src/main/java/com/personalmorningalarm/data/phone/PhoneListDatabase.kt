@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * Lists and notes kept on the phone, in a database file of their own beside the
@@ -14,11 +16,13 @@ import androidx.room.RoomDatabase
  * no gain. And the backup rules (res/xml/data_extraction_rules.xml, backup_rules.xml)
  * can name this file outright, which a test checks.
  *
- * No table here has anything to do with Alfred: nothing in this file is ever sent.
+ * Nothing here is sent by itself. The one way a phone list reaches the hub is the
+ * user sharing it, which uploads it and then deletes it here (list_moves records the
+ * move while it's under way; see ShoppingShare).
  */
 @Database(
-    entities = [PhoneList::class, PhoneListItem::class, PhoneNote::class],
-    version = 1,
+    entities = [PhoneList::class, PhoneListItem::class, PhoneNote::class, ListMove::class],
+    version = 2,
     exportSchema = true
 )
 abstract class PhoneListDatabase : RoomDatabase() {
@@ -29,8 +33,21 @@ abstract class PhoneListDatabase : RoomDatabase() {
         /** Named in the backup rules: change both together. */
         const val DB_NAME = "phone_lists.db"
 
-        /** Every migration, in order. None yet: version 1. */
-        internal val MIGRATIONS = emptyArray<androidx.room.migration.Migration>()
+        // v2: list_moves, a list part-way between the phone and the hub. Nothing
+        // existing changes; CREATE copied from the exported 2.json.
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `list_moves` (`phoneListId` TEXT NOT NULL, " +
+                        "`direction` TEXT NOT NULL, `title` TEXT NOT NULL, `hubId` TEXT, " +
+                        "`hubIdsBefore` TEXT NOT NULL, `startedAt` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`phoneListId`))"
+                )
+            }
+        }
+
+        /** Every migration, in order. */
+        internal val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
 
         @Volatile
         private var INSTANCE: PhoneListDatabase? = null

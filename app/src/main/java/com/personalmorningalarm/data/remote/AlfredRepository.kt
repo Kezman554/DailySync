@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType
 import okhttp3.RequestBody
+import retrofit2.HttpException
 import retrofit2.Response
 import java.lang.reflect.Type
 import java.time.LocalDate
@@ -234,6 +235,92 @@ class AlfredRepository(
     /** Drops the item whose raw vault line is [line] in list [listId] — no longer wanted. */
     suspend fun dropShoppingItem(listId: String, line: String): ShoppingWriteResult =
         writeShopping(listId, "drop") { it.dropShoppingItem(listId, ShoppingLineRequest(line)) }
+
+    // Sharing (Session BB). Each answers with what the hub holds now — never a saved
+    // copy — because a move between the phone and the hub is decided on it.
+
+    /** Sets [listId]'s shared flag on the hub. */
+    suspend fun setShoppingShared(listId: String, shared: Boolean): ShareFlagResult =
+        shareCall("share") {
+            val response = it.setShoppingShared(listId, ShoppingShareRequest(shared))
+            when {
+                response.isSuccessful -> ShareFlagResult.Done
+                response.code() == 404 -> ShareFlagResult.Gone
+                else -> null
+            }
+        } ?: ShareFlagResult.Unreachable
+
+    /** Uploads a phone list as a new shared hub list owned by [owner] (a hub name, e.g. "jess"). */
+    suspend fun uploadShoppingList(title: String, owner: String, items: List<ShoppingUploadItem>): UploadResult =
+        shareCall("upload") {
+            val response = it.uploadShoppingList(ShoppingUploadRequest(title, owner, items))
+            val id = response.body()?.id
+            when {
+                response.isSuccessful && !id.isNullOrBlank() -> UploadResult.Uploaded(id)
+                // A 2xx with no id: it may well have made the list, so it's not a refusal.
+                response.isSuccessful -> null
+                response.code() in 400..499 -> UploadResult.Refused(response.code())
+                else -> null
+            }
+        } ?: UploadResult.Unreachable
+
+    /**
+     * Takes [listId] off the hub, returning its items. On success both saved copies
+     * forget it, so an offline screen can't bring it back.
+     */
+    suspend fun pullBackShoppingList(listId: String): PullBackResult =
+        (shareCall("pull-back") {
+            val response = it.pullBackShoppingList(listId)
+            val items = response.body()?.items
+            when {
+                response.isSuccessful && items != null -> PullBackResult.PulledBack(items)
+                response.isSuccessful -> null
+                response.code() == 404 -> PullBackResult.Gone
+                response.code() in 400..499 -> PullBackResult.Refused(response.code())
+                else -> null
+            }
+        } ?: PullBackResult.Unreachable).also { result ->
+            if (result is PullBackResult.PulledBack || result is PullBackResult.Gone) forgetShoppingList(listId)
+        }
+
+    /** [listId]'s items as the hub has them now: found, gone (404), or no answer. */
+    suspend fun liveShoppingList(listId: String): LiveListResult =
+        shareCall("read") {
+            try {
+                it.getShoppingList(listId).items?.let(LiveListResult::Found)
+            } catch (e: HttpException) {
+                if (e.code() == 404) LiveListResult.Gone else null
+            }
+        } ?: LiveListResult.Unreachable
+
+    /** The hub's list of lists right now, also saved as discovery's copy; null with no answer. */
+    suspend fun liveShoppingLists(): List<ShoppingListSummaryDto>? =
+        (getShoppingLists() as? AlfredResult.Fresh)?.data
+
+    private fun forgetShoppingList(listId: String) {
+        cache.put(ENDPOINT_SHOPPING, gson.toJson(cachedShoppingLists(listId)), clock())
+        cache.clear(shoppingListEndpoint(listId))
+    }
+
+    /**
+     * One sharing call. [handle] turns a response into a result, or null for an answer
+     * that settles nothing (a 5xx, a body that can't be read): that reads as no answer.
+     */
+    private suspend fun <T : Any> shareCall(verb: String, handle: suspend (AlfredApiService) -> T?): T? =
+        withContext(Dispatchers.IO) {
+            try {
+                val result = handle(serviceProvider(settings))
+                reportAnswer(result != null)
+                if (result == null) Log.w(TAG, "Shopping $verb: no usable answer")
+                result
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (e: Exception) {
+                Log.d(TAG, "Alfred unreachable for shopping $verb (${e.javaClass.simpleName})")
+                reportAnswer(false)
+                null
+            }
+        }
 
     /** The vault's current `0-inbox/` captures, falling back to the last set Alfred served. */
     suspend fun getInbox(): AlfredResult<List<InboxCaptureDto>> =

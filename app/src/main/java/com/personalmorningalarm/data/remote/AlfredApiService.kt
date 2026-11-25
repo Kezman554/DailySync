@@ -117,6 +117,28 @@ interface AlfredApiService {
         @Body body: ShoppingLineRequest
     ): Response<Unit>
 
+    /** Sets a list's shared flag. 404 (via [Response]) if the list is gone. */
+    @POST("shopping/{listId}/share")
+    suspend fun setShoppingShared(
+        @Path("listId") listId: String,
+        @Body body: ShoppingShareRequest
+    ): Response<Unit>
+
+    /**
+     * Makes a new SHARED list from a phone's copy, ticks kept, in one commit. Not
+     * idempotent: a repeat makes a second list ("-2"), so a lost answer is never
+     * simply retried (see ShoppingShare).
+     */
+    @POST("shopping/upload")
+    suspend fun uploadShoppingList(@Body body: ShoppingUploadRequest): Response<ShoppingUploadResponse>
+
+    /**
+     * Returns the list's items and deletes it from the hub, in one commit. 404 if it's
+     * gone, 409 if it isn't one the hub can remove (not in 6-life/shopping/).
+     */
+    @POST("shopping/{listId}/pull-back")
+    suspend fun pullBackShoppingList(@Path("listId") listId: String): Response<ShoppingPullBackResponse>
+
     /** The vault's current `0-inbox/` captures, newest first. Read-only — triage happens in the vault. */
     @GET("inbox")
     suspend fun getInbox(): List<InboxCaptureDto>
@@ -164,6 +186,20 @@ data class ShoppingAddRequest(val text: String)
 
 /** Body for a shopping tick/drop — the item's raw vault line, sent back verbatim as the target. */
 data class ShoppingLineRequest(val line: String)
+
+/** Body for POST /shopping/{listId}/share. */
+data class ShoppingShareRequest(val shared: Boolean)
+
+/** Body for POST /shopping/upload: the list's title, whose it is, and every item with its tick. */
+data class ShoppingUploadRequest(val title: String, val owner: String, val items: List<ShoppingUploadItem>)
+
+data class ShoppingUploadItem(val text: String, val ticked: Boolean)
+
+/** What POST /shopping/upload answers: the new list's id, the handle every other route takes. */
+data class ShoppingUploadResponse(val id: String?)
+
+/** What POST /shopping/{listId}/pull-back answers: the items as they were, ticks included. */
+data class ShoppingPullBackResponse(val items: List<ShoppingItemDto>?)
 
 /** Body for POST /shopping — the list's display name; Alfred slugifies it into a vault file id. */
 data class ShoppingCreateRequest(val name: String)

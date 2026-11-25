@@ -1,5 +1,6 @@
 package com.personalmorningalarm.ui
 
+import com.personalmorningalarm.data.profile.Profile
 import android.content.Context
 import android.widget.FrameLayout
 import androidx.appcompat.view.ContextThemeWrapper
@@ -33,6 +34,7 @@ class ShoppingListSummaryAdapterTest {
     private var newListTaps = 0
 
     private val adapter = ShoppingListSummaryAdapter(
+        me = Profile.NICK,
         onClick = { opened += it.summary; openedHomes += it.home },
         onLongPress = { pressed += it.summary },
         onNewList = { newListTaps++ }
@@ -97,7 +99,7 @@ class ShoppingListSummaryAdapterTest {
 
     @Test
     fun `the New list tile always opens, since a phone list needs no Alfred`() {
-        ShoppingListSummaryAdapter({}, {}, { newListTaps++ }).also {
+        ShoppingListSummaryAdapter(Profile.NICK, {}, {}, { newListTaps++ }).also {
             it.submit(null)
             it.onBindViewHolder(holder, 0)
         }
@@ -105,6 +107,27 @@ class ShoppingListSummaryAdapterTest {
         holder.itemView.performClick()
 
         assertEquals(1, newListTaps)
+    }
+
+
+    /** The count line [me] sees on a tile for [summary]. */
+    private fun countLine(me: Profile, summary: ShoppingListSummaryDto): String {
+        val tiles = ShoppingListSummaryAdapter(me, {}, {}, {}).also { it.submit(listOf(summary)) }
+        // Its own holder: a holder reads the profile of the adapter that made it.
+        val own = tiles.onCreateViewHolder(FrameLayout(context), 0)
+        tiles.onBindViewHolder(own, 0)
+        return own.itemView.findViewById<TextView>(R.id.tv_shopping_list_count).text.toString()
+    }
+
+    @Test
+    fun `the other person's shared list names its owner, and your own shared list says shared`() {
+        val nicks = ShoppingListSummaryDto("6-life/shopping/hardware.md", "Hardware", 2, 2, owner = "nick", shared = true)
+
+        assertEquals("Nick’s · 2 left", countLine(Profile.JESS, nicks))
+        assertEquals("Shared · 2 left", countLine(Profile.NICK, nicks))
+        assertEquals("2 left", countLine(Profile.NICK, nicks.copy(shared = false)))
+        // A list from before owners existed is Nick's.
+        assertEquals("Nick’s · 2 left", countLine(Profile.JESS, nicks.copy(owner = null)))
     }
 
     private companion object {

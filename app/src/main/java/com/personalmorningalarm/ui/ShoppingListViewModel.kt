@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.personalmorningalarm.data.entity.PendingShoppingWrite
 import com.personalmorningalarm.data.entity.ShoppingVerb
 import com.personalmorningalarm.data.model.ShoppingItemDto
+import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import com.personalmorningalarm.data.model.tickedLine
 import com.personalmorningalarm.data.model.updateFirst
 import com.personalmorningalarm.data.model.withoutFirst
@@ -14,6 +15,7 @@ import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.data.remote.ShoppingWriteResult
+import com.personalmorningalarm.data.remote.dataOrNull
 import com.personalmorningalarm.data.remote.map
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -43,7 +45,9 @@ class ShoppingListViewModel(
     data class ShoppingListState(
         val loading: Boolean = false,
         val result: AlfredResult<List<ShoppingItemDto>>? = null,
-        val pending: List<PendingShoppingWrite> = emptyList()
+        val pending: List<PendingShoppingWrite> = emptyList(),
+        /** This list as discovery describes it: whose it is and whether it's shared. Null until known. */
+        val summary: ShoppingListSummaryDto? = null
     )
 
     enum class ShoppingEvent {
@@ -86,6 +90,9 @@ class ShoppingListViewModel(
             if (sync.hasPending()) sync.flush()
             val result = alfred.getShoppingList(listId)
             _state.value = _state.value.copy(loading = false, result = result.map { it.items.orEmpty() })
+            // Owner and shared come only from discovery; its saved copy will do if Alfred's away.
+            val summary = alfred.getShoppingLists().dataOrNull()?.firstOrNull { it.id == listId }
+            if (summary != null) _state.value = _state.value.copy(summary = summary)
         }
     }
 
