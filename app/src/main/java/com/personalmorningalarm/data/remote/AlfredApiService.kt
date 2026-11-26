@@ -16,6 +16,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -85,12 +86,14 @@ interface AlfredApiService {
 
     /**
      * Adds an item to [list]. The API appends "- [ ] text (today's date)" itself — no date is sent.
-     * Every call appends a line, so it carries a [SendMarker] and is never resent by OkHttp.
+     * Every call without a key appends a line; with [key] ([AddKey]) a repeat adds nothing and
+     * answers as the first did, so it is safe to resend. 409: [key] was used for other text.
      */
     @POST("chalkboard")
     suspend fun addChalkboardItem(
         @Query("list") list: String,
         @Body body: ChalkboardAddRequest,
+        @Header(AddKey.HEADER) key: String,
         @Tag sent: SendMarker
     ): Response<Unit>
 
@@ -119,13 +122,14 @@ interface AlfredApiService {
     suspend fun deleteShoppingList(@Path("listId") listId: String): Response<ShoppingDeleteResponse>
 
     /**
-     * Appends an unticked item to the targeted list. Every call adds a line, so it
-     * carries a [SendMarker] and is never resent by OkHttp.
+     * Appends an unticked item to the targeted list. Keyed by [key] ([AddKey]) as
+     * [addChalkboardItem] is: a repeat adds nothing; 409 is the key on other text.
      */
     @POST("shopping/{listId}")
     suspend fun addShoppingItem(
         @Path("listId") listId: String,
         @Body body: ShoppingAddRequest,
+        @Header(AddKey.HEADER) key: String,
         @Tag sent: SendMarker
     ): Response<Unit>
 
@@ -173,11 +177,15 @@ interface AlfredApiService {
      * Creates a new inbox capture. The body is the text itself as text/plain, not
      * JSON — hence the raw [RequestBody]: Gson would serialise a String to a quoted
      * JSON scalar and send it as application/json, which this endpoint doesn't take.
-     * Build it with [AlfredRepository.capturePlainText]. Every call writes a new
-     * file, so it carries a [SendMarker] and is never resent by OkHttp.
+     * Build it with [AlfredRepository.capturePlainText]. Keyed by [key] ([AddKey]):
+     * a repeat writes no second file; 409 is the key on other text.
      */
     @POST("inbox")
-    suspend fun capture(@Body body: RequestBody, @Tag sent: SendMarker): Response<Unit>
+    suspend fun capture(
+        @Body body: RequestBody,
+        @Header(AddKey.HEADER) key: String,
+        @Tag sent: SendMarker
+    ): Response<Unit>
 
     /** Every note as id, title, updated and preview, newest update first. */
     @GET("notes")

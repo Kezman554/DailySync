@@ -96,7 +96,7 @@ class TodoViewModelTest : ViewModelTestSupport() {
                     override suspend fun getCalendarEvents(start: String, end: String): CalendarEventsDto =
                         throw IOException()
 
-                    override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
+                    override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest, key: String, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
                         write("$list ADD:${body.text}")
 
                     override suspend fun tickChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> =
@@ -118,7 +118,7 @@ class TodoViewModelTest : ViewModelTestSupport() {
                         body: ShoppingCreateRequest
                     ): Response<com.personalmorningalarm.data.model.ShoppingListSummaryDto> = throw IOException()
 
-                    override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
+                    override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest, key: String, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
                         throw IOException()
 
                     override suspend fun tickShoppingItem(listId: String, body: ShoppingLineRequest): Response<Unit> =
@@ -143,7 +143,7 @@ class TodoViewModelTest : ViewModelTestSupport() {
                     override suspend fun getInbox(): List<com.personalmorningalarm.data.model.InboxCaptureDto> =
                         throw IOException()
 
-                    override suspend fun capture(body: okhttp3.RequestBody, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> = throw IOException()
+                    override suspend fun capture(body: okhttp3.RequestBody, key: String, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> = throw IOException()
 
                     private fun write(label: String): Response<Unit> {
                         writes += label

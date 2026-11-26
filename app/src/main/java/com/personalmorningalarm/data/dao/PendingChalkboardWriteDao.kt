@@ -34,4 +34,8 @@ interface PendingChalkboardWriteDao {
     /** The user has seen the conflict notice — the failed entries have served their purpose. */
     @Query("DELETE FROM pending_chalkboard_writes WHERE failed = 1")
     suspend fun deleteFailed()
+
+    /** Gives an ADD that has none (queued by an older build) its key, kept for every later attempt. */
+    @Query("UPDATE pending_chalkboard_writes SET idempotencyKey = :key WHERE id = :id")
+    suspend fun setKey(id: Long, key: String)
 }

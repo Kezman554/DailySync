@@ -15,6 +15,9 @@ import androidx.room.PrimaryKey
  * queues: not "the vault moved on" but "Alfred refused this text outright" (a 4xx
  * that isn't a transport failure). It exists so one unacceptable capture can't stall
  * the FIFO behind it forever.
+ *
+ * [idempotencyKey] is made when the user captures it and sent unchanged on every
+ * attempt, so a resend after a lost answer makes no second file.
  */
 @Entity(tableName = "pending_inbox_writes")
 data class PendingInboxWrite(
@@ -23,11 +26,6 @@ data class PendingInboxWrite(
     val text: String,
     val createdAt: Long,
     val failed: Boolean = false,
-    /**
-     * When this capture was last sent with no confirmed answer, or null if it has
-     * never been known to leave the phone. Set before each send and cleared again if
-     * the send never got a connection, so a process death mid-send leaves it set. A
-     * set value means it may already be on the hub: InboxSync looks before resending.
-     */
-    val attemptedAt: Long? = null
+    /** Its Idempotency-Key ([com.personalmorningalarm.data.remote.AddKey]). */
+    val idempotencyKey: String
 )

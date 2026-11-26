@@ -123,11 +123,11 @@ class AlfredClientTimeoutTest {
         answerAfterSeconds = 5
 
         val results = listOf(
-            async { repository.addChalkboardItem(ChalkboardList.NICK, "Oil the gate") },
+            async { repository.addChalkboardItem(ChalkboardList.NICK, "Oil the gate", AddKey.new()) },
             async { repository.tickChalkboardItem(ChalkboardList.NICK, "- [ ] Oil the gate") },
             async { repository.dropChalkboardItem(ChalkboardList.NICK, "- [ ] Oil the gate") },
-            async { repository.addShoppingItem("groceries", "Oat milk") },
-            async { repository.captureToInbox("A passing thought") }
+            async { repository.addShoppingItem("groceries", "Oat milk", AddKey.new()) },
+            async { repository.captureToInbox("A passing thought", AddKey.new()) }
         ).awaitAll()
 
         assertEquals(
@@ -167,7 +167,7 @@ class AlfredClientTimeoutTest {
         settings.setHost("$LOCALHOST:${closedPort()}")
 
         val started = System.currentTimeMillis()
-        val result = repository.addChalkboardItem(ChalkboardList.NICK, "Oil the gate")
+        val result = repository.addChalkboardItem(ChalkboardList.NICK, "Oil the gate", AddKey.new())
 
         assertEquals(AlfredWriteResult.Unreachable, result)
         assertTrue(System.currentTimeMillis() - started < 3_000)

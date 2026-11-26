@@ -37,18 +37,29 @@ class ShoppingSync(
         val changedAnything: Boolean get() = delivered > 0 || conflicted > 0
     }
 
-    suspend fun enqueue(listId: String, verb: ShoppingVerb, text: String, line: String? = null) {
-        dao.insert(
-            PendingShoppingWrite(
-                listId = listId,
-                verb = verb.name,
-                text = text,
-                line = line,
-                createdAt = System.currentTimeMillis()
-            )
-        )
+    /**
+     * Queues a write. An ADD keeps [key], the [AddKey] it was made with (and maybe
+     * already sent under), or gets a new one if it has none yet.
+     */
+    suspend fun enqueue(listId: String, verb: ShoppingVerb, text: String, line: String? = null, key: String? = null) {
+        dao.insert(entry(listId, verb, text, line, key))
         Log.d(TAG, "Shopping ${verb.name} queued for sync (list=$listId)")
     }
+
+    /** An add the hub refused (409) when sent live: kept as failed, for the notice, never sent again. */
+    suspend fun recordRefused(listId: String, text: String, key: String) {
+        dao.insert(entry(listId, ShoppingVerb.ADD, text, null, key).copy(failed = true))
+    }
+
+    private fun entry(listId: String, verb: ShoppingVerb, text: String, line: String?, key: String?) =
+        PendingShoppingWrite(
+            listId = listId,
+            verb = verb.name,
+            text = text,
+            line = line,
+            createdAt = System.currentTimeMillis(),
+            idempotencyKey = if (verb == ShoppingVerb.ADD) key ?: AddKey.new() else null
+        )
 
     /** Cheap guard for the app-foreground trigger: don't touch the network for an empty queue. */
     suspend fun hasPending(): Boolean = dao.countPending() > 0
@@ -104,6 +115,11 @@ class ShoppingSync(
                     dao.delete(entry)
                     delivered++
                 }
+                ShoppingWriteResult.Refused -> {
+                    dao.markFailed(entry.id)
+                    conflicted++
+                    Log.w(TAG, "Queued ${entry.verb} (list=${entry.listId}) refused (key reused for other text) — kept for the notice")
+                }
                 is ShoppingWriteResult.StaleTarget -> {
                     // The repository already cached the 404's list for this entry's
                     // list — the freshest state we have. This entry is spent; the
@@ -126,7 +142,7 @@ class ShoppingSync(
 
     private suspend fun replay(entry: PendingShoppingWrite): ShoppingWriteResult {
         return when (ShoppingVerb.fromName(entry.verb)) {
-            ShoppingVerb.ADD -> alfred.addShoppingItem(entry.listId, entry.text)
+            ShoppingVerb.ADD -> alfred.addShoppingItem(entry.listId, entry.text, keyOf(entry))
             ShoppingVerb.TICK -> alfred.tickShoppingItem(entry.listId, entry.line ?: return failEntry(entry))
             ShoppingVerb.DROP -> alfred.dropShoppingItem(entry.listId, entry.line ?: return failEntry(entry))
             // A verb this build doesn't know (downgrade after a newer build queued
@@ -134,6 +150,10 @@ class ShoppingSync(
             null -> failEntry(entry)
         }
     }
+
+    /** [entry]'s key; one queued without (never, since v12) gets one now and keeps it. */
+    private suspend fun keyOf(entry: PendingShoppingWrite): String =
+        entry.idempotencyKey ?: AddKey.new().also { dao.setKey(entry.id, it) }
 
     /** An entry that can never be replayed reads as a conflict, not a crash or a stall. */
     private fun failEntry(entry: PendingShoppingWrite): ShoppingWriteResult {

@@ -14,7 +14,7 @@ class InboxTest {
         InboxCaptureDto(filename, content)
 
     private fun pending(text: String, failed: Boolean = false) =
-        PendingInboxWrite(text = text, createdAt = 0L, failed = failed)
+        PendingInboxWrite(text = text, createdAt = 0L, failed = failed, idempotencyKey = "key-$text")
 
     @Test
     fun `a vault filename becomes a title and a captured-at`() {

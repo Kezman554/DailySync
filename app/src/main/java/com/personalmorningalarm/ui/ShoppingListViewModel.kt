@@ -11,6 +11,7 @@ import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import com.personalmorningalarm.data.model.tickedLine
 import com.personalmorningalarm.data.model.updateFirst
 import com.personalmorningalarm.data.model.withoutFirst
+import com.personalmorningalarm.data.remote.AddKey
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ShoppingSync
@@ -103,13 +104,19 @@ class ShoppingListViewModel(
     fun addItem(text: String) {
         val task = text.replace(NEWLINES, " ").trim()
         if (task.isEmpty()) return
+        // Made now and kept with the add: every attempt, live or queued, sends it.
+        val key = AddKey.new()
         if (!isFresh()) {
-            queueWrite(ShoppingVerb.ADD, text = task)
+            queueWrite(ShoppingVerb.ADD, text = task, key = key)
             return
         }
         applyOptimistically { it + ShoppingItemDto(text = task, line = null, ticked = false) }
-        runWrite("add", onUnreachable = { queueWrite(ShoppingVerb.ADD, text = task) }) {
-            alfred.addShoppingItem(listId, task)
+        runWrite(
+            "add",
+            onUnreachable = { queueWrite(ShoppingVerb.ADD, text = task, key = key) },
+            onRefused = { sync.recordRefused(listId, task, key) }
+        ) {
+            alfred.addShoppingItem(listId, task, key)
         }
     }
 
@@ -143,9 +150,9 @@ class ShoppingListViewModel(
 
     private fun isFresh(): Boolean = _state.value.result is AlfredResult.Fresh
 
-    private fun queueWrite(verb: ShoppingVerb, text: String, line: String? = null) {
+    private fun queueWrite(verb: ShoppingVerb, text: String, line: String? = null, key: String? = null) {
         viewModelScope.launch {
-            sync.enqueue(listId, verb, text, line)
+            sync.enqueue(listId, verb, text, line, key)
             _events.emit(ShoppingEvent.SAVED_OFFLINE)
         }
     }
@@ -165,11 +172,18 @@ class ShoppingListViewModel(
         verb: String,
         reconcileOnSuccess: Boolean = true,
         onUnreachable: suspend () -> Unit,
+        onRefused: suspend () -> Unit = {},
         write: suspend () -> ShoppingWriteResult
     ) {
         viewModelScope.launch {
             when (val result = write()) {
                 ShoppingWriteResult.Done -> if (reconcileOnSuccess) reconcile()
+                ShoppingWriteResult.Refused -> {
+                    // A bug, not Alfred: kept as a failed change for the notice, never resent.
+                    Log.w(TAG, "Shopping $verb refused (list=$listId) — shown as failed")
+                    onRefused()
+                    reconcile()
+                }
                 is ShoppingWriteResult.StaleTarget -> {
                     _state.value = _state.value.copy(result = AlfredResult.Fresh(result.current, System.currentTimeMillis()))
                     _events.emit(ShoppingEvent.LIST_REFRESHED)

@@ -26,6 +26,7 @@ import okhttp3.MediaType
 import okhttp3.RequestBody
 import retrofit2.HttpException
 import retrofit2.Response
+import java.io.IOException
 import java.lang.reflect.Type
 import java.time.LocalDate
 
@@ -174,9 +175,14 @@ class AlfredRepository(
             type = CHALKBOARD_TYPE
         ) { it.getChalkboard(list.wireName, includeTicked = true) }
 
-    /** Adds an item to [list]. Alfred appends the checkbox and today's date. */
-    suspend fun addChalkboardItem(list: ChalkboardList, task: String): AlfredWriteResult =
-        write(list, "add") { it.addChalkboardItem(list.wireName, ChalkboardAddRequest(task), SendMarker()) }
+    /**
+     * Adds an item to [list]. Alfred appends the checkbox and today's date. [key] is
+     * the add's [AddKey], the same on every attempt: a lost answer is sent again.
+     */
+    suspend fun addChalkboardItem(list: ChalkboardList, task: String, key: String): AlfredWriteResult =
+        write(list, "add", keyed = true) { service ->
+            sendKeyed { sent -> service.addChalkboardItem(list.wireName, ChalkboardAddRequest(task), key, sent) }
+        }
 
     /** Ticks the item on [list] whose raw vault line is [line]. It stays listed until the sweep. */
     suspend fun tickChalkboardItem(list: ChalkboardList, line: String): AlfredWriteResult =
@@ -287,9 +293,11 @@ class AlfredRepository(
         return saved.orEmpty().filterNot { it.id == listId }
     }
 
-    /** Adds an item to the shopping list [listId]. Alfred appends the checkbox. */
-    suspend fun addShoppingItem(listId: String, text: String): ShoppingWriteResult =
-        writeShopping(listId, "add") { it.addShoppingItem(listId, ShoppingAddRequest(text), SendMarker()) }
+    /** Adds an item to the shopping list [listId], keyed by [key] as [addChalkboardItem] is. */
+    suspend fun addShoppingItem(listId: String, text: String, key: String): ShoppingWriteResult =
+        writeShopping(listId, "add", keyed = true) { service ->
+            sendKeyed { sent -> service.addShoppingItem(listId, ShoppingAddRequest(text), key, sent) }
+        }
 
     /** Ticks the item whose raw vault line is [line] in list [listId]. Stays listed until the sweep. */
     suspend fun tickShoppingItem(listId: String, line: String): ShoppingWriteResult =
@@ -396,17 +404,20 @@ class AlfredRepository(
      * Captures [text] as a new file in `0-inbox/`. Unlike every other write here
      * there's no targeting key and so no stale case: a 4xx means Alfred read the
      * text and refused it, which no amount of retrying will change, so it comes back
-     * as [InboxWriteResult.Rejected] rather than being retried forever.
-     *
-     * [sent] says, after an [InboxWriteResult.Unreachable], whether the capture got
-     * as far as the hub, so InboxSync knows to look for it before sending it again.
+     * as [InboxWriteResult.Rejected] rather than being retried forever. A 409 is
+     * one of those: [key] (the capture's [AddKey]) was used for other text.
      */
-    suspend fun captureToInbox(text: String, sent: SendMarker = SendMarker()): InboxWriteResult = withContext(Dispatchers.IO) {
+    suspend fun captureToInbox(text: String, key: String): InboxWriteResult = withContext(Dispatchers.IO) {
         try {
-            val response = serviceProvider(settings).capture(capturePlainText(text), sent)
+            val service = serviceProvider(settings)
+            val response = sendKeyed { sent -> service.capture(capturePlainText(text), key, sent) }
             reportAnswer(response.isSuccessful || response.code() in 400..499)
             when {
                 response.isSuccessful -> InboxWriteResult.Done
+                response.code() == 409 -> {
+                    Log.e(TAG, "Inbox capture: Idempotency-Key reused for other text (a bug) — not retried")
+                    InboxWriteResult.Rejected
+                }
                 response.code() in 400..499 -> {
                     Log.w(TAG, "Inbox capture refused: HTTP ${response.code()}")
                     InboxWriteResult.Rejected
@@ -512,13 +523,18 @@ class AlfredRepository(
     private suspend fun write(
         list: ChalkboardList,
         verb: String,
+        keyed: Boolean = false,
         request: suspend (AlfredApiService) -> Response<Unit>
     ): AlfredWriteResult = withContext(Dispatchers.IO) {
         try {
             val response = request(serviceProvider(settings))
-            reportAnswer(response.isSuccessful || response.code() == 404)
+            reportAnswer(response.isSuccessful || response.code() == 404 || (keyed && response.code() == 409))
             when {
                 response.isSuccessful -> AlfredWriteResult.Done
+                keyed && response.code() == 409 -> {
+                    Log.e(TAG, "Chalkboard $verb: Idempotency-Key reused for other text (a bug) — not retried")
+                    AlfredWriteResult.Refused
+                }
                 response.code() == 404 -> staleTarget(list, verb, response)
                 else -> {
                     Log.w(TAG, "Chalkboard $verb rejected: HTTP ${response.code()}")
@@ -532,6 +548,27 @@ class AlfredRepository(
             reportAnswer(false)
             AlfredWriteResult.Unreachable
         }
+    }
+
+    /**
+     * Sends a keyed add, and sends it again at once, under the same key, if the
+     * connection dropped after it went out: the answer was lost, and the hub answers
+     * a repeated key with the first add rather than adding again. OkHttp's own retry
+     * covers a dropped pooled connection; this covers the rest (a read timeout while
+     * the Pi was busy, say). A failure before anything went out is thrown at once:
+     * the hub isn't there, and the caller queues the add.
+     */
+    private suspend fun <T> sendKeyed(call: suspend (SendMarker) -> Response<T>): Response<T> {
+        repeat(LOST_ANSWER_RESENDS) {
+            val sent = SendMarker()
+            try {
+                return call(sent)
+            } catch (e: IOException) {
+                if (!sent.sent) throw e
+                Log.d(TAG, "Keyed add sent, answer lost (${e.javaClass.simpleName}) — sending again")
+            }
+        }
+        return call(SendMarker())
     }
 
     /** Shape of a tick/drop 404 (FastAPI wraps it): {"detail":{"error":…,"items":[…]}}. */
@@ -564,13 +601,18 @@ class AlfredRepository(
     private suspend fun writeShopping(
         listId: String,
         verb: String,
+        keyed: Boolean = false,
         request: suspend (AlfredApiService) -> Response<Unit>
     ): ShoppingWriteResult = withContext(Dispatchers.IO) {
         try {
             val response = request(serviceProvider(settings))
-            reportAnswer(response.isSuccessful || response.code() == 404)
+            reportAnswer(response.isSuccessful || response.code() == 404 || (keyed && response.code() == 409))
             when {
                 response.isSuccessful -> ShoppingWriteResult.Done
+                keyed && response.code() == 409 -> {
+                    Log.e(TAG, "Shopping $verb: Idempotency-Key reused for other text (a bug) — not retried")
+                    ShoppingWriteResult.Refused
+                }
                 response.code() == 404 -> staleShoppingTarget(listId, verb, response)
                 else -> {
                     Log.w(TAG, "Shopping $verb rejected: HTTP ${response.code()}")
@@ -673,6 +715,9 @@ class AlfredRepository(
 
     companion object {
         private const val TAG = "PMA"
+
+        /** How many times a keyed add whose answer was lost is sent again at once, before it's queued. */
+        private const val LOST_ANSWER_RESENDS = 1
 
         const val ENDPOINT_DAILY_SCHEDULE = "daily-schedule"
         const val ENDPOINT_WEEK_SCHEDULE = "daily-schedule/week"

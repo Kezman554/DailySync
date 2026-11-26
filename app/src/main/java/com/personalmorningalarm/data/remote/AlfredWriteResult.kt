@@ -19,4 +19,11 @@ sealed interface AlfredWriteResult {
 
     /** Alfred didn't take the write — unreachable, or an unexpected error. */
     data object Unreachable : AlfredWriteResult
+
+    /**
+     * An add's 409: its Idempotency-Key was already used for other text. A phone
+     * bug, not a vault change: nothing was added, it's logged, shown as a failed
+     * change, and never retried.
+     */
+    data object Refused : AlfredWriteResult
 }

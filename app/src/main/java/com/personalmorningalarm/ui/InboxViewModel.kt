@@ -102,8 +102,8 @@ class InboxViewModel(
             return
         }
         viewModelScope.launch {
-            // Through the queue even live: if the answer is lost, the capture is
-            // already a queue row that knows it may have landed (InboxSync).
+            // Through the queue even live: the capture is a row with its key before
+            // it's sent, so a lost answer is sent again under that key (InboxSync).
             when (sync.capture(body)) {
                 InboxWriteResult.Done -> {
                     _events.emit(InboxEvent.CAPTURED)

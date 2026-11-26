@@ -49,20 +49,23 @@ object AlfredClient {
     }
 
     /**
-     * A create is never sent twice by the client. OkHttp quietly resends a request
-     * whose connection dropped after it went out; for a create that makes a second
-     * copy: another to-do line, shopping item, inbox file or calendar event, or a
-     * "-2" shared list. A one-shot body is never resent, so a lost answer reaches the
-     * caller, which works out whether it landed.
+     * An unkeyed create is never sent twice by the client. OkHttp quietly resends a
+     * request whose connection dropped after it went out; for a create that makes a
+     * second copy: another calendar event, or a "-2" shared list. A one-shot body is
+     * never resent, so a lost answer reaches the caller, which works out whether it
+     * landed.
      *
-     * A create is any request carrying a [SendMarker] (every create in
-     * [AlfredApiService] takes one), plus the shopping upload, which reconciles by
-     * its own means (ShoppingShare).
+     * An unkeyed create is any request carrying a [SendMarker] without an
+     * [AddKey.HEADER] (the calendar add), plus the shopping upload, which reconciles
+     * by its own means (ShoppingShare). The keyed adds (to-do, shopping item, inbox
+     * capture) are left to OkHttp's retry: the hub answers a repeated key with the
+     * first add, and the header goes out unchanged on every attempt.
      */
     private val uploadSentOnce = Interceptor { chain ->
         val request = chain.request()
         val body = request.body()
-        val create = request.tag(SendMarker::class.java) != null || request.url().pathSegments() in SEND_ONCE_PATHS
+        val unkeyed = request.tag(SendMarker::class.java) != null && request.header(AddKey.HEADER) == null
+        val create = unkeyed || request.url().pathSegments() in SEND_ONCE_PATHS
         if (request.method() != "POST" || body == null || !create) {
             chain.proceed(request)
         } else {

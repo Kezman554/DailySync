@@ -42,4 +42,8 @@ interface PendingShoppingWriteDao {
     /** The user has seen this list's conflict notice — its failed entries have served their purpose. */
     @Query("DELETE FROM pending_shopping_writes WHERE failed = 1 AND listId = :listId")
     suspend fun deleteFailedForList(listId: String)
+
+    /** Gives an ADD that has none (queued by an older build) its key, kept for every later attempt. */
+    @Query("UPDATE pending_shopping_writes SET idempotencyKey = :key WHERE id = :id")
+    suspend fun setKey(id: Long, key: String)
 }

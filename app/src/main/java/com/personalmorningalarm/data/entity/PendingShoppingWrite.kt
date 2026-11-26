@@ -21,7 +21,9 @@ data class PendingShoppingWrite(
     /** The targeting line for TICK/DROP, taken from the snapshot the user acted on. Null for ADD. */
     val line: String?,
     val createdAt: Long,
-    val failed: Boolean = false
+    val failed: Boolean = false,
+    /** An ADD's Idempotency-Key, as [PendingChalkboardWrite.idempotencyKey]. Null for TICK and DROP. */
+    val idempotencyKey: String? = null
 )
 
 /** The three shopping-list writes the queue can hold. Create-list is never queued — it's online-only. */

@@ -12,6 +12,7 @@ import com.personalmorningalarm.data.model.tickedLine
 import com.personalmorningalarm.data.model.updateFirst
 import com.personalmorningalarm.data.model.withoutFirst
 import com.personalmorningalarm.data.phone.PhoneListStore
+import com.personalmorningalarm.data.remote.AddKey
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.AlfredWriteResult
@@ -128,14 +129,20 @@ class HubTodoSource(
         // The vault is line-oriented — an embedded newline would split into two items.
         val task = text.replace(NEWLINES, " ").trim()
         if (task.isEmpty()) return
+        // Made now and kept with the add: every attempt, live or queued, sends it.
+        val key = AddKey.new()
         if (!isFresh()) {
-            queueWrite(ChalkboardVerb.ADD, text = task)
+            queueWrite(ChalkboardVerb.ADD, text = task, key = key)
             return
         }
         // No line yet — Alfred composes the real one; the refetch brings it back.
         applyOptimistically { it + ChalkboardTaskDto(task = task, date = null, line = null, ticked = false) }
-        runWrite("add", onUnreachable = { queueWrite(ChalkboardVerb.ADD, text = task) }) {
-            alfred.addChalkboardItem(list, task)
+        runWrite(
+            "add",
+            onUnreachable = { queueWrite(ChalkboardVerb.ADD, text = task, key = key) },
+            onRefused = { sync.recordRefused(list, task, key) }
+        ) {
+            alfred.addChalkboardItem(list, task, key)
         }
     }
 
@@ -180,9 +187,9 @@ class HubTodoSource(
      * flow updates [SourceState.queued], and the merged items are what show the
      * edit — one source of optimism, not two.
      */
-    private fun queueWrite(verb: ChalkboardVerb, text: String, line: String? = null) {
+    private fun queueWrite(verb: ChalkboardVerb, text: String, line: String? = null, key: String? = null) {
         scope.launch {
-            sync.enqueue(list, verb, text, line)
+            sync.enqueue(list, verb, text, line, key)
             events.emit(TodoEvent.SAVED_OFFLINE)
         }
     }
@@ -205,11 +212,18 @@ class HubTodoSource(
         verb: String,
         reconcileOnSuccess: Boolean = true,
         onUnreachable: suspend () -> Unit,
+        onRefused: suspend () -> Unit = {},
         write: suspend () -> AlfredWriteResult
     ) {
         scope.launch {
             when (val result = write()) {
                 AlfredWriteResult.Done -> if (reconcileOnSuccess) reconcile()
+                AlfredWriteResult.Refused -> {
+                    // A bug, not Alfred: kept as a failed change for the notice, never resent.
+                    Log.w(TAG, "To-do ${list.wireName}: $verb refused — shown as failed")
+                    onRefused()
+                    reconcile()
+                }
                 is AlfredWriteResult.StaleTarget -> {
                     // The 404 carries the open items only. Read the list again for
                     // its greyed ticked rows; if that fails, the 404's list will do.

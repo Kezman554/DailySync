@@ -28,10 +28,6 @@ interface PendingInboxWriteDao {
     @Query("DELETE FROM pending_inbox_writes WHERE id = :id")
     suspend fun deleteById(id: Long)
 
-    /** Records that [id] is about to be sent ([at]), or (null) that it never got out. */
-    @Query("UPDATE pending_inbox_writes SET attemptedAt = :at WHERE id = :id")
-    suspend fun setAttempted(id: Long, at: Long?)
-
     @Query("SELECT * FROM pending_inbox_writes ORDER BY id ASC")
     fun observeAll(): Flow<List<PendingInboxWrite>>
 

@@ -44,7 +44,7 @@ import com.personalmorningalarm.data.entity.StretchRoutine
         PendingInboxWrite::class,
         PendingNoteWrite::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -200,10 +200,48 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * A fresh random UUID (version 4 form), evaluated per row: the key SQL gives
+         * an add queued before v12. Same shape as AddKey.new(), well inside the
+         * hub's 1-100 characters.
+         */
+        private const val NEW_KEY_SQL =
+            "lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || " +
+                "substr(lower(hex(randomblob(2))), 2) || '-' || " +
+                "substr('89ab', 1 + (abs(random()) % 4), 1) || substr(lower(hex(randomblob(2))), 2) || '-' || " +
+                "lower(hex(randomblob(6)))"
+
+        // v12: every add carries an Idempotency-Key, so the hub makes it once
+        // however often it's sent. Each queued ADD and capture gets its own key now
+        // and keeps it. The inbox's attemptedAt (v11) goes: with a key a capture is
+        // simply sent again, never looked for on the hub first. SQLite can't drop a
+        // column before 3.35, so that table is rebuilt, rows and ids kept.
+        // Nothing else is touched: NFC tags, alarm events and settings stay as they are.
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `pending_chalkboard_writes` ADD COLUMN `idempotencyKey` TEXT")
+                db.execSQL("UPDATE `pending_chalkboard_writes` SET `idempotencyKey` = $NEW_KEY_SQL WHERE `verb` = 'ADD'")
+                db.execSQL("ALTER TABLE `pending_shopping_writes` ADD COLUMN `idempotencyKey` TEXT")
+                db.execSQL("UPDATE `pending_shopping_writes` SET `idempotencyKey` = $NEW_KEY_SQL WHERE `verb` = 'ADD'")
+                db.execSQL(
+                    "CREATE TABLE `pending_inbox_writes_new` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`text` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `failed` INTEGER NOT NULL, " +
+                        "`idempotencyKey` TEXT NOT NULL)"
+                )
+                db.execSQL(
+                    "INSERT INTO `pending_inbox_writes_new` (`id`, `text`, `createdAt`, `failed`, `idempotencyKey`) " +
+                        "SELECT `id`, `text`, `createdAt`, `failed`, $NEW_KEY_SQL FROM `pending_inbox_writes`"
+                )
+                db.execSQL("DROP TABLE `pending_inbox_writes`")
+                db.execSQL("ALTER TABLE `pending_inbox_writes_new` RENAME TO `pending_inbox_writes`")
+            }
+        }
+
         /** Every migration, in order: what the app opens with, and what the migration test opens with. */
         internal val MIGRATIONS = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
-            MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11
+            MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
+            MIGRATION_11_12
         )
 
         @Volatile

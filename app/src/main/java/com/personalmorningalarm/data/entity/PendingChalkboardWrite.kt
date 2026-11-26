@@ -29,7 +29,13 @@ data class PendingChalkboardWrite(
      * Which chalkboard it goes to: a [com.personalmorningalarm.data.model.ChalkboardList]
      * wire name. Writes queued before there were two lists were all Nick's, hence the default.
      */
-    @ColumnInfo(defaultValue = "nick") val list: String = "nick"
+    @ColumnInfo(defaultValue = "nick") val list: String = "nick",
+    /**
+     * An ADD's Idempotency-Key ([com.personalmorningalarm.data.remote.AddKey]), made
+     * when the user added it and sent unchanged on every attempt, so the hub adds it
+     * once however many times it's sent. Null for TICK and DROP, which don't take one.
+     */
+    val idempotencyKey: String? = null
 )
 
 /** The three chalkboard writes the queue can hold. */

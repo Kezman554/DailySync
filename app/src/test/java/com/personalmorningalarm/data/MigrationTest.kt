@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.personalmorningalarm.data.entity.NoteVerb
+import com.personalmorningalarm.data.entity.PendingInboxWrite
 import com.personalmorningalarm.data.entity.PendingNoteWrite
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -22,8 +23,9 @@ import java.io.File
 
 /**
  * Upgrading a phone with data on it. The old database is built from the committed
- * 8.json, seeded, then opened the way the app opens it, so Room's own schema check
- * runs as it does on the device: a table that doesn't match 10.json fails the open.
+ * schema (8.json by default), seeded, then opened the way the app opens it, so Room's
+ * own schema check runs as it does on the device: a table that doesn't match 12.json
+ * fails the open.
  * That check let a missing unique index through, so the last test proves it directly.
  *
  * On the JVM with Robolectric, not MigrationTestHelper: that's an instrumented test,
@@ -115,29 +117,84 @@ class MigrationTest {
             .also { opened = it }
 
     @Test
-    fun `upgrading to 11 passes Room's schema check`() {
+    fun `upgrading to 12 passes Room's schema check`() {
         val db = upgrade()
 
-        assertEquals(11, db.openHelper.writableDatabase.version)
+        assertEquals(12, db.openHelper.writableDatabase.version)
     }
 
     @Test
-    fun `from 10, the A32's version, everything survives and a queued capture was never sent`() = runBlocking {
-        startFrom(version = 10)
+    fun `from 11, the A32's version, tags, alarm events and settings are untouched`() = runBlocking {
+        startFrom(version = 11)
+        val before = snapshot("SELECT * FROM nfc_tags") + snapshot("SELECT * FROM alarm_events") +
+            snapshot("SELECT * FROM alarm_config")
         val db = upgrade()
 
-        assertEquals(11, db.openHelper.writableDatabase.version)
+        assertEquals(12, db.openHelper.writableDatabase.version)
+        val sql = db.openHelper.writableDatabase
+        val after = snapshot(sql, "SELECT * FROM nfc_tags") + snapshot(sql, "SELECT * FROM alarm_events") +
+            snapshot(sql, "SELECT * FROM alarm_config")
+        assertEquals(before, after)
         assertEquals("04:AA:BB:CC", db.nfcTagDao().getAll().single().tagId)
-        val events = db.openHelper.writableDatabase.query("SELECT COUNT(*) FROM alarm_events")
-        events.moveToFirst()
-        assertEquals(1, events.getInt(0))
-        events.close()
-        assertEquals("Oat milk", db.pendingShoppingWriteDao().getPending().single().text)
-        assertEquals("Oil the gate", db.pendingChalkboardWriteDao().getPending().single().text)
-        val capture = db.pendingInboxWriteDao().getPending().single()
-        assertEquals("Another passing thought", capture.text)
-        // Queued before captures recorded their sends: nothing says it left the phone.
-        assertEquals(null, capture.attemptedAt)
+    }
+
+    @Test
+    fun `from 11, every queued add gets its own key and every capture keeps its id`() = runBlocking {
+        startFrom(version = 11)
+        SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READWRITE).use { old ->
+            old.insert("pending_chalkboard_writes", null, ContentValues().apply {
+                put("verb", "TICK"); put("text", "Oil the gate"); put("line", "- [ ] Oil the gate")
+                put("createdAt", 2_000L); put("failed", 0)
+            })
+            old.insert("pending_shopping_writes", null, ContentValues().apply {
+                put("listId", "invented-list.md"); put("verb", "ADD"); put("text", "Bread")
+                putNull("line"); put("createdAt", 2_000L); put("failed", 0)
+            })
+            // Sent once under v11 with no answer: the column goes, the row stays.
+            old.execSQL("UPDATE pending_inbox_writes SET attemptedAt = 5000 WHERE text = 'Another passing thought'")
+        }
+        val idsBefore = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY).use { old ->
+            old.rawQuery("SELECT id FROM pending_inbox_writes ORDER BY id", null).use { c ->
+                generateSequence { if (c.moveToNext()) c.getLong(0) else null }.toList()
+            }
+        }
+        val db = upgrade()
+
+        val chalkboard = db.pendingChalkboardWriteDao().getPending()
+        assertEquals(listOf("ADD", "TICK"), chalkboard.map { it.verb })
+        assertTrue(UUID_SHAPE.matches(chalkboard[0].idempotencyKey!!))
+        assertEquals(null, chalkboard[1].idempotencyKey)
+
+        val shopping = db.pendingShoppingWriteDao().getPending()
+        assertEquals(listOf("Oat milk", "Bread"), shopping.map { it.text })
+        shopping.forEach { assertTrue(UUID_SHAPE.matches(it.idempotencyKey!!)) }
+
+        val captures = db.pendingInboxWriteDao().observeAll().first()
+        assertEquals(idsBefore, captures.map { it.id })
+        assertEquals(listOf(true, false), captures.map { it.failed })
+        captures.forEach { assertTrue(UUID_SHAPE.matches(it.idempotencyKey)) }
+
+        val keys = chalkboard.mapNotNull { it.idempotencyKey } + shopping.mapNotNull { it.idempotencyKey } +
+            captures.map { it.idempotencyKey }
+        assertEquals(keys.size, keys.toSet().size)
+
+        // A capture made after the upgrade doesn't reuse a migrated row's id.
+        val next = db.pendingInboxWriteDao().insert(PendingInboxWrite(text = "New", createdAt = 3, idempotencyKey = "k"))
+        assertTrue(next > idsBefore.max())
+    }
+
+    /** Every row [query] returns, as text, from the database file before it's opened by Room. */
+    private fun snapshot(query: String): List<String> =
+        SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READONLY).use { snapshotOf(it.rawQuery(query, null)) }
+
+    private fun snapshot(db: androidx.sqlite.db.SupportSQLiteDatabase, query: String): List<String> =
+        snapshotOf(db.query(query))
+
+    private fun snapshotOf(cursor: android.database.Cursor): List<String> = cursor.use { c ->
+        generateSequence {
+            if (!c.moveToNext()) null
+            else (0 until c.columnCount).joinToString("|") { "${c.getColumnName(it)}=${c.getString(it)}" }
+        }.toList()
     }
 
     @Test
@@ -175,7 +232,7 @@ class MigrationTest {
         assertEquals("Oil the gate", db.pendingChalkboardWriteDao().getPending().single().text)
         val captures = db.pendingInboxWriteDao().observeAll().first()
         assertEquals(listOf("A passing thought", "Another passing thought"), captures.map { it.text })
-        assertEquals(listOf(null, null), captures.map { it.attemptedAt })
+        assertEquals(2, captures.map { it.idempotencyKey }.toSet().size)
     }
 
     @Test
@@ -192,5 +249,6 @@ class MigrationTest {
 
     private companion object {
         const val DB_NAME = "migration_test.db"
+        val UUID_SHAPE = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
     }
 }

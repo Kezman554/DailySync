@@ -972,6 +972,8 @@ class AlarmDismissalActivity : AppCompatActivity() {
                 AlfredWriteResult.Done -> Log.d(TAG, "Chalkboard tick landed")
                 is AlfredWriteResult.StaleTarget ->
                     Log.d(TAG, "Chalkboard tick: the list had changed on Alfred — not ticked")
+                // Only a keyed add answers this; a tick never does.
+                AlfredWriteResult.Refused -> Log.w(TAG, "Chalkboard tick refused — not ticked")
                 AlfredWriteResult.Unreachable -> {
                     ChalkboardSync.getInstance(applicationContext).enqueue(ChalkboardList.NICK, ChalkboardVerb.TICK, item.task, line)
                     Log.d(TAG, "Chalkboard tick didn't land — queued")

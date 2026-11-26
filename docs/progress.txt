@@ -2317,3 +2317,33 @@
     lines dropped from the hub afterwards
   - Still in the A32's shopping queue, unrelated: a failed TICK from 14 Nov on
     fitness.md (the 12.5kg dumbbells line), failed=1
+
+2026-11-26 Session BG: a lost answer can be resent safely (DONE)
+  - Every to-do add, shopping item add and inbox capture gets a UUID (AddKey) when
+    the user makes it, sent as Idempotency-Key on every attempt and stored on its
+    queue row (DB v12, MIGRATION_11_12: idempotencyKey on all three queue tables;
+    each ADD/capture already queued gets its own fresh key in SQL)
+  - Keyed adds are no longer one-shot, so OkHttp's own retry resends them with the
+    header; the repository also resends once at once when the connection dropped
+    after the add went out (sendKeyed). Still lost: queued, same key, replayed.
+    Calendar add and shopping upload stay one-shot, as before
+  - 409 (key reused for other text) is a new Refused result: logged as an error,
+    kept as a failed queue row for the screen's notice, never retried. Inbox maps it
+    to Rejected, as any 4xx
+  - Inbox: BF's hub lookup (attemptedAt, Inbox.landed, the 2-min settle) is gone,
+    replaced by the key. The hub answers a repeat from its key record, so unlike the
+    lookup it can't recreate a capture already triaged away. attemptedAt dropped by
+    rebuilding pending_inbox_writes (ids kept). Hub keeps keys 7 days
+  - Unchanged: ticks, drops, list creates/deletes, uploads, calendar adds
+  - Tests: CreateLandsOnceTest rewritten (13, real HTTP, fake hub keyed as vault-api:
+    lost answers live and on replay, kill/restart with a file DB, 409s). With the
+    header stripped at the client all 13 fail, the lost-answer ones with 2-6 copies.
+    MigrationTest from 11: tags, events, config row-for-row equal; unique UUID keys.
+    Full suite, --rerun-tasks: 716 tests, 0 failed
+  - A32 (update install, SHA-256 matches, firstInstallTime 16 Jul unchanged;
+    databases and prefs backed up first): DB 11 -> 12, queues were empty (so no
+    v11 capture was left "sent, unanswered"). 9 NFC tags, 24 alarm events, 46
+    alarm configs identical by row hash before, after migration, and after the adds.
+    Via the UI: one to-do (Mine), one Xmas item, one capture each arrived once.
+    To-do and item dropped from the hub after; the capture
+    (0-inbox/2026-11-26-1339-bg-key-test-capture.md) has no API delete: remove in the vault

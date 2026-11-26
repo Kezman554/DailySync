@@ -75,7 +75,7 @@ class ShoppingOwnerTest {
     fun `every other shopping request names the profile too`() = runBlocking {
         profile = Profile.JESS
         repository.getShoppingList("a.md")
-        repository.addShoppingItem("a.md", "Milk")
+        repository.addShoppingItem("a.md", "Milk", AddKey.new())
         repository.tickShoppingItem("a.md", "- [ ] Milk")
         repository.dropShoppingItem("a.md", "- [ ] Milk")
         repository.createShoppingList("Big shop")

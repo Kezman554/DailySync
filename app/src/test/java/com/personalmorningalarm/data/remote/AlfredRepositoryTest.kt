@@ -77,7 +77,7 @@ class AlfredRepositoryTest {
                 override suspend fun getChalkboard(list: String, includeTicked: Boolean): List<ChalkboardTaskDto> =
                     chalkboardResponse ?: throw IOException("Alfred unreachable")
 
-                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> = write()
+                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest, key: String, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> = write()
 
                 override suspend fun tickChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> = write()
 
@@ -95,7 +95,7 @@ class AlfredRepositoryTest {
                 override suspend fun createShoppingList(body: ShoppingCreateRequest): Response<ShoppingListSummaryDto> =
                     createShoppingListResponse?.invoke() ?: throw IOException("Alfred unreachable")
 
-                override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
+                override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest, key: String, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
                     shoppingWrite()
 
                 override suspend fun tickShoppingItem(listId: String, body: ShoppingLineRequest): Response<Unit> =
@@ -120,7 +120,7 @@ class AlfredRepositoryTest {
                 override suspend fun getInbox(): List<InboxCaptureDto> =
                     inboxResponse ?: throw IOException("Alfred unreachable")
 
-                override suspend fun capture(body: RequestBody, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
+                override suspend fun capture(body: RequestBody, key: String, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
                     captureResponse?.invoke() ?: throw IOException("Alfred unreachable")
 
                 private fun write(): Response<Unit> =
@@ -216,14 +216,14 @@ class AlfredRepositoryTest {
     fun `a write the queue would keep is unreachable, a stale-target 404 is an answer`() = runBlocking {
         val error = { code: Int -> Response.error<Unit>(code, ResponseBody.create(MediaType.parse("application/json"), "{}")) }
 
-        assertEquals(AlfredWriteResult.Unreachable, repository(writeResponse = { error(503) }).addChalkboardItem(ChalkboardList.NICK, "x"))
+        assertEquals(AlfredWriteResult.Unreachable, repository(writeResponse = { error(503) }).addChalkboardItem(ChalkboardList.NICK, "x", AddKey.new()))
         assertEquals(AlfredReachability.State.UNREACHABLE, AlfredReachability.state.value)
 
         // A 404 whose body isn't the list is still a failed write — but Alfred answered it.
         repository(writeResponse = { error(404) }).tickChalkboardItem(ChalkboardList.NICK, "- [ ] x")
         assertEquals(AlfredReachability.State.REACHABLE, AlfredReachability.state.value)
 
-        repository().addChalkboardItem(ChalkboardList.NICK, "x") // transport failure
+        repository().addChalkboardItem(ChalkboardList.NICK, "x", AddKey.new()) // transport failure
         assertEquals(AlfredReachability.State.UNREACHABLE, AlfredReachability.state.value)
     }
 
@@ -387,7 +387,7 @@ class AlfredRepositoryTest {
     fun `a landed write reports done`() = runBlocking {
         val repo = repository(writeResponse = { Response.success(Unit) })
 
-        assertEquals(AlfredWriteResult.Done, repo.addChalkboardItem(ChalkboardList.NICK, "Fix fence"))
+        assertEquals(AlfredWriteResult.Done, repo.addChalkboardItem(ChalkboardList.NICK, "Fix fence", AddKey.new()))
         assertEquals(AlfredWriteResult.Done, repo.tickChalkboardItem(ChalkboardList.NICK, "- [ ] Fix fence"))
         assertEquals(AlfredWriteResult.Done, repo.dropChalkboardItem(ChalkboardList.NICK, "- [ ] Fix fence"))
     }
@@ -427,7 +427,7 @@ class AlfredRepositoryTest {
     fun `an unexpected server error is a failed write, not an exception`() = runBlocking {
         val repo = repository(writeResponse = { Response.error(500, jsonBody("boom")) })
 
-        assertEquals(AlfredWriteResult.Unreachable, repo.addChalkboardItem(ChalkboardList.NICK, "Fix fence"))
+        assertEquals(AlfredWriteResult.Unreachable, repo.addChalkboardItem(ChalkboardList.NICK, "Fix fence", AddKey.new()))
     }
 
     @Test
@@ -515,7 +515,7 @@ class AlfredRepositoryTest {
     fun `a landed shopping write reports done`() = runBlocking {
         val repo = repository(shoppingWriteResponse = { Response.success(Unit) })
 
-        assertEquals(ShoppingWriteResult.Done, repo.addShoppingItem(gardenId, "Hedge shears"))
+        assertEquals(ShoppingWriteResult.Done, repo.addShoppingItem(gardenId, "Hedge shears", AddKey.new()))
         assertEquals(ShoppingWriteResult.Done, repo.tickShoppingItem(gardenId, "- [ ] Hedge shears"))
         assertEquals(ShoppingWriteResult.Done, repo.dropShoppingItem(gardenId, "- [ ] Hedge shears"))
     }
@@ -576,26 +576,26 @@ class AlfredRepositoryTest {
     fun `a capture that lands is Done`() = runBlocking {
         val repo = repository(captureResponse = { Response.success(Unit) })
 
-        assertEquals(InboxWriteResult.Done, repo.captureToInbox("A thought"))
+        assertEquals(InboxWriteResult.Done, repo.captureToInbox("A thought", AddKey.new()))
     }
 
     @Test
     fun `a 4xx means Alfred read the capture and refused it — never retried`() = runBlocking {
         val repo = repository(captureResponse = { Response.error(422, jsonBody("""{"detail":"empty"}""")) })
 
-        assertEquals(InboxWriteResult.Rejected, repo.captureToInbox(""))
+        assertEquals(InboxWriteResult.Rejected, repo.captureToInbox("", AddKey.new()))
     }
 
     @Test
     fun `a 5xx is unreachable, so the capture stays queued for a retry`() = runBlocking {
         val repo = repository(captureResponse = { Response.error(503, jsonBody("""{"detail":"down"}""")) })
 
-        assertEquals(InboxWriteResult.Unreachable, repo.captureToInbox("A thought"))
+        assertEquals(InboxWriteResult.Unreachable, repo.captureToInbox("A thought", AddKey.new()))
     }
 
     @Test
     fun `an unreachable Alfred never throws on a capture`() = runBlocking {
-        assertEquals(InboxWriteResult.Unreachable, repository().captureToInbox("A thought"))
+        assertEquals(InboxWriteResult.Unreachable, repository().captureToInbox("A thought", AddKey.new()))
     }
 
     // --- deleting a list ---

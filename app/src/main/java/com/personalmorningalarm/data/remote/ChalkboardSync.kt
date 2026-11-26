@@ -27,6 +27,7 @@ import kotlinx.coroutines.sync.withLock
  *  - delivered → entry removed;
  *  - stale target (404) → entry marked failed and kept for the screen's notice,
  *    never retried, and the rest of the queue continues past it;
+ *  - refused (an ADD's 409: its key reused for other text, a bug) → the same;
  *  - unreachable → the flush stops, everything left stays queued for next time.
  */
 class ChalkboardSync(
@@ -52,18 +53,35 @@ class ChalkboardSync(
         val changedAnything: Boolean get() = delivered > 0 || conflicted > 0
     }
 
-    suspend fun enqueue(list: ChalkboardList, verb: ChalkboardVerb, text: String, line: String? = null) {
-        dao.insert(
-            PendingChalkboardWrite(
-                verb = verb.name,
-                text = text,
-                line = line,
-                createdAt = System.currentTimeMillis(),
-                list = list.wireName
-            )
-        )
+    /**
+     * Queues a write. An ADD keeps [key], the [AddKey] it was made with (and maybe
+     * already sent under), or gets a new one if it has none yet.
+     */
+    suspend fun enqueue(
+        list: ChalkboardList,
+        verb: ChalkboardVerb,
+        text: String,
+        line: String? = null,
+        key: String? = null
+    ) {
+        dao.insert(entry(list, verb, text, line, key))
         Log.d(TAG, "Chalkboard ${list.wireName} ${verb.name} queued for sync")
     }
+
+    /** An add the hub refused (409) when sent live: kept as failed, for the notice, never sent again. */
+    suspend fun recordRefused(list: ChalkboardList, text: String, key: String) {
+        dao.insert(entry(list, ChalkboardVerb.ADD, text, null, key).copy(failed = true))
+    }
+
+    private fun entry(list: ChalkboardList, verb: ChalkboardVerb, text: String, line: String?, key: String?) =
+        PendingChalkboardWrite(
+            verb = verb.name,
+            text = text,
+            line = line,
+            createdAt = System.currentTimeMillis(),
+            list = list.wireName,
+            idempotencyKey = if (verb == ChalkboardVerb.ADD) key ?: AddKey.new() else null
+        )
 
     /** Cheap guard for the app-foreground trigger: don't touch the network for an empty queue. */
     suspend fun hasPending(): Boolean = dao.countPending() > 0
@@ -88,6 +106,11 @@ class ChalkboardSync(
                     dao.delete(entry)
                     delivered++
                 }
+                AlfredWriteResult.Refused -> {
+                    dao.markFailed(entry.id)
+                    conflicted++
+                    Log.w(TAG, "Queued ${entry.verb} refused (key reused for other text) — kept for the notice")
+                }
                 is AlfredWriteResult.StaleTarget -> {
                     // This entry is spent; the rest still get their go. The flush
                     // event makes an open screen refetch the list it hit.
@@ -111,7 +134,7 @@ class ChalkboardSync(
         // A list this build doesn't know is never guessed at: it could reach the wall.
         val list = ChalkboardList.fromWireName(entry.list) ?: return failEntry(entry)
         return when (ChalkboardVerb.fromName(entry.verb)) {
-            ChalkboardVerb.ADD -> alfred.addChalkboardItem(list, entry.text)
+            ChalkboardVerb.ADD -> alfred.addChalkboardItem(list, entry.text, keyOf(entry))
             ChalkboardVerb.TICK -> alfred.tickChalkboardItem(list, entry.line ?: return failEntry(entry))
             ChalkboardVerb.DROP -> alfred.dropChalkboardItem(list, entry.line ?: return failEntry(entry))
             // A verb this build doesn't know (downgrade after a newer build queued
@@ -119,6 +142,10 @@ class ChalkboardSync(
             null -> failEntry(entry)
         }
     }
+
+    /** [entry]'s key; one queued without (never, since v12) gets one now and keeps it. */
+    private suspend fun keyOf(entry: PendingChalkboardWrite): String =
+        entry.idempotencyKey ?: AddKey.new().also { dao.setKey(entry.id, it) }
 
     /** An entry that can never be replayed reads as a conflict, not a crash or a stall. */
     private fun failEntry(entry: PendingChalkboardWrite): AlfredWriteResult {
