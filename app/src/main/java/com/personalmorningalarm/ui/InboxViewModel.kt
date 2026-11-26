@@ -102,7 +102,9 @@ class InboxViewModel(
             return
         }
         viewModelScope.launch {
-            when (alfred.captureToInbox(body)) {
+            // Through the queue even live: if the answer is lost, the capture is
+            // already a queue row that knows it may have landed (InboxSync).
+            when (sync.capture(body)) {
                 InboxWriteResult.Done -> {
                     _events.emit(InboxEvent.CAPTURED)
                     reconcile()
@@ -112,8 +114,9 @@ class InboxViewModel(
                     _events.emit(InboxEvent.REFUSED)
                 }
                 InboxWriteResult.Unreachable -> {
-                    Log.d(TAG, "Capture didn't land — queueing")
-                    queueCapture(body)
+                    // Already queued by InboxSync.capture: don't add a second row.
+                    Log.d(TAG, "Capture didn't land — left queued")
+                    _events.emit(InboxEvent.SAVED_OFFLINE)
                     reconcile()
                 }
             }

@@ -83,9 +83,16 @@ interface AlfredApiService {
         @Query("include_ticked") includeTicked: Boolean
     ): List<ChalkboardTaskDto>
 
-    /** Adds an item to [list]. The API appends "- [ ] text (today's date)" itself — no date is sent. */
+    /**
+     * Adds an item to [list]. The API appends "- [ ] text (today's date)" itself — no date is sent.
+     * Every call appends a line, so it carries a [SendMarker] and is never resent by OkHttp.
+     */
     @POST("chalkboard")
-    suspend fun addChalkboardItem(@Query("list") list: String, @Body body: ChalkboardAddRequest): Response<Unit>
+    suspend fun addChalkboardItem(
+        @Query("list") list: String,
+        @Body body: ChalkboardAddRequest,
+        @Tag sent: SendMarker
+    ): Response<Unit>
 
     /** Flips the targeted item to done. It stays in the file, ticked, until the sweep. */
     @POST("chalkboard/tick")
@@ -111,11 +118,15 @@ interface AlfredApiService {
     @DELETE("shopping/{listId}")
     suspend fun deleteShoppingList(@Path("listId") listId: String): Response<ShoppingDeleteResponse>
 
-    /** Appends an unticked item to the targeted list. */
+    /**
+     * Appends an unticked item to the targeted list. Every call adds a line, so it
+     * carries a [SendMarker] and is never resent by OkHttp.
+     */
     @POST("shopping/{listId}")
     suspend fun addShoppingItem(
         @Path("listId") listId: String,
-        @Body body: ShoppingAddRequest
+        @Body body: ShoppingAddRequest,
+        @Tag sent: SendMarker
     ): Response<Unit>
 
     /** Flips the targeted item to bought. It stays listed, ticked, until the sweep. */
@@ -162,10 +173,11 @@ interface AlfredApiService {
      * Creates a new inbox capture. The body is the text itself as text/plain, not
      * JSON — hence the raw [RequestBody]: Gson would serialise a String to a quoted
      * JSON scalar and send it as application/json, which this endpoint doesn't take.
-     * Build it with [AlfredRepository.capturePlainText].
+     * Build it with [AlfredRepository.capturePlainText]. Every call writes a new
+     * file, so it carries a [SendMarker] and is never resent by OkHttp.
      */
     @POST("inbox")
-    suspend fun capture(@Body body: RequestBody): Response<Unit>
+    suspend fun capture(@Body body: RequestBody, @Tag sent: SendMarker): Response<Unit>
 
     /** Every note as id, title, updated and preview, newest update first. */
     @GET("notes")

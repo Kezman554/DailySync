@@ -22,5 +22,12 @@ data class PendingInboxWrite(
     /** The capture text, exactly as it will be POSTed. */
     val text: String,
     val createdAt: Long,
-    val failed: Boolean = false
+    val failed: Boolean = false,
+    /**
+     * When this capture was last sent with no confirmed answer, or null if it has
+     * never been known to leave the phone. Set before each send and cleared again if
+     * the send never got a connection, so a process death mid-send leaves it set. A
+     * set value means it may already be on the hub: InboxSync looks before resending.
+     */
+    val attemptedAt: Long? = null
 )

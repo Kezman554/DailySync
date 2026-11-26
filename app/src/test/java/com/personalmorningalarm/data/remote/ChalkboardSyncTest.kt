@@ -62,7 +62,7 @@ class ChalkboardSyncTest {
                     throw IOException()
                 override suspend fun getChalkboard(list: String, includeTicked: Boolean): List<ChalkboardTaskDto> = throw IOException()
 
-                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest): Response<Unit> =
+                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
                     write(list, "ADD:${body.text}")
 
                 override suspend fun tickChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> =
@@ -84,7 +84,7 @@ class ChalkboardSyncTest {
                     body: ShoppingCreateRequest
                 ): Response<com.personalmorningalarm.data.model.ShoppingListSummaryDto> = throw IOException()
 
-                override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest): Response<Unit> =
+                override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
                     throw IOException()
 
                 override suspend fun tickShoppingItem(listId: String, body: ShoppingLineRequest): Response<Unit> =
@@ -109,7 +109,7 @@ class ChalkboardSyncTest {
                 override suspend fun getInbox(): List<com.personalmorningalarm.data.model.InboxCaptureDto> =
                     throw IOException()
 
-                override suspend fun capture(body: okhttp3.RequestBody): Response<Unit> = throw IOException()
+                override suspend fun capture(body: okhttp3.RequestBody, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> = throw IOException()
 
                 private fun write(list: String, label: String): Response<Unit> {
                     // Nick's writes read as before; any other list says which.

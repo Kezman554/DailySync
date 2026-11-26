@@ -67,7 +67,7 @@ class ShoppingSyncTest {
                 override suspend fun getCalendarEvents(start: String, end: String): CalendarEventsDto =
                     throw IOException()
                 override suspend fun getChalkboard(list: String, includeTicked: Boolean): List<ChalkboardTaskDto> = throw IOException()
-                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest): Response<Unit> = throw IOException()
+                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> = throw IOException()
                 override suspend fun tickChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> = throw IOException()
                 override suspend fun dropChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> = throw IOException()
 
@@ -80,7 +80,7 @@ class ShoppingSyncTest {
                 override suspend fun createShoppingList(body: ShoppingCreateRequest): Response<ShoppingListSummaryDto> =
                     throw IOException()
 
-                override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest): Response<Unit> =
+                override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
                     write("$listId:ADD:${body.text}")
 
                 override suspend fun tickShoppingItem(listId: String, body: ShoppingLineRequest): Response<Unit> =
@@ -104,7 +104,7 @@ class ShoppingSyncTest {
 
                 override suspend fun getInbox(): List<InboxCaptureDto> = throw IOException()
 
-                override suspend fun capture(body: RequestBody): Response<Unit> = throw IOException()
+                override suspend fun capture(body: RequestBody, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> = throw IOException()
 
                 private fun write(label: String): Response<Unit> {
                     writesSeen += label

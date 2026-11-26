@@ -49,18 +49,21 @@ object AlfredClient {
     }
 
     /**
-     * A write that isn't safe to repeat is never sent twice by the client. OkHttp
-     * quietly resends a request whose connection dropped after it went out; for an
-     * upload that makes a second (and third) shared list, since the hub names a
-     * repeat "-2" rather than refusing it, and a calendar event would simply go in
-     * twice. A one-shot body is never resent: a lost answer reaches the caller,
-     * which looks for what it made (ShoppingShare) or tells the person to check
-     * (the Add Event screen).
+     * A create is never sent twice by the client. OkHttp quietly resends a request
+     * whose connection dropped after it went out; for a create that makes a second
+     * copy: another to-do line, shopping item, inbox file or calendar event, or a
+     * "-2" shared list. A one-shot body is never resent, so a lost answer reaches the
+     * caller, which works out whether it landed.
+     *
+     * A create is any request carrying a [SendMarker] (every create in
+     * [AlfredApiService] takes one), plus the shopping upload, which reconciles by
+     * its own means (ShoppingShare).
      */
     private val uploadSentOnce = Interceptor { chain ->
         val request = chain.request()
         val body = request.body()
-        if (request.method() != "POST" || body == null || request.url().pathSegments() !in SEND_ONCE_PATHS) {
+        val create = request.tag(SendMarker::class.java) != null || request.url().pathSegments() in SEND_ONCE_PATHS
+        if (request.method() != "POST" || body == null || !create) {
             chain.proceed(request)
         } else {
             chain.proceed(request.newBuilder().method("POST", OneShotBody(body)).build())
@@ -75,7 +78,7 @@ object AlfredClient {
         override fun isOneShot(): Boolean = true
     }
 
-    private val SEND_ONCE_PATHS = setOf(listOf("shopping", "upload"), listOf("calendar", "events"))
+    private val SEND_ONCE_PATHS = setOf(listOf("shopping", "upload"))
 
     /**
      * Marks a request's [SendMarker] as it goes onto a connection. A network

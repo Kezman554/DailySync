@@ -2,6 +2,8 @@ package com.personalmorningalarm.data.model
 
 import com.personalmorningalarm.data.entity.PendingInboxWrite
 import com.personalmorningalarm.util.VaultText
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 /**
  * One `0-inbox/` file as Alfred serves it from GET /inbox. Both fields are nullable
@@ -84,6 +86,57 @@ object Inbox {
 
     private fun firstLine(text: String): String =
         text.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+
+    /**
+     * The hub file a capture sent at [sentAt] became, if it's in [captures]: one not
+     * in [claimed] whose text is exactly [text] (as the hub stores it: line endings
+     * made LF, trimmed) and whose filename stamp is no earlier than the send, allowing
+     * [CLOCK_SKEW_MILLIS] between the phone's clock and the Pi's. Null if none.
+     *
+     * The filename is unique per capture (the hub adds -2, -3 within a minute), so a
+     * file can only be claimed once; the stamp, in the hub's own time, rules out an
+     * identical capture made before this one was sent.
+     */
+    fun landed(
+        captures: List<InboxCaptureDto>,
+        text: String,
+        sentAt: Long,
+        claimed: Set<String> = emptySet()
+    ): String? {
+        val wanted = hubText(text)
+        val earliest = sentAt - CLOCK_SKEW_MILLIS
+        return captures.firstOrNull { capture ->
+            val filename = capture.filename?.trim().orEmpty()
+            val stamp = stampMillis(filename)
+            filename.isNotEmpty() && filename !in claimed &&
+                stamp != null && stamp >= earliest - MINUTE_MILLIS &&
+                hubText(capture.content.orEmpty()) == wanted
+        }?.filename?.trim()
+    }
+
+    /** What the hub keeps of a capture's text: LF line endings, trimmed both ends. */
+    private fun hubText(text: String): String =
+        text.replace("\r\n", "\n").replace('\r', '\n').trim()
+
+    /** The filename's YYYY-MM-DD-HHMM, in the hub's zone, as epoch millis; null if it hasn't one. */
+    private fun stampMillis(filename: String): Long? {
+        val parts = NAMED.matchEntire(filename.removeSuffix(".md"))?.groupValues ?: return null
+        return try {
+            LocalDateTime.of(parts[1].toInt(), parts[2].toInt(), parts[3].toInt(), parts[4].toInt(), parts[5].toInt())
+                .atZone(HUB_ZONE).toInstant().toEpochMilli()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** The Pi's clock: capture filenames are stamped in its local time. */
+    private val HUB_ZONE: ZoneId = ZoneId.of("Europe/London")
+
+    /** How far apart the phone's and the Pi's clocks may be. */
+    const val CLOCK_SKEW_MILLIS = 10 * 60 * 1000L
+
+    /** A stamp is truncated to its minute. */
+    private const val MINUTE_MILLIS = 60 * 1000L
 
     private const val PREVIEW_LINES = 3
 

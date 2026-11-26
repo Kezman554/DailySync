@@ -176,7 +176,7 @@ class AlfredRepository(
 
     /** Adds an item to [list]. Alfred appends the checkbox and today's date. */
     suspend fun addChalkboardItem(list: ChalkboardList, task: String): AlfredWriteResult =
-        write(list, "add") { it.addChalkboardItem(list.wireName, ChalkboardAddRequest(task)) }
+        write(list, "add") { it.addChalkboardItem(list.wireName, ChalkboardAddRequest(task), SendMarker()) }
 
     /** Ticks the item on [list] whose raw vault line is [line]. It stays listed until the sweep. */
     suspend fun tickChalkboardItem(list: ChalkboardList, line: String): AlfredWriteResult =
@@ -289,7 +289,7 @@ class AlfredRepository(
 
     /** Adds an item to the shopping list [listId]. Alfred appends the checkbox. */
     suspend fun addShoppingItem(listId: String, text: String): ShoppingWriteResult =
-        writeShopping(listId, "add") { it.addShoppingItem(listId, ShoppingAddRequest(text)) }
+        writeShopping(listId, "add") { it.addShoppingItem(listId, ShoppingAddRequest(text), SendMarker()) }
 
     /** Ticks the item whose raw vault line is [line] in list [listId]. Stays listed until the sweep. */
     suspend fun tickShoppingItem(listId: String, line: String): ShoppingWriteResult =
@@ -397,10 +397,13 @@ class AlfredRepository(
      * there's no targeting key and so no stale case: a 4xx means Alfred read the
      * text and refused it, which no amount of retrying will change, so it comes back
      * as [InboxWriteResult.Rejected] rather than being retried forever.
+     *
+     * [sent] says, after an [InboxWriteResult.Unreachable], whether the capture got
+     * as far as the hub, so InboxSync knows to look for it before sending it again.
      */
-    suspend fun captureToInbox(text: String): InboxWriteResult = withContext(Dispatchers.IO) {
+    suspend fun captureToInbox(text: String, sent: SendMarker = SendMarker()): InboxWriteResult = withContext(Dispatchers.IO) {
         try {
-            val response = serviceProvider(settings).capture(capturePlainText(text))
+            val response = serviceProvider(settings).capture(capturePlainText(text), sent)
             reportAnswer(response.isSuccessful || response.code() in 400..499)
             when {
                 response.isSuccessful -> InboxWriteResult.Done

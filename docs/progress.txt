@@ -2283,3 +2283,31 @@
     screenshots pixel-identical below the status bar, top and scrolled. 9 NFC tags,
     24 alarm events, 1 queued shopping write, 0 queued chalkboard writes, before and
     after
+
+2026-11-26 Session BF: an add lands once (PARTLY DONE, stopped at the usage limit)
+  - The creates, against the code and vault-api: POST /chalkboard appends
+    "- [ ] text (date)" every call; POST /shopping/{id} appends "- [ ] text" every
+    call; POST /inbox writes a new uniquely named file every call: all three
+    duplicate on a repeat. POST /shopping (new list) answers 409 on a repeat: no
+    second copy, so left alone (a resend shows "already exists" for your own list)
+  - OkHttp: every create now carries a SendMarker, and any request with one is
+    one-shot (AlfredClient), as is the shopping upload. Calendar is covered the same way
+  - Inbox reconciled (InboxSync): every capture, live ones too, is a queue row
+    before it's sent; attemptedAt (DB v11, MIGRATION_10_11, nullable column) is
+    set before each send and cleared if the SendMarker says nothing got out. A row
+    that may have arrived is looked for on the hub first (Inbox.landed: exactly its
+    text, a file stamped since the send allowing 10 min clock skew, each file
+    claimed once); not found and sent under 2 min ago, it waits (the Pi may still
+    be writing it); otherwise it's sent again
+  - NOT reconcilable from the phone, stopped per the card: POST /chalkboard and
+    POST /shopping/{id}. Their lines carry no id; identical lines are normal, and
+    other writers, ticks, drops and the sweep change the list, so the phone can't
+    recognise its own earlier add. Their queues still resend after a lost answer.
+    The hub would need an idempotency key: the phone sends a request id with each
+    add; the hub remembers recent ids and answers a repeat with the original
+    result without appending again
+  - Tests: CreateLandsOnceTest (9, real HTTP, connection dropped after the hub
+    made the copy); 8 go red with the one-shot rule removed. MigrationTest from 8
+    and from 10 (the A32's version). The affected classes pass; the FULL SUITE HAS
+    NOT BEEN RE-RUN since these changes
+  - Not done: full suite, the A32 airplane-mode check, installing DB v11 on the A32

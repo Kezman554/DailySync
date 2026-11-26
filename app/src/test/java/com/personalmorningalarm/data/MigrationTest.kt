@@ -37,11 +37,14 @@ class MigrationTest {
     private var opened: AppDatabase? = null
 
     @Before
-    fun setUp() {
+    fun setUp() = startFrom(version = 8)
+
+    /** A seeded database at [version], replacing whatever the test had. */
+    private fun startFrom(version: Int) {
         dbFile.parentFile?.mkdirs()
         context.deleteDatabase(DB_NAME)
         val old = SQLiteDatabase.openOrCreateDatabase(dbFile, null)
-        createFromSchema(old, version = 8)
+        createFromSchema(old, version)
         seed(old)
         old.close()
     }
@@ -98,6 +101,9 @@ class MigrationTest {
         db.insert("pending_inbox_writes", null, ContentValues().apply {
             put("text", "A passing thought"); put("createdAt", 1_000L); put("failed", 1)
         })
+        db.insert("pending_inbox_writes", null, ContentValues().apply {
+            put("text", "Another passing thought"); put("createdAt", 2_000L); put("failed", 0)
+        })
     }
 
     /** Opened as AppDatabase.getInstance opens it, with nothing allowed to fall back. */
@@ -109,10 +115,29 @@ class MigrationTest {
             .also { opened = it }
 
     @Test
-    fun `upgrading to 10 passes Room's schema check`() {
+    fun `upgrading to 11 passes Room's schema check`() {
         val db = upgrade()
 
-        assertEquals(10, db.openHelper.writableDatabase.version)
+        assertEquals(11, db.openHelper.writableDatabase.version)
+    }
+
+    @Test
+    fun `from 10, the A32's version, everything survives and a queued capture was never sent`() = runBlocking {
+        startFrom(version = 10)
+        val db = upgrade()
+
+        assertEquals(11, db.openHelper.writableDatabase.version)
+        assertEquals("04:AA:BB:CC", db.nfcTagDao().getAll().single().tagId)
+        val events = db.openHelper.writableDatabase.query("SELECT COUNT(*) FROM alarm_events")
+        events.moveToFirst()
+        assertEquals(1, events.getInt(0))
+        events.close()
+        assertEquals("Oat milk", db.pendingShoppingWriteDao().getPending().single().text)
+        assertEquals("Oil the gate", db.pendingChalkboardWriteDao().getPending().single().text)
+        val capture = db.pendingInboxWriteDao().getPending().single()
+        assertEquals("Another passing thought", capture.text)
+        // Queued before captures recorded their sends: nothing says it left the phone.
+        assertEquals(null, capture.attemptedAt)
     }
 
     @Test
@@ -148,7 +173,9 @@ class MigrationTest {
 
         assertEquals("Oat milk", db.pendingShoppingWriteDao().getPending().single().text)
         assertEquals("Oil the gate", db.pendingChalkboardWriteDao().getPending().single().text)
-        assertEquals("A passing thought", db.pendingInboxWriteDao().observeAll().first().single().text)
+        val captures = db.pendingInboxWriteDao().observeAll().first()
+        assertEquals(listOf("A passing thought", "Another passing thought"), captures.map { it.text })
+        assertEquals(listOf(null, null), captures.map { it.attemptedAt })
     }
 
     @Test

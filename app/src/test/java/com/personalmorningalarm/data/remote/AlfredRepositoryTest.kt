@@ -77,7 +77,7 @@ class AlfredRepositoryTest {
                 override suspend fun getChalkboard(list: String, includeTicked: Boolean): List<ChalkboardTaskDto> =
                     chalkboardResponse ?: throw IOException("Alfred unreachable")
 
-                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest): Response<Unit> = write()
+                override suspend fun addChalkboardItem(list: String, body: ChalkboardAddRequest, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> = write()
 
                 override suspend fun tickChalkboardItem(list: String, body: ChalkboardLineRequest): Response<Unit> = write()
 
@@ -95,7 +95,7 @@ class AlfredRepositoryTest {
                 override suspend fun createShoppingList(body: ShoppingCreateRequest): Response<ShoppingListSummaryDto> =
                     createShoppingListResponse?.invoke() ?: throw IOException("Alfred unreachable")
 
-                override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest): Response<Unit> =
+                override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
                     shoppingWrite()
 
                 override suspend fun tickShoppingItem(listId: String, body: ShoppingLineRequest): Response<Unit> =
@@ -120,7 +120,7 @@ class AlfredRepositoryTest {
                 override suspend fun getInbox(): List<InboxCaptureDto> =
                     inboxResponse ?: throw IOException("Alfred unreachable")
 
-                override suspend fun capture(body: RequestBody): Response<Unit> =
+                override suspend fun capture(body: RequestBody, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
                     captureResponse?.invoke() ?: throw IOException("Alfred unreachable")
 
                 private fun write(): Response<Unit> =
