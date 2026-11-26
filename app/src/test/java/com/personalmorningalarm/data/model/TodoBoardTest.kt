@@ -113,4 +113,56 @@ class TodoBoardTest {
             TodoBoard.preview(board).map { it.label() }
         )
     }
+
+    // --- the work list (Nick's phone) ---
+
+    @Test
+    fun `the work list interleaves with the other two by date, after them on the same day`() {
+        val rows = TodoBoard.merge(
+            listOf(item("Bins out", "2026-11-02")),
+            listOf(item("Oil the gate", "2026-11-02")),
+            listOf(item("Release notes", "2026-11-01"), item("Rota review", "2026-11-02"), item("Queued for work"))
+        )
+
+        assertEquals(
+            listOf("work:Release notes", "family:Bins out", "mine:Oil the gate", "work:Rota review", "work:Queued for work"),
+            rows.map { it.label() }
+        )
+    }
+
+    @Test
+    fun `with no work list the merge is the two lists as before`() {
+        val family = listOf(item("Bins out", "2026-11-02"), item("Undated"))
+        val mine = listOf(item("Oil the gate", "2026-11-01"), item("Also undated"))
+
+        assertEquals(TodoBoard.merge(family, mine, null), TodoBoard.merge(family, mine))
+        assertEquals(
+            listOf("mine:Oil the gate", "family:Bins out", "family:Undated", "mine:Also undated"),
+            TodoBoard.merge(family, mine).map { it.label() }
+        )
+    }
+
+    @Test
+    fun `Work shows the work list alone, All shows it with the others, and adds from Work go to it`() {
+        val board = TodoBoard.merge(
+            listOf(item("Bins out", "2026-11-02")),
+            listOf(item("Oil the gate", "2026-11-01")),
+            listOf(item("Release notes", "2026-11-03"))
+        )
+
+        assertEquals(listOf("work:Release notes"), TodoBoard.filter(board, TodoFilter.WORK).map { it.label() })
+        assertEquals(3, TodoBoard.filter(board, TodoFilter.ALL).size)
+        assertEquals(listOf("mine:Oil the gate"), TodoBoard.filter(board, TodoFilter.MINE).map { it.label() })
+        assertEquals(TodoSource.WORK, TodoBoard.addTarget(TodoFilter.WORK))
+        assertEquals(AddHint.WORK, TodoBoard.addHint(TodoSource.WORK, ListHome.HUB))
+        assertEquals(AddHint.WORK, TodoBoard.addHint(TodoSource.WORK, ListHome.PHONE))
+        assertEquals(1, TodoBoard.openCount(board, TodoSource.WORK))
+    }
+
+    @Test
+    fun `a saved filter name round-trips, and one this build doesn't know is null`() {
+        TodoFilter.entries.forEach { assertEquals(it, TodoFilter.fromName(it.name)) }
+        assertEquals(null, TodoFilter.fromName("SOMEDAY"))
+        assertEquals(null, TodoFilter.fromName(null))
+    }
 }

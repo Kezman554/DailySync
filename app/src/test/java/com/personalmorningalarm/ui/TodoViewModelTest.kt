@@ -11,11 +11,14 @@ import com.personalmorningalarm.data.model.TodoRow
 import com.personalmorningalarm.data.model.TodoSource
 import com.personalmorningalarm.data.model.WeekScheduleDto
 import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.profile.Profile
+import com.personalmorningalarm.data.model.ChalkboardList
 import com.personalmorningalarm.data.remote.AlfredApiService
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResponseCache
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.AlfredSettings
+import com.personalmorningalarm.data.remote.AlfredWriteResult
 import com.personalmorningalarm.data.remote.ChalkboardAddRequest
 import com.personalmorningalarm.data.remote.ChalkboardLineRequest
 import com.personalmorningalarm.data.remote.ChalkboardSync
@@ -61,6 +64,7 @@ class TodoViewModelTest : ViewModelTestSupport() {
     // An Alfred whose answers can change mid-test. Null = unreachable.
     private var nickResponse: List<ChalkboardTaskDto>? = null
     private var familyResponse: List<ChalkboardTaskDto>? = null
+    private var workResponse: List<ChalkboardTaskDto>? = null
     private var writeResponse: (() -> Response<Unit>)? = null
 
     /** Every write, "list VERB:payload". */
@@ -69,7 +73,10 @@ class TodoViewModelTest : ViewModelTestSupport() {
     /** Every read's query, "list/includeTicked". */
     private val reads: MutableList<String> = Collections.synchronizedList(mutableListOf())
 
-    private val alfred by lazy {
+    private val alfred by lazy { repository { Profile.NICK } }
+
+    /** The fake Alfred, as seen from a phone whose profile is [profile]. */
+    private fun repository(profile: () -> Profile?) =
         AlfredRepository(
             AlfredSettings(context),
             AlfredResponseCache(context),
@@ -82,6 +89,7 @@ class TodoViewModelTest : ViewModelTestSupport() {
                         val answer = when (list) {
                             "nick" -> nickResponse
                             "family" -> familyResponse
+                            "work" -> workResponse
                             else -> null
                         }
                         return answer ?: throw IOException("Alfred unreachable")
@@ -150,9 +158,9 @@ class TodoViewModelTest : ViewModelTestSupport() {
                         return writeResponse?.invoke() ?: throw IOException("Alfred unreachable")
                     }
                 }
-            }
+            },
+            profile = profile
         )
-    }
 
     // Events are hot and drop without a subscriber, so tests that expect one
     // subscribe here before poking the ViewModel.
@@ -209,7 +217,8 @@ class TodoViewModelTest : ViewModelTestSupport() {
 
         assertEquals(chalkboard, mineFresh(state))
         assertEquals(familyBoard, (state.family.chalkboard as AlfredResult.Fresh).data)
-        assertEquals(listOf("family/true", "nick/true"), reads.sorted())
+        // Nick's phone reads his work list too, by name.
+        assertEquals(listOf("family/true", "nick/true", "work/true"), reads.sorted())
     }
 
     @Test
@@ -502,8 +511,9 @@ class TodoViewModelTest : ViewModelTestSupport() {
     fun `a phone Mine never touches Alfred or the queue, from All or offline`() {
         familyResponse = null
         val vm = viewModel(ListHome.PHONE)
-        awaitValue(vm.state) { settled(it.family) && it.mine.items != null }
-        assertEquals(listOf("family/true"), reads.toList())
+        awaitValue(vm.state) { settled(it.family) && settled(it.work) && it.mine.items != null }
+        // The family list, and Nick's work list (on the hub whatever Mine is); never his rolling to-do.
+        assertEquals(listOf("family/true", "work/true"), reads.sorted())
 
         vm.add("Water the ferns")
         val state = awaitValue(vm.state) { it.mine.items?.size == 1 }
@@ -579,5 +589,162 @@ class TodoViewModelTest : ViewModelTestSupport() {
 
         assertEquals(listOf(gate), rows(vm))
         held.countDown()
+    }
+
+    // --- the work list (Nick's phone) ---
+
+    private val reportLine = "- [ ] Send the release notes (2026-11-20)"
+    private val report = ChalkboardTaskDto("Send the release notes", "2026-11-20", reportLine)
+
+    /** Every list live, work included. */
+    private fun workViewModel(
+        savedFilter: TodoFilter? = null,
+        saved: MutableList<TodoFilter> = mutableListOf()
+    ): TodoViewModel {
+        nickResponse = chalkboard
+        familyResponse = familyBoard
+        workResponse = listOf(report)
+        val vm = track(TodoViewModel(alfred, sync, phoneStore, ListHome.HUB, Profile.NICK, savedFilter) { saved += it })
+        awaitValue(vm.state) { settled(it.family) && settled(it.mine) && settled(it.work) }
+        return vm
+    }
+
+    @Test
+    fun `Work shows the work list alone, and its add, tick and drop go to list=work`() {
+        val vm = workViewModel()
+        writeResponse = { Response.success(Unit) }
+
+        vm.setFilter(TodoFilter.WORK)
+        val state = vm.state.value
+        assertEquals(TodoSource.WORK, state.addTarget)
+        assertEquals(listOf("Send the release notes"), state.shown.map { it.item.task })
+        assertEquals(listOf(TodoSource.WORK), state.shown.map { it.source })
+
+        vm.add("Book the rota review")
+        awaitValue(vm.state) { writes.size == 1 }
+        vm.tick(row(vm, reportLine, TodoSource.WORK))
+        awaitValue(vm.state) { writes.size == 2 }
+
+        val vm2 = workViewModel()
+        vm2.drop(row(vm2, reportLine, TodoSource.WORK))
+        awaitValue(vm2.state) { writes.size == 3 }
+
+        assertEquals(
+            listOf("work ADD:Book the rota review", "work TICK:$reportLine", "work DROP:$reportLine"),
+            writes.toList()
+        )
+    }
+
+    @Test
+    fun `in All the work rows sit with the others, and adds still default to Mine`() {
+        val state = workViewModel().state.value
+
+        assertEquals(TodoFilter.ALL, state.filter)
+        assertEquals(TodoSource.MINE, state.addTarget)
+        assertEquals(setOf(TodoSource.FAMILY, TodoSource.MINE, TodoSource.WORK), state.shown.map { it.source }.toSet())
+    }
+
+    @Test
+    fun `the filter is saved as it changes, and a screen opened later starts where it was left`() {
+        val saved = mutableListOf<TodoFilter>()
+        val vm = workViewModel(saved = saved)
+
+        vm.setFilter(TodoFilter.WORK)
+        assertEquals(listOf(TodoFilter.WORK), saved)
+
+        // After a restart: a new ViewModel, given only what was saved.
+        val reopened = workViewModel(savedFilter = saved.last())
+        assertEquals(TodoFilter.WORK, reopened.state.value.filter)
+        assertEquals(TodoSource.WORK, reopened.state.value.addTarget)
+        assertEquals(listOf(TodoSource.WORK), reopened.state.value.shown.map { it.source }.distinct())
+    }
+
+    @Test
+    fun `offline, a work add is queued under list=work with its key, and lands once on reconnect`() {
+        val vm = workViewModel(savedFilter = TodoFilter.WORK)
+        nickResponse = null
+        familyResponse = null
+        workResponse = null
+        vm.refresh()
+        awaitValue(vm.state) { it.work.chalkboard is AlfredResult.Stale && !it.work.loading }
+        writes.clear()
+
+        vm.add("Book the rota review")
+        val queued = awaitValue(vm.state) { it.work.queued.size == 1 }.work.queued.single()
+        assertTrue(writes.isEmpty())
+        assertEquals("work", queued.list)
+        assertEquals(ChalkboardVerb.ADD.name, queued.verb)
+        assertTrue(!queued.idempotencyKey.isNullOrBlank())
+        assertTrue(vm.state.value.mine.queued.isEmpty() && vm.state.value.family.queued.isEmpty())
+
+        val delivered = listOf(
+            report,
+            ChalkboardTaskDto("Book the rota review", "2026-11-26", "- [ ] Book the rota review (2026-11-26)")
+        )
+        writeResponse = { Response.success(Unit) }
+        nickResponse = chalkboard
+        familyResponse = familyBoard
+        workResponse = delivered
+        vm.refresh()
+
+        awaitValue(vm.state) {
+            it.work.queued.isEmpty() && (it.work.chalkboard as? AlfredResult.Fresh)?.data == delivered
+        }
+        runBlocking { sync.flush() }
+        assertEquals(listOf("work ADD:Book the rota review"), writes.toList())
+    }
+
+    // --- Jess's phone never has the work list ---
+
+    @Test
+    fun `Jess's screen has no work list, opens on All whatever was saved, and never asks for list=work`() {
+        familyResponse = familyBoard
+        workResponse = listOf(report)
+        val saved = mutableListOf<TodoFilter>()
+        val vm = track(
+            TodoViewModel(
+                repository { Profile.JESS }, sync, phoneStore, ListHome.PHONE, Profile.JESS, TodoFilter.WORK
+            ) { saved += it }
+        )
+        awaitValue(vm.state) { settled(it.family) && it.mine.items != null }
+
+        assertEquals(listOf(TodoSource.FAMILY, TodoSource.MINE), vm.sources)
+        assertEquals(listOf(TodoFilter.ALL, TodoFilter.FAMILY, TodoFilter.MINE), vm.filters)
+        assertEquals(TodoFilter.ALL, vm.state.value.filter)
+
+        // Nothing on her phone can switch to Work or aim an add at it.
+        vm.setFilter(TodoFilter.WORK)
+        vm.setAddTarget(TodoSource.WORK)
+        assertEquals(TodoFilter.ALL, vm.state.value.filter)
+        assertEquals(TodoSource.MINE, vm.state.value.addTarget)
+        assertTrue(saved.isEmpty())
+        vm.add("Water the ferns")
+        vm.refresh()
+        awaitValue(vm.state) { it.mine.items?.size == 1 && !it.family.loading }
+
+        assertTrue(vm.state.value.rows.none { it.source == TodoSource.WORK })
+        assertTrue(reads.toString(), reads.none { it.startsWith("work") })
+        assertTrue(writes.isEmpty())
+    }
+
+    @Test
+    fun `Jess's repository refuses list=work outright, and a work write queued before the phone changed hands fails unsent`() {
+        workResponse = listOf(report)
+        writeResponse = { Response.success(Unit) }
+        val jess = repository { Profile.JESS }
+
+        runBlocking {
+            assertEquals(AlfredResult.Unavailable, jess.getChalkboard(ChalkboardList.WORK))
+            assertEquals(AlfredWriteResult.Refused, jess.addChalkboardItem(ChalkboardList.WORK, "x", "k-1"))
+            assertEquals(AlfredWriteResult.Refused, jess.tickChalkboardItem(ChalkboardList.WORK, reportLine))
+            assertEquals(AlfredWriteResult.Refused, jess.dropChalkboardItem(ChalkboardList.WORK, reportLine))
+
+            val jessSync = ChalkboardSync(jess, db.pendingChalkboardWriteDao())
+            jessSync.enqueue(ChalkboardList.WORK, ChalkboardVerb.ADD, "Left by Nick", key = "k-2")
+            jessSync.flush()
+            assertTrue(db.pendingChalkboardWriteDao().observeAll().first().single().failed)
+        }
+        assertTrue(reads.toString(), reads.isEmpty())
+        assertTrue(writes.toString(), writes.isEmpty())
     }
 }

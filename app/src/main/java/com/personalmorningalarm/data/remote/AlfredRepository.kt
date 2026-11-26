@@ -48,14 +48,20 @@ class AlfredRepository(
     private val cache: AlfredResponseCache,
     /** Without a context to read the profile from, shopping requests name Nick: the app as it was. */
     private val serviceProvider: (AlfredSettings) -> AlfredApiService = { AlfredClient.service(it) { Profile.NICK } },
-    private val clock: () -> Long = System::currentTimeMillis
+    private val clock: () -> Long = System::currentTimeMillis,
+    /**
+     * Whose phone this is, for the chalkboard lists a profile may not use
+     * ([Profile.mayUse]): such a list is never asked for, whoever calls.
+     */
+    private val profile: () -> Profile? = { Profile.NICK }
 ) {
 
     /** The real client, naming this phone's profile on every shopping request. */
     constructor(context: Context) : this(
         AlfredSettings(context),
         AlfredResponseCache(context),
-        ProfileSettings(context).let { profiles -> { settings -> AlfredClient.service(settings, profiles::profile) } }
+        ProfileSettings(context).let { profiles -> { settings -> AlfredClient.service(settings, profiles::profile) } },
+        profile = ProfileSettings(context)::profile
     )
 
     private val gson = Gson()
@@ -170,7 +176,10 @@ class AlfredRepository(
      * default: the alarm's content screen reads it this way.
      */
     suspend fun getChalkboard(list: ChalkboardList = ChalkboardList.NICK): AlfredResult<List<ChalkboardTaskDto>> =
-        fetch(
+        if (!mayUse(list)) {
+            // Not even the saved copy: a list this profile hasn't got has nothing to show.
+            AlfredResult.Unavailable
+        } else fetch(
             endpoint = list.cacheKey,
             type = CHALKBOARD_TYPE
         ) { it.getChalkboard(list.wireName, includeTicked = true) }
@@ -180,17 +189,17 @@ class AlfredRepository(
      * the add's [AddKey], the same on every attempt: a lost answer is sent again.
      */
     suspend fun addChalkboardItem(list: ChalkboardList, task: String, key: String): AlfredWriteResult =
-        write(list, "add", keyed = true) { service ->
+        if (!mayUse(list)) notThisProfiles(list, "add") else write(list, "add", keyed = true) { service ->
             sendKeyed { sent -> service.addChalkboardItem(list.wireName, ChalkboardAddRequest(task), key, sent) }
         }
 
     /** Ticks the item on [list] whose raw vault line is [line]. It stays listed until the sweep. */
     suspend fun tickChalkboardItem(list: ChalkboardList, line: String): AlfredWriteResult =
-        write(list, "tick") { it.tickChalkboardItem(list.wireName, ChalkboardLineRequest(line)) }
+        if (!mayUse(list)) notThisProfiles(list, "tick") else write(list, "tick") { it.tickChalkboardItem(list.wireName, ChalkboardLineRequest(line)) }
 
     /** Drops the item on [list] whose raw vault line is [line] — no longer relevant, not done. */
     suspend fun dropChalkboardItem(list: ChalkboardList, line: String): AlfredWriteResult =
-        write(list, "drop") { it.dropChalkboardItem(list.wireName, ChalkboardLineRequest(line)) }
+        if (!mayUse(list)) notThisProfiles(list, "drop") else write(list, "drop") { it.dropChalkboardItem(list.wireName, ChalkboardLineRequest(line)) }
 
     /** Every active shopping list from Alfred, falling back to the last one it served. */
     suspend fun getShoppingLists(): AlfredResult<List<ShoppingListSummaryDto>> =
@@ -514,6 +523,17 @@ class AlfredRepository(
             reportAnswer(false)
             NoteWriteResult.Unreachable
         }
+    }
+
+    private fun mayUse(list: ChalkboardList): Boolean = Profile.mayUse(profile(), list)
+
+    /**
+     * A write to a list this profile hasn't got (one queued before the phone changed
+     * hands, say): Refused, so a queued one is kept as failed and never resent.
+     */
+    private fun notThisProfiles(list: ChalkboardList, verb: String): AlfredWriteResult {
+        Log.w(TAG, "Chalkboard ${list.wireName} $verb: not this profile's list — not sent")
+        return AlfredWriteResult.Refused
     }
 
     /**

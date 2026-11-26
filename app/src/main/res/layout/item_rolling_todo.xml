@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One to-do row: a positive checkbox, the task (with a Family tag in All), the
+<!-- One to-do row: a positive checkbox, the task (with a Family or Work tag in All), the
      date it went on the list on the right. Tap ticks, long-press drops. -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -41,7 +41,7 @@
             android:textSize="15sp"
             tools:text="Plant the bamboo" />
 
-        <!-- The Family tag (in All), then the waiting-to-sync note; the row is
+        <!-- The Family or Work tag (in All), then the waiting-to-sync note; the row is
              gone when neither applies. -->
         <LinearLayout
             android:id="@+id/row_todo_marks"

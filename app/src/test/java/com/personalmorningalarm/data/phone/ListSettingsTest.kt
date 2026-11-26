@@ -1,5 +1,7 @@
 package com.personalmorningalarm.data.phone
 
+import org.junit.Assert.assertNull
+import com.personalmorningalarm.data.model.TodoFilter
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.personalmorningalarm.data.remote.AlfredResponseCache
@@ -76,5 +78,27 @@ class ListSettingsTest {
     fun `an unknown stored home reads as the hub, where every list lived before`() {
         assertEquals(ListHome.HUB, ListHome.fromName("ELSEWHERE"))
         assertEquals(ListHome.HUB, ListHome.fromName(null))
+    }
+
+    // --- the To-do filter ---
+
+    @Test
+    fun `the To-do filter is unset until picked, then survives a restart`() {
+        assertNull(ListSettings(context).todoFilter())
+
+        ListSettings(context).setTodoFilter(TodoFilter.WORK)
+
+        // A fresh instance reads only what was saved: what a restarted app sees.
+        assertEquals(TodoFilter.WORK, ListSettings(context).todoFilter())
+        ListSettings(context).setTodoFilter(TodoFilter.FAMILY)
+        assertEquals(TodoFilter.FAMILY, ListSettings(context).todoFilter())
+    }
+
+    @Test
+    fun `a saved filter this build doesn't know reads as unset`() {
+        context.getSharedPreferences(ThemeManager.PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().putString("todo_filter", "SOMEDAY").commit()
+
+        assertNull(ListSettings(context).todoFilter())
     }
 }

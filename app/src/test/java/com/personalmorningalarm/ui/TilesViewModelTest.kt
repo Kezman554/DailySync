@@ -2,6 +2,8 @@ package com.personalmorningalarm.ui
 
 import androidx.test.core.app.ApplicationProvider
 import com.personalmorningalarm.data.phone.ListHome
+import com.personalmorningalarm.data.model.TodoFilter
+import com.personalmorningalarm.data.model.TodoSource
 import com.personalmorningalarm.data.profile.Profile
 import com.personalmorningalarm.data.remote.AlfredClient
 import com.personalmorningalarm.data.remote.AlfredReachability
@@ -41,6 +43,7 @@ class TilesViewModelTest : ViewModelTestSupport() {
 
     private var profile: Profile? = null
     private var mineHome = ListHome.HUB
+    private var savedFilter: TodoFilter? = null
 
     /** Whether GET /calendar/events answers; false fails it, as an unreachable hub would. */
     @Volatile
@@ -86,7 +89,11 @@ class TilesViewModelTest : ViewModelTestSupport() {
                 PresenceRepository(DashboardSettings(context)),
                 phoneStore,
                 tiles = { ProfileTiles.tilesFor(profile) },
-                mineHome = { mineHome }
+                mineHome = { mineHome },
+                // The repository above names Nick whatever [profile] is, so these tests
+                // see what the ViewModel itself asks for, not the repository's guard.
+                profile = { profile },
+                savedFilter = { savedFilter }
             )
         )
     }
@@ -169,8 +176,55 @@ class TilesViewModelTest : ViewModelTestSupport() {
         assertTrue(requests.toString(), "/shopping?for=nick" in requests)
         assertTrue(requests.toString(), "/chalkboard?list=nick&include_ticked=true" in requests)
         assertTrue(requests.toString(), "/chalkboard?list=family&include_ticked=true" in requests)
+        assertTrue(requests.toString(), "/chalkboard?list=work&include_ticked=true" in requests)
         assertTrue(requests.toString(), "/daily-schedule" in requests)
         assertTrue(requests.toString(), "/api/presence" in requests)
         assertTrue(requests.toString(), requests.any { it.startsWith("/calendar/events") })
+    }
+
+    // --- the To-do tile follows the To-do screen's filter ---
+
+    @Test
+    fun `the tile follows the saved filter, and Work shows the work list alone`() {
+        profile = Profile.NICK
+        savedFilter = TodoFilter.WORK
+        val vm = viewModel()
+        keepSubscribed(vm.state)
+        vm.refresh()
+        val state = awaitValue(vm.state) { it.workTodos != null && it.familyTodos != null && it.mineTodos != null }
+
+        assertEquals(TodoFilter.WORK, state.todoFilter)
+        assertEquals(listOf(TodoSource.WORK), state.shownTodoSources)
+        assertTrue(state.shownTodoRows.all { it.source == TodoSource.WORK })
+    }
+
+    @Test
+    fun `a filter changed on the To-do screen reaches the tile at the next refresh, before any answer`() {
+        profile = Profile.NICK
+        val vm = viewModel()
+        keepSubscribed(vm.state)
+        assertEquals(TodoFilter.ALL, vm.state.value.todoFilter)
+
+        savedFilter = TodoFilter.WORK
+        vm.refresh()
+
+        awaitValue(vm.state) { it.todoFilter == TodoFilter.WORK }
+    }
+
+    @Test
+    fun `Jess's tile never asks for list=work, even with Work saved from Nick's days`() {
+        profile = Profile.JESS
+        mineHome = ListHome.PHONE
+        savedFilter = TodoFilter.WORK
+        val vm = viewModel()
+        keepSubscribed(vm.state)
+        vm.refresh()
+        val state = awaitValue(vm.state) { it.familyTodos != null && it.shopping != null }
+
+        assertEquals(TodoFilter.ALL, state.todoFilter)
+        assertEquals(listOf(TodoSource.FAMILY, TodoSource.MINE), state.shownTodoSources)
+        assertEquals(null, state.workTodos)
+        val requests = drainRequests()
+        assertTrue(requests.toString(), requests.none { "list=work" in it })
     }
 }

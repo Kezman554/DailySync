@@ -1,5 +1,8 @@
 package com.personalmorningalarm.data.profile
 
+import com.personalmorningalarm.data.model.ChalkboardList
+import com.personalmorningalarm.data.model.TodoFilter
+import com.personalmorningalarm.data.model.TodoSource
 import com.personalmorningalarm.data.phone.ListHome
 
 /**
@@ -45,6 +48,26 @@ enum class Profile(
         JESS -> ListHome.PHONE
     }
 
+    /** Nick's day-job list on the hub ([ChalkboardList.WORK]): his alone. */
+    val hasWorkList: Boolean get() = this == NICK
+
+    /** Whether this profile may read or write [list] on the hub at all. */
+    fun mayUse(list: ChalkboardList): Boolean = list != ChalkboardList.WORK || hasWorkList
+
+    /** The To-do screen's lists for this profile, in the order the filter shows them. */
+    val todoSources: List<TodoSource>
+        get() = TodoSource.entries.filter { it != TodoSource.WORK || hasWorkList }
+
+    /** The filter's positions: All, then each of [todoSources]. */
+    val todoFilters: List<TodoFilter>
+        get() = TodoFilter.entries.filter { it.source == null || it.source in todoSources }
+
+    /**
+     * The filter the To-do screen and its tile open on, from the one last saved:
+     * one this profile hasn't got (Work, on Jess's phone) is All instead.
+     */
+    fun todoFilter(saved: TodoFilter?): TodoFilter = saved?.takeIf { it in todoFilters } ?: TodoFilter.ALL
+
     /** The other person: who a list this person shares is shared with. */
     val other: Profile
         get() = when (this) {
@@ -75,6 +98,10 @@ enum class Profile(
 
     companion object {
         fun fromWireName(name: String?): Profile? = values().firstOrNull { it.wireName == name }
+
+        /** No profile yet allows only what every profile does: never the work list. */
+        fun mayUse(profile: Profile?, list: ChalkboardList): Boolean =
+            profile?.mayUse(list) ?: (list != ChalkboardList.WORK)
 
         /** No profile yet (first run, before the choice) allows nothing. */
         fun allows(profile: Profile?, permission: AlarmPermission): Boolean =

@@ -17,7 +17,13 @@ enum class ChalkboardList(
     NICK("nick", "chalkboard"),
 
     /** The family chalkboard (6-life/family-chalkboard.md), which is also on the kitchen wall. */
-    FAMILY("family", "chalkboard/family");
+    FAMILY("family", "chalkboard/family"),
+
+    /**
+     * Nick's day-job list (6-life/career/dochq/work-todo.md). Only a profile that
+     * [com.personalmorningalarm.data.profile.Profile.mayUse] it is ever sent it.
+     */
+    WORK("work", "chalkboard/work");
 
     companion object {
         /** A name this build doesn't know is null: its queued writes fail rather than land on the wrong list. */

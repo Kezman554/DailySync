@@ -281,6 +281,10 @@
     <string name="tiles_todo_loading">Checking…</string>
     <!-- "4 family · 3 mine"; a dash for a count not known yet -->
     <string name="tiles_todo_counts">%1$s family · %2$s mine</string>
+    <!-- All, on a phone with the work list -->
+    <string name="tiles_todo_counts_work">%1$s family · %2$s mine · %3$s work</string>
+    <!-- One list picked on the To-Do screen: which, and its open items -->
+    <string name="tiles_todo_one_list">%1$s · %2$s open</string>
     <string name="tiles_todo_empty">Nothing to do</string>
     <string name="tiles_todo_unavailable">Never loaded — Alfred unreachable</string>
     <string name="tiles_shopping_left">" · %1$d left"</string>
@@ -426,11 +430,14 @@
     <string name="todo_filter_all">All</string>
     <string name="todo_filter_family">Family</string>
     <string name="todo_filter_mine">Mine</string>
+    <string name="todo_filter_work">Work</string>
     <string name="todo_tag_family">Family</string>
+    <string name="todo_tag_work">Work</string>
     <string name="todo_family_footnote">Family items are also on the kitchen wall.</string>
     <string name="todo_hint_wall">Goes on the kitchen wall</string>
     <string name="todo_hint_phone">Stays on this phone</string>
     <string name="todo_hint_your_list">Your list</string>
+    <string name="todo_hint_work">Your work list</string>
     <string name="todo_add_to">Add to</string>
     <string name="todo_family_unavailable">The family list isn\'t on this phone yet — Alfred unreachable</string>
     <string name="todo_stat_open">Open</string>

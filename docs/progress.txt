@@ -2347,3 +2347,38 @@
     Via the UI: one to-do (Mine), one Xmas item, one capture each arrived once.
     To-do and item dropped from the hub after; the capture
     (0-inbox/2026-11-26-1339-bg-key-test-capture.md) has no API delete: remove in the vault
+
+2026-11-26 Session BH: a Work list on the To-Do screen (DONE)
+  - ChalkboardList.WORK ("work", cache key chalkboard/work): Nick's day-job list
+    (6-life/career/dochq/work-todo.md) on the same endpoints, queue and
+    Idempotency-Key path as the other two. Item text goes through RollingTodo.merged
+    and VaultText like theirs
+  - To-Do filter is All | Family | Mine | Work, the add picker Mine | Family | Work
+    (hint "Your work list"). All includes Work, with work rows tagged as family ones
+    are. TodoBoard.merge is now three-way, same rule (oldest dated head first, ties
+    family > mine > work, undated last); two-list results unchanged
+  - The filter is saved (ListSettings todo_filter) on every change, and the screen
+    and the Home tile open on it. Tile: All shows "n family · n mine · n work";
+    one list shows "Work · n open" and that list's items only. The tile reads the
+    filter at the start of each refresh, before any answer
+  - Jess: Profile.hasWorkList/todoSources/todoFilters leave Work out, so her screen
+    has no Work segment or source and her tile never fetches it; a saved WORK opens
+    on All. Backstop in AlfredRepository: a profile that may not use a list (Work,
+    for Jess or no profile) gets Unavailable on read, without the cache, and Refused
+    on writes, so a work write queued before a phone changed hands fails, unsent
+  - Tests: TodoBoard (3-way merge, Work filter/target/hint), Profile (Work only on
+    Nick's), ListSettings (filter survives a new instance), TodoViewModel (work add/
+    tick/drop by name, saved filter reopens on Work, offline add queued under work
+    with a key and landing once, Jess never reads or writes work, Jess's repository
+    refuses work and fails a queued work row), TilesViewModel (Nick fetches work,
+    tile follows the saved filter at once, Jess never requests list=work). Giving
+    Jess the work list turns 6 red. Full suite, --rerun-tasks: 735 tests, 0 failed
+  - A32 (update install, SHA-256 matches, firstInstallTime 16 Jul unchanged; DBs and
+    prefs backed up first; no schema change, DB stays 12): airplane mode on, a work
+    add queued (list=work, 36-char key), 0 on the hub; off, exactly 1 on the hub
+    within ~10s, on work only, queue drained. Tick landed as [x], drop removed the
+    line. Restarted on Work: screen and tile ("Work · 5 open") both stayed on Work.
+    Left on All, as before. Alarm configs, events and 9 NFC tags identical by row
+    hash before and after
+  - Left on the hub: "BH work offline test - delete me", ticked, so the 03:07 sweep
+    takes it (a ticked line can't be dropped through the API)

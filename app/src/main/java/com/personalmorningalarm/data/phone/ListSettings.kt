@@ -1,6 +1,7 @@
 package com.personalmorningalarm.data.phone
 
 import android.content.Context
+import com.personalmorningalarm.data.model.TodoFilter
 import com.personalmorningalarm.data.remote.AlfredResponseCache
 import com.personalmorningalarm.data.remote.AlfredSettings
 import com.personalmorningalarm.util.ThemeManager
@@ -41,8 +42,20 @@ class ListSettings(context: Context) {
         prefs.edit().putString(KEY_TODO_HOME, home.name).apply()
     }
 
+    /**
+     * The To-do screen's filter as last left, which its Home tile follows too; null
+     * until one is picked. Kept as picked: the profile decides whether it applies
+     * ([com.personalmorningalarm.data.profile.Profile.todoFilter]).
+     */
+    fun todoFilter(): TodoFilter? = TodoFilter.fromName(prefs.getString(KEY_TODO_FILTER, null))
+
+    fun setTodoFilter(filter: TodoFilter) {
+        prefs.edit().putString(KEY_TODO_FILTER, filter.name).apply()
+    }
+
     companion object {
         private const val KEY_TODO_HOME = "todo_home"
+        private const val KEY_TODO_FILTER = "todo_filter"
 
         fun defaultHome(hubConfigured: Boolean): ListHome = if (hubConfigured) ListHome.HUB else ListHome.PHONE
     }

@@ -42,9 +42,10 @@ import java.time.ZoneId
 
 /**
  * The To-Do tile: the family chalkboard and the person's own list in one screen,
- * under an All | Family | Mine filter that opens on All. Tap ticks, long-press
+ * and on Nick's phone his work list too, under an All | Family | Mine | Work filter
+ * that opens where it was last left (All the first time). Tap ticks, long-press
  * (with a confirm) drops, and the round + opens the field that adds, with a
- * Mine / Family picker and a line saying where the item will go.
+ * Mine / Family / Work picker and a line saying where the item will go.
  *
  * Hub writes are accepted anywhere: live they go straight to Alfred, and away from
  * home they queue on-device ([ChalkboardSync]). Phone writes never touch the queue.
@@ -59,11 +60,15 @@ class TodoFragment : Fragment() {
             initializer {
                 val context = requireContext().applicationContext
                 val profile = ProfileSettings(context).profile() ?: Profile.NICK
+                val lists = ListSettings(context)
                 TodoViewModel(
                     AlfredRepository(context),
                     ChalkboardSync.getInstance(context),
                     PhoneListStore.getInstance(context),
-                    mineHome = profile.mineTodoHome(ListSettings(context).todoHome())
+                    mineHome = profile.mineTodoHome(lists.todoHome()),
+                    profile = profile,
+                    savedFilter = lists.todoFilter(),
+                    saveFilter = lists::setTodoFilter
                 )
             }
         }
@@ -77,12 +82,14 @@ class TodoFragment : Fragment() {
     private fun filterSegments() = mapOf(
         TodoFilter.ALL to binding.segFilterAll,
         TodoFilter.FAMILY to binding.segFilterFamily,
-        TodoFilter.MINE to binding.segFilterMine
+        TodoFilter.MINE to binding.segFilterMine,
+        TodoFilter.WORK to binding.segFilterWork
     )
 
     private fun targetSegments() = mapOf(
         TodoSource.MINE to binding.segTargetMine,
-        TodoSource.FAMILY to binding.segTargetFamily
+        TodoSource.FAMILY to binding.segTargetFamily,
+        TodoSource.WORK to binding.segTargetWork
     )
 
     override fun onCreateView(
@@ -110,8 +117,15 @@ class TodoFragment : Fragment() {
         )
         binding.btnChalkboardConflictDismiss.setOnClickListener { viewModel.dismissFailed() }
 
-        filterSegments().forEach { (filter, segment) -> segment.setOnClickListener { viewModel.setFilter(filter) } }
-        targetSegments().forEach { (target, segment) -> segment.setOnClickListener { viewModel.setAddTarget(target) } }
+        // A list this profile hasn't got (Work, on Jess's phone) has no segment at all.
+        filterSegments().forEach { (filter, segment) ->
+            segment.isVisible = filter in viewModel.filters
+            segment.setOnClickListener { viewModel.setFilter(filter) }
+        }
+        targetSegments().forEach { (target, segment) ->
+            segment.isVisible = target in viewModel.sources
+            segment.setOnClickListener { viewModel.setAddTarget(target) }
+        }
 
         binding.fabAddTodo.setOnClickListener { openAdd() }
         binding.btnChalkboardAdd.setOnClickListener { submitAdd() }
@@ -213,14 +227,14 @@ class TodoFragment : Fragment() {
         binding.swipeRefresh.isRefreshing = hubShown.any { it.loading }
         renderFreshness(state)
 
-        // The sync line: hub edits not in the vault yet, either list.
-        val queued = state.family.queued.size + state.mine.queued.size
+        // The sync line: hub edits not in the vault yet, any list.
+        val queued = state.allSources.sumOf { it.queued.size }
         binding.syncLine.root.isVisible = queued > 0
         binding.syncLine.tvSyncText.text =
             resources.getQuantityString(R.plurals.chalkboard_pending_count, queued, queued)
 
         // The conflict notice: queued changes that didn't make it.
-        val failed = state.family.failed + state.mine.failed
+        val failed = state.allSources.flatMap { it.failed }
         binding.rowChalkboardConflict.isVisible = failed.isNotEmpty()
         if (failed.isNotEmpty()) {
             binding.tvChalkboardConflict.text = resources.getQuantityString(
@@ -231,7 +245,7 @@ class TodoFragment : Fragment() {
         renderAdd(state)
 
         val rows = state.shown
-        todoAdapter.tagFamily = state.filter == TodoFilter.ALL
+        todoAdapter.tagLists = state.filter == TodoFilter.ALL
         todoAdapter.submitList(rows)
         binding.rvChalkboard.isVisible = rows.isNotEmpty()
         binding.tvFamilyFootnote.isVisible = rows.any { it.source == TodoSource.FAMILY }
@@ -250,6 +264,7 @@ class TodoFragment : Fragment() {
                 AddHint.WALL -> R.string.todo_hint_wall
                 AddHint.PHONE -> R.string.todo_hint_phone
                 AddHint.YOUR_LIST -> R.string.todo_hint_your_list
+                AddHint.WORK -> R.string.todo_hint_work
             }
         )
         val target = state.source(state.addTarget)

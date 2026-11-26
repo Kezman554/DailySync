@@ -79,7 +79,9 @@ class TilesFragment : Fragment() {
                     PhoneListStore.getInstance(context),
                     // Not [tiles]: the ViewModel outlives the recreate a profile change makes.
                     tiles = { profileTiles(context) },
-                    mineHome = { (profiles.profile() ?: Profile.NICK).mineTodoHome(lists.todoHome()) }
+                    mineHome = { (profiles.profile() ?: Profile.NICK).mineTodoHome(lists.todoHome()) },
+                    profile = profiles::profile,
+                    savedFilter = lists::todoFilter
                 )
             }
         }
@@ -272,19 +274,31 @@ class TilesFragment : Fragment() {
         binding.tvScheduleNote.text = note
     }
 
-    /** Both lists' open counts, then the first few open items, family ones tagged. */
+    /**
+     * What the To-do screen's filter was left on. All: each list's open count, then
+     * the first few open items, family and work ones tagged. One list: its name and
+     * open count, then its first few open items.
+     */
     private fun renderTodos(state: TilesViewModel.TilesState) {
-        val family = state.familyTodos?.dataOrNull()
-        val mine = state.mineItems
         val rows = state.todoRows
-        val preview = TodoBoard.preview(rows)
+        val shown = state.shownTodoSources
+        val preview = TodoBoard.preview(state.shownTodoRows)
+        val all = state.todoFilter.source == null
 
-        binding.tvTodoCounts.isVisible = family != null || mine != null
-        binding.tvTodoCounts.text = getString(
-            R.string.tiles_todo_counts,
-            family?.let { TodoBoard.openCount(rows, TodoSource.FAMILY).toString() } ?: getString(R.string.todo_stat_unknown),
-            mine?.let { TodoBoard.openCount(rows, TodoSource.MINE).toString() } ?: getString(R.string.todo_stat_unknown)
-        )
+        fun count(source: TodoSource): String =
+            state.todoItems(source)?.let { TodoBoard.openCount(rows, source).toString() }
+                ?: getString(R.string.todo_stat_unknown)
+
+        val known = shown.any { state.todoItems(it) != null }
+        val one = state.todoFilter.source
+        binding.tvTodoCounts.isVisible = known || one != null
+        binding.tvTodoCounts.text = when {
+            one != null -> getString(R.string.tiles_todo_one_list, getString(listName(one)), count(one))
+            TodoSource.WORK in shown -> getString(
+                R.string.tiles_todo_counts_work, count(TodoSource.FAMILY), count(TodoSource.MINE), count(TodoSource.WORK)
+            )
+            else -> getString(R.string.tiles_todo_counts, count(TodoSource.FAMILY), count(TodoSource.MINE))
+        }
 
         binding.todoItems.removeAllViews()
         preview.forEach { row ->
@@ -294,13 +308,13 @@ class TilesFragment : Fragment() {
                 ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, hairlineHeight())
                     .apply { topMargin = resources.getDimensionPixelSize(R.dimen.todo_item_gap) }
             )
-            binding.todoItems.addView(previewRow(row))
+            binding.todoItems.addView(previewRow(row, tagged = all))
         }
 
         val note = when {
-            // Neither list known yet: still asking, or (no copy anywhere) never loaded.
-            family == null && mine == null -> getString(
-                if (state.familyTodos is AlfredResult.Unavailable) {
+            // No list shown known yet: still asking, or (no copy anywhere) never loaded.
+            !known -> getString(
+                if (shown.any { hubResult(state, it) is AlfredResult.Unavailable }) {
                     R.string.tiles_todo_unavailable
                 } else {
                     R.string.tiles_todo_loading
@@ -313,17 +327,31 @@ class TilesFragment : Fragment() {
         binding.tvTodoNote.text = note
     }
 
-    /** One preview line: the task, and a Family tag after it when it's on the family list. */
-    private fun previewRow(row: TodoRow): View {
+    /** The hub's answer for [source]; null for a Mine kept on the phone, or before any. */
+    private fun hubResult(state: TilesViewModel.TilesState, source: TodoSource): AlfredResult<*>? = when (source) {
+        TodoSource.FAMILY -> state.familyTodos
+        TodoSource.MINE -> state.mineTodos.takeIf { state.mineHome == ListHome.HUB }
+        TodoSource.WORK -> state.workTodos
+    }
+
+    private fun listName(source: TodoSource): Int = when (source) {
+        TodoSource.FAMILY -> R.string.todo_filter_family
+        TodoSource.MINE -> R.string.todo_filter_mine
+        TodoSource.WORK -> R.string.todo_filter_work
+    }
+
+    /** One preview line: the task, and (in All) a Family or Work tag after it when it's on that list. */
+    private fun previewRow(row: TodoRow, tagged: Boolean): View {
         val text = TextView(requireContext(), null, 0, R.style.DailySync_TileListItem)
         text.text = MarkdownRenderer.render(requireContext(), row.item.task)
-        if (row.source != TodoSource.FAMILY) return text
+        val tag = if (tagged) RollingTodoAdapter.tagFor(row.source) else null
+        if (tag == null) return text
         return LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             addView(text, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             addView(
-                TextView(requireContext(), null, 0, R.style.DailySync_Tag),
+                TextView(requireContext(), null, 0, R.style.DailySync_Tag).apply { setText(tag) },
                 LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                     .apply { marginStart = resources.getDimensionPixelSize(R.dimen.todo_item_gap) }
             )
@@ -359,10 +387,9 @@ class TilesFragment : Fragment() {
         return listOf(
             Freshness.of(state.today, now, zone).takeIf { todayShown },
             Freshness.worst(Freshness.of(state.schedule, now, zone), calendar),
-            // The hub's lists only: a to-do kept on the phone is never out of date.
+            // The hub's lists the tile shows only: a to-do kept on the phone is never out of date.
             Freshness.worst(
-                Freshness.of(state.familyTodos, now, zone),
-                Freshness.of(state.mineTodos, now, zone).takeIf { state.mineHome == ListHome.HUB }
+                *state.shownTodoSources.map { Freshness.of(hubResult(state, it), now, zone) }.toTypedArray()
             ),
             Freshness.of(state.shopping, now, zone)
         )

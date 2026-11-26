@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  To-Do (the To-Do tile): two lists in one, Family and Mine, under an
-  All | Family | Mine filter. Open / Oldest, the sync line, the list in one card
+  To-Do (the To-Do tile): its lists in one, Family and Mine (and Work, on Nick's
+  phone only), under an All | Family | Mine | Work filter kept across restarts. Open / Oldest, the sync line, the list in one card
   (tap ticks, long-press drops; family rows tagged in All), and a round + that
-  opens the add field with its Mine / Family picker and where-it-goes hint.
+  opens the add field with its Mine / Family / Work picker and where-it-goes hint.
   Hub writes go straight to Alfred, or queue on the phone when it's unreachable.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -23,7 +23,8 @@
             android:id="@+id/title_bar"
             layout="@layout/view_screen_title" />
 
-        <!-- All | Family | Mine (TodoFilter); opens on All -->
+        <!-- All | Family | Mine | Work (TodoFilter); opens where it was left. Work
+             is gone in a profile without the work list. -->
         <LinearLayout
             android:id="@+id/seg_filter"
             android:layout_width="match_parent"
@@ -50,6 +51,12 @@
                 style="@style/DailySync.Segment"
                 android:layout_marginStart="6dp"
                 android:text="@string/todo_filter_mine" />
+
+            <TextView
+                android:id="@+id/seg_filter_work"
+                style="@style/DailySync.Segment"
+                android:layout_marginStart="6dp"
+                android:text="@string/todo_filter_work" />
         </LinearLayout>
 
         <!-- OPEN 6   OLDEST 190 days -->
@@ -200,7 +207,7 @@
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         <!-- The add field, opened by the + (and closed again by an empty Add):
-             the Mine / Family picker and its hint, then the field itself -->
+             the Mine / Family / Work picker and its hint, then the field itself -->
         <LinearLayout
             android:id="@+id/row_chalkboard_add"
             android:layout_width="match_parent"
@@ -236,9 +243,15 @@
                         style="@style/DailySync.SmallPill"
                         android:layout_marginStart="4dp"
                         android:text="@string/todo_filter_family" />
+
+                    <TextView
+                        android:id="@+id/seg_target_work"
+                        style="@style/DailySync.SmallPill"
+                        android:layout_marginStart="4dp"
+                        android:text="@string/todo_filter_work" />
                 </LinearLayout>
 
-                <!-- Where the item will go: the wall, this phone, or Nick's own list -->
+                <!-- Where the item will go: the wall, this phone, Nick's own list or his work list -->
                 <TextView
                     android:id="@+id/tv_add_hint"
                     android:layout_width="0dp"

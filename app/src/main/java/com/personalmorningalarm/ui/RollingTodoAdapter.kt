@@ -1,12 +1,14 @@
 package com.personalmorningalarm.ui
 
 import android.graphics.Paint
+import androidx.annotation.StringRes
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.personalmorningalarm.R
 import com.personalmorningalarm.data.model.TodoRow
 import com.personalmorningalarm.data.model.TodoSource
 import com.personalmorningalarm.databinding.ItemRollingTodoBinding
@@ -24,7 +26,8 @@ import java.util.Locale
  * hub row its vault [RollingTodoItem.line], a phone row its id. Ticked items stay
  * listed, struck through and greyed, until the overnight clear. A ticked hub row
  * takes neither verb (the hub targets unticked lines only); a ticked phone row can
- * still be dropped. With [tagFamily] (the All filter), family rows carry a tag.
+ * still be dropped. With [tagLists] (the All filter), family and work rows carry a
+ * tag saying which list they're on; Mine's go untagged, as they always have.
  * The alarm-flow screen keeps its own read-only renderer and never uses this.
  */
 class RollingTodoAdapter(
@@ -40,8 +43,8 @@ class RollingTodoAdapter(
             notifyItemRangeChanged(0, itemCount)
         }
 
-    /** Whether family rows show their tag: only when both lists are on screen. */
-    var tagFamily: Boolean = false
+    /** Whether family and work rows show their tag: only when every list is on screen. */
+    var tagLists: Boolean = false
         set(value) {
             if (field == value) return
             field = value
@@ -74,8 +77,10 @@ class RollingTodoAdapter(
             ) ?: item.date
             binding.tvTodoDate.isVisible = shown != null
             binding.tvTodoDate.text = shown
-            val tagged = tagFamily && row.source == TodoSource.FAMILY
+            val tag = if (tagLists) tagFor(row.source) else null
+            val tagged = tag != null
             binding.tvTodoTag.isVisible = tagged
+            if (tag != null) binding.tvTodoTag.setText(tag)
             binding.tvTodoPending.isVisible = item.pending
             binding.rowTodoMarks.isVisible = tagged || item.pending
             binding.root.alpha = if (item.done) DONE_ALPHA else 1f
@@ -91,6 +96,14 @@ class RollingTodoAdapter(
 
     internal companion object {
         private const val DONE_ALPHA = 0.5f
+
+        /** The tag a row on [source] carries in All; Mine is the default and carries none. */
+        @StringRes
+        fun tagFor(source: TodoSource): Int? = when (source) {
+            TodoSource.FAMILY -> R.string.todo_tag_family
+            TodoSource.WORK -> R.string.todo_tag_work
+            TodoSource.MINE -> null
+        }
         private val SHORT_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.getDefault())
         private val SHORT_DATE_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yy", Locale.getDefault())
 
