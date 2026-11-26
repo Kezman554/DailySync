@@ -2284,7 +2284,7 @@
     24 alarm events, 1 queued shopping write, 0 queued chalkboard writes, before and
     after
 
-2026-11-26 Session BF: an add lands once (PARTLY DONE, stopped at the usage limit)
+2026-11-26 Session BF: an add lands once (DONE; hub card needed for to-do and item adds)
   - The creates, against the code and vault-api: POST /chalkboard appends
     "- [ ] text (date)" every call; POST /shopping/{id} appends "- [ ] text" every
     call; POST /inbox writes a new uniquely named file every call: all three
@@ -2308,6 +2308,12 @@
     result without appending again
   - Tests: CreateLandsOnceTest (9, real HTTP, connection dropped after the hub
     made the copy); 8 go red with the one-shot rule removed. MigrationTest from 8
-    and from 10 (the A32's version). The affected classes pass; the FULL SUITE HAS
-    NOT BEEN RE-RUN since these changes
-  - Not done: full suite, the A32 airplane-mode check, installing DB v11 on the A32
+    and from 10 (the A32's version). Full suite, --rerun-tasks: 711 tests, 0 failed
+  - A32: databases and prefs backed up first; installed APK matches the build by
+    SHA-256. DB migrated 10 -> 11 with attemptedAt present; 9 NFC tags, 24 alarm
+    events, 46 alarm configs, alarm off, all as before. Airplane mode on: a family
+    to-do and an Xmas item were each queued, with 0 on the hub; airplane mode off:
+    hub reachable in ~10s, exactly 1 of each on the hub, both queues drained. Test
+    lines dropped from the hub afterwards
+  - Still in the A32's shopping queue, unrelated: a failed TICK from 14 Nov on
+    fitness.md (the 12.5kg dumbbells line), failed=1
