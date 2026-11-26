@@ -19,6 +19,94 @@
         android:paddingTop="14dp"
         android:paddingBottom="24dp">
 
+        <!-- Today (Jess's hero card): today's Young Family events, all day first,
+             then by start. Tonight's meal has a row waiting, hidden until there's a
+             meals source. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_today"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="18dp"
+                android:paddingVertical="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_tile_calendar" />
+
+                    <!-- No date here: the header above already says it -->
+                    <TextView
+                        style="@style/DailySync.TileTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:text="@string/tile_today" />
+                </LinearLayout>
+
+                <!-- One row per event (EventRows) -->
+                <LinearLayout
+                    android:id="@+id/today_rows"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+                <!-- Loading / nothing on / can't reach the hub -->
+                <TextView
+                    android:id="@+id/tv_today_note"
+                    style="@style/DailySync.TileSubtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    tools:text="Nothing on the family calendar today" />
+
+                <!-- Tonight's meal: no source yet, so never shown -->
+                <LinearLayout
+                    android:id="@+id/today_meal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <View
+                        style="@style/DailySync.Hairline"
+                        android:layout_marginTop="8dp" />
+
+                    <TextView
+                        style="@style/DailySync.AlarmLabel"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/today_tonight" />
+
+                    <TextView
+                        android:id="@+id/tv_today_meal"
+                        style="@style/DailySync.TileTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <include
+                    android:id="@+id/today_freshness"
+                    layout="@layout/view_freshness"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Daily Schedule: today's periods as a strip of columns -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_schedule"
@@ -364,6 +452,56 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Calendar (full width): opens the Young Family agenda -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_calendar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="14dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_tile_calendar" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/DailySync.TileTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/tile_calendar" />
+
+                    <TextView
+                        style="@style/DailySync.TileSubtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/tiles_calendar_subtitle" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Coming soon: dashed outline, inert (no click listener at all) -->
         <LinearLayout
             android:id="@+id/tile_kitchen_sync"
@@ -387,6 +525,20 @@
             <TextView
                 style="@style/DailySync.ComingSoonTitle"
                 android:text="@string/tile_kanban" />
+
+            <TextView
+                style="@style/DailySync.ComingSoonNote"
+                android:text="@string/tile_coming_soon" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tile_meals"
+            style="@style/DailySync.ComingSoonTile"
+            android:layout_width="wrap_content">
+
+            <TextView
+                style="@style/DailySync.ComingSoonTitle"
+                android:text="@string/tile_meals" />
 
             <TextView
                 style="@style/DailySync.ComingSoonNote"

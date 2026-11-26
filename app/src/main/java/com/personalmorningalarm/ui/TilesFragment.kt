@@ -39,6 +39,7 @@ import com.personalmorningalarm.data.remote.dataOrNull
 import com.personalmorningalarm.databinding.FragmentTilesBinding
 import com.personalmorningalarm.util.MarkdownRenderer
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
@@ -61,6 +62,9 @@ class TilesFragment : Fragment() {
 
     /** This profile's tiles, in order. A profile change recreates the view, so read once here. */
     private val tiles: List<HomeTile> by lazy { profileTiles(requireContext()) }
+
+    /** The tile that stands tall in this profile's bento, if any. */
+    private val tall: HomeTile? by lazy { ProfileTiles.tallFor(ProfileSettings(requireContext()).profile()) }
 
     private val viewModel: TilesViewModel by viewModels {
         viewModelFactory {
@@ -121,11 +125,17 @@ class TilesFragment : Fragment() {
         }
         binding.cardSignIn.setOnClickListener(openSignIn)
         binding.btnSignIn.setOnClickListener(openSignIn)
+        // Today and Calendar both open the family agenda.
+        val openCalendar = View.OnClickListener {
+            findNavController().navigate(R.id.action_tiles_to_calendar)
+        }
+        binding.cardToday.setOnClickListener(openCalendar)
+        binding.cardCalendar.setOnClickListener(openCalendar)
 
-        // KitchenSync and Kanban are inert: no click listener at all rather than a
+        // The coming-soon tiles are inert: no click listener at all rather than a
         // disabled one, so there's no tap to swallow and nothing to wire up by
         // accident later.
-        listOf(binding.tileKitchenSync, binding.tileKanban).forEach {
+        listOf(binding.tileKitchenSync, binding.tileKanban, binding.tileMeals).forEach {
             it.isClickable = false
             it.isFocusable = false
         }
@@ -133,6 +143,7 @@ class TilesFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.state.collect { state ->
+                    renderToday(state)
                     renderSchedule(state.schedule)
                     renderTodos(state)
                     renderShopping(state.shopping, state.phoneShopping)
@@ -163,6 +174,7 @@ class TilesFragment : Fragment() {
      */
     private fun arrangeTiles() {
         val views: Map<HomeTile, View> = mapOf(
+            HomeTile.TODAY to binding.cardToday,
             HomeTile.SCHEDULE to binding.cardSchedule,
             HomeTile.TODO to binding.cardTodo,
             HomeTile.SHOPPING to binding.cardShopping,
@@ -170,7 +182,9 @@ class TilesFragment : Fragment() {
             HomeTile.INBOX to binding.cardInbox,
             HomeTile.SIGN_IN to binding.cardSignIn,
             HomeTile.KITCHEN_SYNC to binding.tileKitchenSync,
-            HomeTile.KANBAN to binding.tileKanban
+            HomeTile.KANBAN to binding.tileKanban,
+            HomeTile.CALENDAR to binding.cardCalendar,
+            HomeTile.MEALS to binding.tileMeals
         )
         val container = binding.tileRows
         container.removeAllViews()
@@ -201,7 +215,7 @@ class TilesFragment : Fragment() {
             LinearLayout.LayoutParams(0, height, 1f).apply { if (!first) marginStart = gap }
         )
 
-        ProfileTiles.rows(tiles).forEachIndexed { index, plan ->
+        ProfileTiles.rows(tiles, tall).forEachIndexed { index, plan ->
             val rowView: View = when (plan) {
                 is ProfileTiles.Row.Wide -> views.getValue(plan.tile)
                 is ProfileTiles.Row.Bento -> row().apply {
@@ -222,6 +236,25 @@ class TilesFragment : Fragment() {
 
     private fun profileTiles(context: android.content.Context): List<HomeTile> =
         ProfileTiles.tilesFor(ProfileSettings(context).profile())
+
+    /**
+     * Today's family events, or why there are none: still asking, nothing on, or the
+     * hub out of reach with no copy of today. Never blank.
+     */
+    private fun renderToday(state: TilesViewModel.TilesState) {
+        if (HomeTile.TODAY !in tiles) return
+        val today = HomeTiles.today(state.today, LocalDate.now())
+        val events = (today as? HomeTiles.Today.Events)?.events.orEmpty()
+        binding.todayRows.isVisible = events.isNotEmpty()
+        EventRows.render(binding.todayRows, events)
+        val note = when (today) {
+            HomeTiles.Today.Loading -> getString(R.string.schedule_loading)
+            HomeTiles.Today.Unreachable -> getString(R.string.today_unreachable)
+            is HomeTiles.Today.Events -> if (events.isEmpty()) getString(R.string.today_empty) else null
+        }
+        binding.tvTodayNote.isVisible = note != null
+        binding.tvTodayNote.text = note
+    }
 
     private fun renderSchedule(result: AlfredResult<DayAgenda>?) {
         val agenda = result?.dataOrNull()
@@ -314,13 +347,17 @@ class TilesFragment : Fragment() {
         binding.tvShoppingCount.text = active?.let { getString(R.string.tiles_shopping_left, it.unticked ?: 0) }
     }
 
-    /** Schedule (plan or calendar, whichever is older), to-do, shopping — each its own endpoint's age. */
+    /** Today, schedule (plan or calendar, whichever is older), to-do, shopping — each its own endpoint's age. */
     private fun ages(state: TilesViewModel.TilesState): List<Freshness.Age?> {
         val now = System.currentTimeMillis()
         val zone = ZoneId.systemDefault()
         // A calendar only matters when there's a plan for it to sit in.
         val calendar = Freshness.of(state.calendar, now, zone).takeIf { state.schedule?.dataOrNull() != null }
+        // A copy saved on another day isn't shown (Today says the hub's out of reach),
+        // so it has no age to show and nothing to retry for.
+        val todayShown = HomeTiles.today(state.today, LocalDate.now(), zone) is HomeTiles.Today.Events
         return listOf(
+            Freshness.of(state.today, now, zone).takeIf { todayShown },
             Freshness.worst(Freshness.of(state.schedule, now, zone), calendar),
             // The hub's lists only: a to-do kept on the phone is never out of date.
             Freshness.worst(
@@ -334,7 +371,8 @@ class TilesFragment : Fragment() {
     /** Ages on the tiles themselves — readable from Home without opening anything. */
     private fun renderFreshness(state: TilesViewModel.TilesState) {
         val reach = AlfredReachability.state.value
-        val (schedule, todos, shopping) = ages(state)
+        val (today, schedule, todos, shopping) = ages(state)
+        FreshnessView.render(binding.todayFreshness, today, reach)
         FreshnessView.render(binding.scheduleFreshness, schedule, reach)
         FreshnessView.render(binding.todoFreshness, todos, reach, compact = true, card = binding.cardTodo)
         FreshnessView.render(binding.shoppingFreshness, shopping, reach, compact = true, card = binding.cardShopping)

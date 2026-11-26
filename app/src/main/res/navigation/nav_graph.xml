@@ -18,6 +18,9 @@
             android:id="@+id/action_tiles_to_week"
             app:destination="@id/weekScheduleFragment" />
         <action
+            android:id="@+id/action_tiles_to_calendar"
+            app:destination="@id/calendarAgendaFragment" />
+        <action
             android:id="@+id/action_tiles_to_shoppingMenu"
             app:destination="@id/shoppingMenuFragment" />
         <action
@@ -83,6 +86,17 @@
         tools:layout="@layout/fragment_week_schedule">
         <action
             android:id="@+id/action_week_to_addEvent"
+            app:destination="@id/addEventFragment" />
+    </fragment>
+
+    <!-- Jess's Calendar tile: the Young Family agenda for the weeks ahead. -->
+    <fragment
+        android:id="@+id/calendarAgendaFragment"
+        android:name="com.personalmorningalarm.ui.CalendarAgendaFragment"
+        android:label="@string/calendar_title"
+        tools:layout="@layout/fragment_calendar_agenda">
+        <action
+            android:id="@+id/action_calendar_to_addEvent"
             app:destination="@id/addEventFragment" />
     </fragment>
 

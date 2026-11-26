@@ -7,6 +7,7 @@ import com.personalmorningalarm.data.remote.AlfredClient
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResponseCache
+import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.AlfredSettings
 import com.personalmorningalarm.data.remote.ChalkboardSync
 import com.personalmorningalarm.data.remote.DashboardSettings
@@ -23,6 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.net.InetAddress
+import java.time.LocalDate
 import java.util.Collections
 import java.util.concurrent.TimeUnit
 
@@ -40,6 +42,10 @@ class TilesViewModelTest : ViewModelTestSupport() {
     private var profile: Profile? = null
     private var mineHome = ListHome.HUB
 
+    /** Whether GET /calendar/events answers; false fails it, as an unreachable hub would. */
+    @Volatile
+    private var calendarAnswers = true
+
     @Before
     fun setUp() {
         server.setDispatcher(object : Dispatcher() {
@@ -49,6 +55,7 @@ class TilesViewModelTest : ViewModelTestSupport() {
                 return MockResponse().setBody(
                     when {
                         path == "/api/presence" -> """{"open":false}"""
+                        path.startsWith("/calendar") && !calendarAnswers -> return MockResponse().setResponseCode(503)
                         path.startsWith("/calendar") -> """{"events":[]}"""
                         else -> "[]"
                     }
@@ -101,13 +108,50 @@ class TilesViewModelTest : ViewModelTestSupport() {
         profile = Profile.JESS
         mineHome = ListHome.PHONE
         vm.refresh()
-        awaitValue(vm.state) { it.shopping != null && it.familyTodos != null }
+        awaitValue(vm.state) { it.shopping != null && it.familyTodos != null && it.today != null }
 
-        // The family chalkboard, by name; never Nick's rolling to-do.
+        // The family chalkboard, by name, her lists, and today's calendar for the
+        // Today card; never Nick's rolling to-do, the plan or the wall.
+        val today = LocalDate.now()
         assertEquals(
-            listOf("/chalkboard?list=family&include_ticked=true", "/shopping?for=jess"),
+            listOf(
+                "/calendar/events?start=$today&end=${today.plusDays(1)}",
+                "/chalkboard?list=family&include_ticked=true",
+                "/shopping?for=jess"
+            ),
             drainRequests()
         )
+    }
+
+    @Test
+    fun `Jess's Today card says the hub is out of reach rather than going blank`() {
+        profile = Profile.JESS
+        mineHome = ListHome.PHONE
+        calendarAnswers = false
+        val vm = viewModel()
+        keepSubscribed(vm.state)
+        vm.refresh()
+
+        val state = awaitValue(vm.state) { it.today != null }
+
+        assertEquals(AlfredResult.Unavailable, state.today)
+        assertEquals(HomeTiles.Today.Unreachable, HomeTiles.today(state.today, LocalDate.now()))
+        // Her lists still load: the calendar failing blanks nothing else.
+        awaitValue(vm.state) { it.shopping is AlfredResult.Fresh }
+    }
+
+    @Test
+    fun `Jess's Today card lists today's events from the hub`() {
+        profile = Profile.JESS
+        mineHome = ListHome.PHONE
+        val vm = viewModel()
+        keepSubscribed(vm.state)
+        vm.refresh()
+
+        val state = awaitValue(vm.state) { it.today != null }
+
+        assertEquals(HomeTiles.Today.Events(emptyList()), HomeTiles.today(state.today, LocalDate.now()))
+        assertEquals(null, state.schedule)
     }
 
     @Test

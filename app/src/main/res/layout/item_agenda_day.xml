@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One day of the Calendar screen: TODAY, TOMORROW or the weekday, the date, and a
+     card of that day's events (EventRows). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="18dp">
+
+    <TextView
+        android:id="@+id/tv_agenda_label"
+        style="@style/DailySync.AlarmLabel"
+        android:layout_marginHorizontal="4dp"
+        tools:text="Tomorrow" />
+
+    <TextView
+        android:id="@+id/tv_agenda_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="4dp"
+        android:layout_marginTop="2dp"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        tools:text="Friday 27 November" />
+
+    <LinearLayout
+        android:id="@+id/agenda_rows"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_card"
+        android:orientation="vertical"
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="10dp" />
+</LinearLayout>

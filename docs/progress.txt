@@ -2232,3 +2232,41 @@
   - Found in that check and fixed: the message pushed the Add button below the
     fold, so trying again meant scrolling. A new message now scrolls the button
     into view (seen on the A32 with a blank title). 685 tests pass, forced rerun
+
+2026-11-26 Session BD: Jess's home screen
+  - Jess's Home (ProfileTiles, her list only): Today (wide hero), To-do standing
+    tall beside Shopping over Notes, Calendar (full width), Meals (coming soon).
+    The tall To-do is ProfileTiles.tallFor, a placement fact beside the one ordered
+    list, not a second list. Nick's list, rows and fetches are unchanged (tests pin
+    them; no tall tile for Nick)
+  - Today (HomeTiles.today): today's Young Family events, all day first, then timed
+    by start; "Nothing on the family calendar today" when empty. No hub and no copy
+    says "Can't reach the hub..." in the card. A saved copy counts only if saved
+    today: the day calendar caches under one key whatever the date, so yesterday's
+    copy offline would read as an empty day. It shows as unreachable instead, with no
+    stale line and no retry (nothing polls unless a saved copy is on screen). One
+    GET /calendar/events serves both Today and Nick's schedule card. A hidden
+    "Tonight" row waits for a meals source. The card has no date: the header says it
+  - Calendar: CalendarAgendaFragment/ViewModel, four weeks from today in one call
+    (cached as calendar/events/agenda), a card per day with anything on, the
+    Week screen's row style (EventRows, shared with Today), + opens Add Event.
+    An added event shows at once and survives a failed refetch, as on Week.
+    Today and Calendar both open it
+  - Tests: 701 pass, forced rerun. TodayCardTest (8: ordering, today only, empty,
+    loading, unreachable, today's saved copy, yesterday's copy, agenda),
+    ProfileTilesTest (Jess's order and rows, Nick unchanged), TilesViewModelTest
+    (Jess fetches today's calendar; Today unreachable while her lists still load),
+    CalendarAgendaViewModelTest (3). Undo-the-fix: without the saved-today rule,
+    the yesterday's-copy test went red
+  - Emulator (API 36) as Jess, fresh install, hash checked: every tile walked in
+    dark and light. To-do, Shopping, Notes open their screens; Today and Calendar
+    open the agenda (real upcoming events, timed by start, all day labelled); its
+    + opens Add Event with Who on Jess (backed out, nothing sent); Meals is inert.
+    Airplane mode with no copy: Today and Calendar each said the hub was out of
+    reach (ConnectException in the log). No crashes. Emulator left as found: app
+    uninstalled, airplane off, dark mode, shut down
+  - Not seen on a device: Today with events in it (nothing on the family calendar
+    today; no test event was added). No shopping list was created on the hub (the
+    hub doesn't yet record Jess as a list's owner, so one would appear in Nick's
+    lists); the hub's lists checked afterwards: Nick's five, unchanged. The A32
+    hasn't had this build

@@ -91,6 +91,13 @@ class AlfredRepository(
     suspend fun getCalendarDay(date: LocalDate): AlfredResult<CalendarEventsDto> =
         fetchCalendar(ENDPOINT_CALENDAR_DAY, date, date.plusDays(1))
 
+    /**
+     * The family calendar for the Calendar screen's weeks ahead, cached apart from
+     * the week and the day so none of the three overwrites another's fallback.
+     */
+    suspend fun getCalendarAgenda(start: LocalDate, endExclusive: LocalDate): AlfredResult<CalendarEventsDto> =
+        fetchCalendar(ENDPOINT_CALENDAR_AGENDA, start, endExclusive)
+
     private suspend fun fetchCalendar(
         endpoint: String,
         start: LocalDate,
@@ -667,9 +674,10 @@ class AlfredRepository(
         const val ENDPOINT_DAILY_SCHEDULE = "daily-schedule"
         const val ENDPOINT_WEEK_SCHEDULE = "daily-schedule/week"
 
-        /** Both hit GET /calendar/events; they cache apart because their ranges differ. */
+        /** All hit GET /calendar/events; they cache apart because their ranges differ. */
         const val ENDPOINT_CALENDAR_WEEK = "calendar/events/week"
         const val ENDPOINT_CALENDAR_DAY = "calendar/events/day"
+        const val ENDPOINT_CALENDAR_AGENDA = "calendar/events/agenda"
 
         const val ENDPOINT_SHOPPING = "shopping"
         const val ENDPOINT_INBOX = "inbox"

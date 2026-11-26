@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Calendar (Jess's Calendar tile): the Young Family calendar for the weeks ahead,
+  one card per day with anything on, and a + in the title bar that opens Add Event.
+  CalendarAgendaFragment builds the days.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="12dp">
+
+    <include
+        android:id="@+id/title_bar"
+        layout="@layout/view_screen_title" />
+
+    <!-- How old the calendar below is (FreshnessView) -->
+    <include
+        android:id="@+id/freshness"
+        layout="@layout/view_freshness"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" />
+
+    <!-- Loading / unavailable / nothing on -->
+    <TextView
+        android:id="@+id/tv_agenda_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="4dp"
+        android:paddingTop="16dp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        tools:text="Checking with Alfred…" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/agenda_days"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="24dp" />
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

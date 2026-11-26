@@ -661,4 +661,17 @@
     <string name="event_no_phone_calendar">There’s no Google calendar on this phone that can take events.</string>
     <string name="event_phone_failed">The phone’s calendar wouldn’t take the event. Try again.</string>
     <string name="event_needs_permission">My calendar needs access to the phone’s calendars. Allow it, or choose Young Family.</string>
+
+    <!-- Jess's Home: Today, Calendar, Meals -->
+    <string name="tile_today">Today</string>
+    <string name="today_empty">Nothing on the family calendar today</string>
+    <string name="today_unreachable">Can’t reach the hub, so today’s family calendar isn’t showing</string>
+    <string name="today_tonight">Tonight</string>
+    <string name="tile_calendar">Calendar</string>
+    <string name="tiles_calendar_subtitle">Young Family, the weeks ahead</string>
+    <string name="tile_meals">Meals</string>
+    <string name="calendar_title">Calendar</string>
+    <string name="calendar_tomorrow">Tomorrow</string>
+    <string name="calendar_empty">Nothing on the family calendar in the next four weeks</string>
+    <string name="calendar_unavailable">The family calendar isn’t on this phone yet, and the hub can’t be reached</string>
 </resources>

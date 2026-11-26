@@ -1,13 +1,16 @@
 package com.personalmorningalarm.ui
 
 import com.personalmorningalarm.data.profile.Profile
+import com.personalmorningalarm.ui.HomeTile.CALENDAR
 import com.personalmorningalarm.ui.HomeTile.INBOX
 import com.personalmorningalarm.ui.HomeTile.KANBAN
 import com.personalmorningalarm.ui.HomeTile.KITCHEN_SYNC
+import com.personalmorningalarm.ui.HomeTile.MEALS
 import com.personalmorningalarm.ui.HomeTile.NOTES
 import com.personalmorningalarm.ui.HomeTile.SCHEDULE
 import com.personalmorningalarm.ui.HomeTile.SHOPPING
 import com.personalmorningalarm.ui.HomeTile.SIGN_IN
+import com.personalmorningalarm.ui.HomeTile.TODAY
 import com.personalmorningalarm.ui.HomeTile.TODO
 import com.personalmorningalarm.ui.ProfileTiles.Row
 import org.junit.Assert.assertEquals
@@ -37,29 +40,50 @@ class ProfileTilesTest {
                 Row.Wide(SIGN_IN),
                 Row.ComingSoon(listOf(KITCHEN_SYNC, KANBAN))
             ),
-            ProfileTiles.rows(ProfileTiles.tilesFor(Profile.NICK))
+            ProfileTiles.rows(ProfileTiles.tilesFor(Profile.NICK), ProfileTiles.tallFor(Profile.NICK))
         )
     }
 
     @Test
-    fun `Jess has no Inbox, no Home Hub Sign-in and no Daily Schedule card`() {
+    fun `Nick has no tall tile, and none of Jess's new tiles`() {
+        assertEquals(null, ProfileTiles.tallFor(Profile.NICK))
+        val nick = ProfileTiles.tilesFor(Profile.NICK)
+        listOf(TODAY, CALENDAR, MEALS).forEach { assertFalse("$it shown to Nick", it in nick) }
+    }
+
+    @Test
+    fun `Jess has no Inbox, no Home Hub Sign-in, no Daily Schedule card and no Kanban`() {
         val jess = ProfileTiles.tilesFor(Profile.JESS)
 
-        listOf(INBOX, SIGN_IN, SCHEDULE).forEach { assertFalse("$it shown to Jess", it in jess) }
+        listOf(INBOX, SIGN_IN, SCHEDULE, KANBAN, KITCHEN_SYNC).forEach { assertFalse("$it shown to Jess", it in jess) }
     }
 
     @Test
-    fun `Jess keeps her lists, her notes and the coming-soon tiles, in order`() {
+    fun `Jess's Home is Today, then To-do, Shopping, Notes, Calendar and Meals`() {
         assertEquals(
-            listOf(TODO, SHOPPING, NOTES, KITCHEN_SYNC, KANBAN),
+            listOf(TODAY, TODO, SHOPPING, NOTES, CALENDAR, MEALS),
             ProfileTiles.tilesFor(Profile.JESS)
         )
+    }
+
+    @Test
+    fun `Jess's To-do stands tall beside Shopping over Notes, Calendar full width, Meals coming soon`() {
         assertEquals(
             listOf(
-                Row.Bento(left = listOf(TODO, NOTES), right = listOf(SHOPPING)),
-                Row.ComingSoon(listOf(KITCHEN_SYNC, KANBAN))
+                Row.Wide(TODAY),
+                Row.Bento(left = listOf(TODO), right = listOf(SHOPPING, NOTES)),
+                Row.Wide(CALENDAR),
+                Row.ComingSoon(listOf(MEALS))
             ),
-            ProfileTiles.rows(ProfileTiles.tilesFor(Profile.JESS))
+            ProfileTiles.rows(ProfileTiles.tilesFor(Profile.JESS), ProfileTiles.tallFor(Profile.JESS))
+        )
+    }
+
+    @Test
+    fun `a tall tile outside the run changes nothing`() {
+        assertEquals(
+            listOf(Row.Bento(left = listOf(SHOPPING), right = listOf(NOTES))),
+            ProfileTiles.rows(listOf(SHOPPING, NOTES), tall = TODO)
         )
     }
 

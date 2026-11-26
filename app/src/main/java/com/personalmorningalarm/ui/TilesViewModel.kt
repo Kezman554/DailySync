@@ -3,6 +3,7 @@ package com.personalmorningalarm.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.personalmorningalarm.data.model.CalendarEventsDto
 import com.personalmorningalarm.data.model.ChalkboardList
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
 import com.personalmorningalarm.data.model.DayAgenda
@@ -35,7 +36,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 /**
- * Feeds the Home tiles: today's schedule (vault plan + family calendar), the
+ * Feeds the Home tiles: today's schedule (vault plan + family calendar) or, for
+ * the Today card, today's family calendar alone; the
  * rolling to-do with the offline queue laid over it, the shopping lists and the
  * kitchen sign-in status. Read-only — every tile opens its own screen to act.
  *
@@ -67,6 +69,8 @@ class TilesViewModel(
         val schedule: AlfredResult<DayAgenda>? = null,
         /** The calendar layered into [schedule], kept for its age alone — the card shows the older of the two. */
         val calendar: AlfredResult<*>? = null,
+        /** Today's family calendar for the Today card; null until read, or when the card isn't shown. */
+        val today: AlfredResult<CalendarEventsDto>? = null,
         /** The family chalkboard, queued edits laid over it. */
         val familyTodos: AlfredResult<List<RollingTodoItem>>? = null,
         /** Nick's rolling to-do as Mine, queued edits laid over it; null when Mine is on the phone. */
@@ -98,6 +102,7 @@ class TilesViewModel(
         TilesState(
             schedule = f.schedule,
             calendar = f.calendar,
+            today = f.today,
             familyTodos = f.family?.map { RollingTodo.merged(it, pending, ChalkboardList.FAMILY) },
             mineTodos = f.mine?.map { RollingTodo.merged(it, pending, ChalkboardList.NICK) },
             shopping = f.shopping,
@@ -119,8 +124,10 @@ class TilesViewModel(
                 val home = mineHome()
                 val shows = tiles().toSet()
                 val withSchedule = HomeTile.SCHEDULE in shows
+                val withToday = HomeTile.TODAY in shows
                 val schedule = async { if (withSchedule) alfred.getDailySchedule() else null }
-                val calendar = async { if (withSchedule) alfred.getCalendarDay(date) else null }
+                // One call serves both cards: the schedule layers it in, Today lists it.
+                val calendar = async { if (withSchedule || withToday) alfred.getCalendarDay(date) else null }
                 val withTodo = HomeTile.TODO in shows
                 val family = async { if (withTodo) alfred.getChalkboard(ChalkboardList.FAMILY) else null }
                 val mine = async {
@@ -135,7 +142,8 @@ class TilesViewModel(
                     // The calendar is optional: with Alfred's plan unavailable there's
                     // no schedule to show, but a missing calendar just means vault only.
                     schedule = schedule.await()?.map { FamilyCalendar.agenda(it, events) },
-                    calendar = calendarResult,
+                    calendar = calendarResult.takeIf { withSchedule },
+                    today = calendarResult.takeIf { withToday },
                     family = family.await(),
                     mine = mine.await(),
                     shopping = shopping.await(),
@@ -150,6 +158,7 @@ class TilesViewModel(
     private data class Fetched(
         val schedule: AlfredResult<DayAgenda>? = null,
         val calendar: AlfredResult<*>? = null,
+        val today: AlfredResult<CalendarEventsDto>? = null,
         val family: AlfredResult<List<ChalkboardTaskDto>>? = null,
         val mine: AlfredResult<List<ChalkboardTaskDto>>? = null,
         val shopping: AlfredResult<List<ShoppingListSummaryDto>>? = null,

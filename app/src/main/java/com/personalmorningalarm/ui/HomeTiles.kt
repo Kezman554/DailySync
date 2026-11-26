@@ -1,11 +1,17 @@
 package com.personalmorningalarm.ui
 
 import com.personalmorningalarm.data.entity.AlarmConfig
+import com.personalmorningalarm.data.model.CalendarEventsDto
 import com.personalmorningalarm.data.model.DayAgenda
 import com.personalmorningalarm.data.model.FamilyCalendar
+import com.personalmorningalarm.data.model.FamilyEvent
 import com.personalmorningalarm.data.model.SchedulePeriod
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.remote.AlfredResult
+import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -76,6 +82,58 @@ object HomeTiles {
         phoneLists: List<ShoppingListSummaryDto> = emptyList()
     ): ShoppingListSummaryDto? =
         (lists + phoneLists).firstOrNull { (it.unticked ?: 0) > 0 && !it.title.isNullOrBlank() }
+
+    /** What the Today card shows. */
+    sealed interface Today {
+        /** Not asked yet. */
+        data object Loading : Today
+
+        /** No copy of today's calendar on the phone, and the hub can't be reached. */
+        data object Unreachable : Today
+
+        /**
+         * Today's family events: all-day ones first (they describe the day), then
+         * timed ones in start order. Empty is a day with nothing on.
+         */
+        data class Events(val events: List<FamilyEvent>) : Today
+    }
+
+    /**
+     * The Today card from the day's calendar fetch. A saved copy counts only if it
+     * was saved [today]: the day's calendar is cached under one key whatever the
+     * date, so yesterday's copy says nothing about today, and offline it would read
+     * as "nothing on". That's unreachable, said plainly.
+     */
+    fun today(
+        result: AlfredResult<CalendarEventsDto>?,
+        today: LocalDate,
+        zone: ZoneId = ZoneId.systemDefault()
+    ): Today {
+        val data = when (result) {
+            null -> return Today.Loading
+            AlfredResult.Unavailable -> return Today.Unreachable
+            is AlfredResult.Fresh -> result.data
+            is AlfredResult.Stale -> {
+                val savedOn = Instant.ofEpochMilli(result.cachedAtMillis).atZone(zone).toLocalDate()
+                if (savedOn != today) return Today.Unreachable
+                result.data
+            }
+        }
+        return Today.Events(FamilyCalendar.byDate(data)[today].orEmpty())
+    }
+
+    /**
+     * The Calendar screen's agenda: each day from [from] for [days] days that has
+     * anything on, in date order, each day's events ordered as [today] orders them.
+     * Days before [from] are dropped, so an older saved copy shows only what's ahead.
+     */
+    fun agenda(dto: CalendarEventsDto?, from: LocalDate, days: Long): List<Pair<LocalDate, List<FamilyEvent>>> {
+        val until = from.plusDays(days)
+        return FamilyCalendar.byDate(dto)
+            .filterKeys { !it.isBefore(from) && it.isBefore(until) }
+            .toSortedMap()
+            .map { (date, events) -> date to events }
+    }
 
     private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 }
