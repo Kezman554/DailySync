@@ -2223,5 +2223,12 @@
     is right); the event went into the chosen calendar and the choice was kept
   - Both test events then deleted through the phone's calendar and the deletions
     synced to Google (rows purged). Alarm data unchanged after three update
-    installs. Not seen on a device: the unreachable and no-answer messages
-    (covered over real sockets in CalendarCreateTest)
+    installs
+  - Unreachable checked on the A32 with airplane mode (Wi-Fi confirmed off, hub
+    unpingable): "The hub can't be reached... Nothing was sent", title, Who and
+    times kept, and nothing on the hub. Airplane mode off, Save again from the same
+    screen: exactly one copy, on the hub and synced down from Google. Deleted after,
+    the deletion synced. The no-answer case stays with CalendarCreateTest
+  - Found in that check and fixed: the message pushed the Add button below the
+    fold, so trying again meant scrolling. A new message now scrolls the button
+    into view (seen on the A32 with a blank title). 685 tests pass, forced rerun

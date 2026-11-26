@@ -86,6 +86,9 @@ class AddEventFragment : Fragment() {
 
     private var chooser: AlertDialog? = null
 
+    /** The message last shown, so a new one scrolls into view once, not on every render. */
+    private var shownMessage: AddEventViewModel.Message? = null
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentAddEventBinding.inflate(inflater, container, false)
         return binding.root
@@ -167,6 +170,12 @@ class AddEventFragment : Fragment() {
 
         binding.tvEventMessage.isVisible = state.message != null
         binding.tvEventMessage.text = state.message?.let(::messageText).orEmpty()
+        if (state.message != null && state.message != shownMessage) {
+            // The message pushes the button down: bring both into view, so trying
+            // again doesn't mean hunting for it.
+            binding.root.post { _binding?.let { it.root.smoothScrollTo(0, it.btnSaveEvent.bottom) } }
+        }
+        shownMessage = state.message
 
         binding.btnSaveEvent.isEnabled = !state.sending
         binding.btnSaveEvent.setText(if (state.sending) R.string.event_saving else R.string.event_save)
@@ -293,6 +302,7 @@ class AddEventFragment : Fragment() {
         // Not a cancel: the question comes back with the view.
         chooser?.let { it.setOnDismissListener(null); it.dismiss() }
         chooser = null
+        shownMessage = null
         _binding = null
     }
 
