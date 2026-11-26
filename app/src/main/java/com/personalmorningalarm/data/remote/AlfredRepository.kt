@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.personalmorningalarm.data.model.CalendarCreateRequest
 import com.personalmorningalarm.data.model.CalendarEventsDto
 import com.personalmorningalarm.data.model.ChalkboardList
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
@@ -99,6 +100,61 @@ class AlfredRepository(
             endpoint = endpoint,
             type = CalendarEventsDto::class.java
         ) { it.getCalendarEvents(start.toString(), endExclusive.toString()) }
+
+    /**
+     * Adds one event to the Young Family calendar, once. Never queued and never
+     * retried here: the endpoint makes a new event on every call, so after a lost
+     * answer only the person, having looked at the calendar, can say whether to send
+     * it again. The created event is announced on [CalendarChanges] for the Week
+     * screen.
+     */
+    suspend fun createCalendarEvent(request: CalendarCreateRequest): CalendarCreateResult =
+        withContext(Dispatchers.IO) {
+            val marker = SendMarker()
+            try {
+                val response = serviceProvider(settings).createCalendarEvent(request, marker)
+                val code = response.code()
+                reportAnswer(true)
+                when {
+                    response.isSuccessful -> {
+                        val event = response.body()?.events?.firstOrNull()
+                        event?.let(CalendarChanges::announce)
+                        CalendarCreateResult.Created(event)
+                    }
+                    code in 400..499 -> {
+                        Log.w(TAG, "Calendar event refused: HTTP $code")
+                        CalendarCreateResult.Refused(errorDetail(response))
+                    }
+                    else -> {
+                        // A fault on the Pi or upstream in HA, which may have got as far
+                        // as making the event before failing.
+                        Log.w(TAG, "Calendar event failed on the hub: HTTP $code")
+                        CalendarCreateResult.Unconfirmed
+                    }
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (e: Exception) {
+                reportAnswer(false)
+                if (marker.sent) {
+                    Log.d(TAG, "Calendar event sent, no answer (${e.javaClass.simpleName})")
+                    CalendarCreateResult.Unconfirmed
+                } else {
+                    Log.d(TAG, "Alfred unreachable for calendar event (${e.javaClass.simpleName})")
+                    CalendarCreateResult.NotSent
+                }
+            }
+        }
+
+    /** FastAPI's `{"detail": "..."}`, when the detail is a plain sentence. */
+    private data class ErrorBody(val detail: Any?)
+
+    private fun errorDetail(response: Response<*>): String? = try {
+        (gson.fromJson(response.errorBody()?.string(), ErrorBody::class.java)?.detail as? String)
+            ?.takeIf { it.isNotBlank() }
+    } catch (e: Exception) {
+        null
+    }
 
     /**
      * One chalkboard list from Alfred, ticked items included (greyed until the

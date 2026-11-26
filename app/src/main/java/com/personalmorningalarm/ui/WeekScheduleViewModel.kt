@@ -3,6 +3,7 @@ package com.personalmorningalarm.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.personalmorningalarm.data.model.CalendarEventDto
 import com.personalmorningalarm.data.model.CalendarEventsDto
 import com.personalmorningalarm.data.model.FamilyCalendar
 import com.personalmorningalarm.data.model.FamilyEvent
@@ -10,6 +11,8 @@ import com.personalmorningalarm.data.model.WeekSchedule
 import com.personalmorningalarm.data.model.WeekScheduleDto
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.CalendarChanges
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,8 +31,22 @@ import java.time.LocalDate
  * single call covering the whole visible week rather than one per day. The plan is
  * emitted first and never waits on it: the calendar being absent is a calendar
  * missing from the page, never a blank week.
+ *
+ * An event added from the Add Event screen ([added]) shows at once: it's put into
+ * the calendar already on screen, then the calendar is fetched again. A refetch
+ * that only finds the saved copy doesn't replace it, or the new event would vanish
+ * until the next visit.
  */
-class WeekScheduleViewModel(private val alfred: AlfredRepository) : ViewModel() {
+class WeekScheduleViewModel(
+    private val alfred: AlfredRepository,
+    added: Flow<CalendarEventDto>
+) : ViewModel() {
+
+    /**
+     * The shape [AlfredViewModelFactory] builds by reflection. It has to be a real
+     * one-argument constructor: a default value on [added] wouldn't make one.
+     */
+    constructor(alfred: AlfredRepository) : this(alfred, CalendarChanges.added)
 
     /** Null week means "not fetched yet", shown as loading rather than failure. */
     data class WeekState(
@@ -56,6 +73,19 @@ class WeekScheduleViewModel(private val alfred: AlfredRepository) : ViewModel() 
 
     init {
         refresh()
+        viewModelScope.launch { added.collect(::eventAdded) }
+    }
+
+    private suspend fun eventAdded(event: CalendarEventDto) {
+        _state.value = _state.value.copy(calendar = withEvent(_state.value.calendar, event))
+        // A refresh already in flight may have asked before the event existed: let it
+        // land, then put the event back if its answer dropped it.
+        inFlight?.join()
+        if (_state.value.calendar.events().none { it == event }) {
+            _state.value = _state.value.copy(calendar = withEvent(_state.value.calendar, event))
+        }
+        val week = _state.value.week ?: return
+        fetchCalendarFor(week, keepUnlessFresh = true)
     }
 
     /** Ignored while a fetch is already running. The previous week stays up until the new one lands. */
@@ -74,7 +104,7 @@ class WeekScheduleViewModel(private val alfred: AlfredRepository) : ViewModel() 
      * One call for the whole week the pager will show. The endpoint's `end` is
      * exclusive, so it asks for the day after the plan's last day.
      */
-    private suspend fun fetchCalendarFor(week: AlfredResult<WeekScheduleDto>) {
+    private suspend fun fetchCalendarFor(week: AlfredResult<WeekScheduleDto>, keepUnlessFresh: Boolean = false) {
         val days = WeekSchedule.days(
             when (week) {
                 is AlfredResult.Fresh -> week.data
@@ -86,11 +116,35 @@ class WeekScheduleViewModel(private val alfred: AlfredRepository) : ViewModel() 
         if (days.isEmpty()) return
 
         val result = alfred.getCalendarWeek(days.first().date, days.last().date.plusDays(1))
+        if (keepUnlessFresh && result !is AlfredResult.Fresh) return
         _state.value = _state.value.copy(calendar = result)
         Log.d(TAG, "Family calendar fetched: ${result.javaClass.simpleName}")
     }
 
-    private companion object {
-        const val TAG = "PMA"
+    companion object {
+        private const val TAG = "PMA"
+
+        /**
+         * [calendar] with [event] added, keeping its age. With no calendar on screen,
+         * nothing changes: a calendar of one event would pass for the whole week, so
+         * the refetch that follows is left to bring it.
+         */
+        internal fun withEvent(
+            calendar: AlfredResult<CalendarEventsDto>?,
+            event: CalendarEventDto
+        ): AlfredResult<CalendarEventsDto>? = when (calendar) {
+            is AlfredResult.Fresh -> AlfredResult.Fresh(calendar.data.plus(event), calendar.fetchedAtMillis)
+            is AlfredResult.Stale -> AlfredResult.Stale(calendar.data.plus(event), calendar.cachedAtMillis)
+            null, AlfredResult.Unavailable -> calendar
+        }
+
+        private fun AlfredResult<CalendarEventsDto>?.events(): List<CalendarEventDto> = when (this) {
+            is AlfredResult.Fresh -> data.events.orEmpty()
+            is AlfredResult.Stale -> data.events.orEmpty()
+            else -> emptyList()
+        }
+
+        private fun CalendarEventsDto.plus(event: CalendarEventDto) =
+            copy(events = events.orEmpty() + event)
     }
 }

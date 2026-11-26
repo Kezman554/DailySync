@@ -9,7 +9,9 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.core.os.bundleOf
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -70,6 +72,12 @@ class WeekScheduleFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         bindScreenTitle(binding.titleBar, R.string.week_title)
+        binding.titleBar.btnScreenAction.apply {
+            isVisible = true
+            setImageResource(R.drawable.ic_add)
+            contentDescription = getString(R.string.week_add_event)
+            setOnClickListener { openAddEvent() }
+        }
         binding.pagerWeek.adapter = dayAdapter
         binding.pagerWeek.registerOnPageChangeCallback(pageCallback)
         binding.tvPrevDay.setOnClickListener { binding.pagerWeek.currentItem -= 1 }
@@ -85,6 +93,15 @@ class WeekScheduleFragment : Fragment() {
             render = { renderFreshness(viewModel.state.value) },
             wantsRetry = { Freshness.wantsRetry(weekAge(viewModel.state.value)) },
             retry = viewModel::refresh
+        )
+    }
+
+    /** The Add Event screen, starting on the day being looked at (today if no plan is showing). */
+    private fun openAddEvent() {
+        val day = if (binding.pagerWeek.isVisible) dayAdapter.dayAt(binding.pagerWeek.currentItem)?.date else null
+        findNavController().navigate(
+            R.id.action_week_to_addEvent,
+            bundleOf(AddEventFragment.ARG_DATE to (day ?: LocalDate.now()).toString())
         )
     }
 

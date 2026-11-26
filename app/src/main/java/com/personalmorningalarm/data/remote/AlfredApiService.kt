@@ -1,5 +1,6 @@
 package com.personalmorningalarm.data.remote
 
+import com.personalmorningalarm.data.model.CalendarCreateRequest
 import com.personalmorningalarm.data.model.CalendarEventsDto
 import com.personalmorningalarm.data.model.ChalkboardTaskDto
 import com.personalmorningalarm.data.model.InboxCaptureDto
@@ -19,6 +20,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Tag
 
 /**
  * The Alfred Vault API. One endpoint per content screen that reads from Alfred;
@@ -47,13 +49,26 @@ interface AlfredApiService {
      * plain ISO dates. One call covers a whole visible week — callers bucket the
      * events by day themselves rather than asking per day.
      *
-     * Read-only: the app never writes to the household diary.
+     * The one write is [createCalendarEvent], from the Add Event screen.
      */
     @GET("calendar/events")
     suspend fun getCalendarEvents(
         @Query("start") start: String,
         @Query("end") end: String
     ): CalendarEventsDto
+
+    /**
+     * Adds one event to the family calendar. 201 answers GET's shape with the one
+     * event in it; 400 for an unknown who, 422 for anything else refused. Not
+     * idempotent: every call makes an event, so it is never queued or retried, and
+     * the body is one-shot (AlfredClient). [sent] is marked once the request starts
+     * going out, which is how a failure tells "never sent" from "sent, no answer".
+     */
+    @POST("calendar/events")
+    suspend fun createCalendarEvent(
+        @Body body: CalendarCreateRequest,
+        @Tag sent: SendMarker
+    ): Response<CalendarEventsDto>
 
     /**
      * One chalkboard list ([list] is a [com.personalmorningalarm.data.model.ChalkboardList]

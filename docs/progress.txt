@@ -2173,3 +2173,55 @@
     came back to her phone with Nick's item, left the hub, and her tile switched
   - Hub left as found: test lists deleted or pulled back; emulator app uninstalled
   - Not seen on a device: a move interrupted part-way (unit-tested only)
+
+2026-11-26 Session BC: add a calendar event
+  - Add Event screen (AddEventFragment/ViewModel), opened from a + in the Week
+    screen's title bar on the day being viewed. Calendar: Young Family or My
+    calendar; Who (Nick, Jess, Oliver, Family; starts on the profile's own name,
+    family only); title, date, all day or start and end. Profile-neutral, so Jess's
+    Calendar tile can open the same destination (addEventFragment, arg date)
+  - Rules (NewCalendarEvent) mirror vault-api's: blank, over 120 characters (code
+    points, as Python counts), not one line, end not after start, a time the spring
+    change skips. The chosen person's typed "Jess:" comes off the front (any case,
+    repeated); the server adds it. Another person's prefix, and My calendar titles,
+    are left alone
+  - Young Family: one POST /calendar/events, never queued, never retried. Its body
+    is one-shot (AlfredClient, like the shopping upload), and a network interceptor
+    marks a SendMarker once a connection is up, so a failure says which it was:
+    NotSent (nothing left the phone: "try again"), Unconfirmed (sent, no answer, or
+    a 5xx: "check the calendar before trying again"), Refused (4xx, the hub's own
+    words). The form keeps what was typed and Save stays available
+  - The Week screen shows a new family event at once: the repository announces the
+    201's event (CalendarChanges), the Week ViewModel adds it to the calendar on
+    screen, then refetches; a refetch that only finds the saved copy doesn't
+    replace it
+  - My calendar: CalendarContract into a writable, synced Google calendar.
+    READ/WRITE_CALENDAR asked for only when My calendar is chosen or saved to.
+    Young Family is left out by name (display or server name); several calendars
+    ask once and remember (my_calendar_id in pma_settings; an id that no longer
+    matches asks again); the line under the choice says which, with Change.
+    Nothing from this path reaches the Pi
+  - Found on device and fixed: the Week screen crashed on opening.
+    AlfredViewModelFactory builds by reflection on a one-argument constructor and a
+    Kotlin default parameter doesn't make one. WeekScheduleViewModel now has a real
+    secondary constructor; a test builds it through the factory and goes red without
+  - Tests: 685 pass (forced rerun before the device fix, then the new class).
+    NewCalendarEventTest (23), PhoneCalendarChoiceTest (9), AddEventViewModelTest
+    (18: routing both ways, no retry, double tap, picking and remembering),
+    CalendarCreateTest (11, real HTTP: body shape, 201/422/400/502, unreachable,
+    lost answer on a pooled connection sent once), WeekScheduleAddedEventTest (5).
+    Undo-the-fix: without calendar/events in the one-shot paths OkHttp resent the
+    POST and the lost-answer test went red; without the constructor, the factory
+    test went red
+  - A32 as Nick (update install, hash checked, firstInstallTime unchanged; 9 NFC
+    tags, 24 alarm events, 1 queued shopping write before): one event each way.
+    Family typed as "Nick: ..." was stored with one prefix, showed on the Week
+    screen without a refresh, synced down to the phone's Young Family calendar,
+    and was served by vault-api and the dashboard's /api/vault proxy. Calendar
+    permission was asked for only on choosing My calendar; the chooser left out the
+    synced Young Family (it offers Google's separate "Family" group calendar, which
+    is right); the event went into the chosen calendar and the choice was kept
+  - Both test events then deleted through the phone's calendar and the deletions
+    synced to Google (rows purged). Alarm data unchanged after three update
+    installs. Not seen on a device: the unreachable and no-answer messages
+    (covered over real sockets in CalendarCreateTest)

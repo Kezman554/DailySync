@@ -60,6 +60,10 @@ class ShoppingSyncTest {
             object : AlfredApiService {
                 override suspend fun getDailySchedule(): List<ScheduleTaskDto> = throw IOException()
                 override suspend fun getWeekSchedule(): WeekScheduleDto = throw IOException()
+                override suspend fun createCalendarEvent(
+                    body: com.personalmorningalarm.data.model.CalendarCreateRequest,
+                    sent: com.personalmorningalarm.data.remote.SendMarker
+                ): Response<CalendarEventsDto> = throw IOException()
                 override suspend fun getCalendarEvents(start: String, end: String): CalendarEventsDto =
                     throw IOException()
                 override suspend fun getChalkboard(list: String, includeTicked: Boolean): List<ChalkboardTaskDto> = throw IOException()

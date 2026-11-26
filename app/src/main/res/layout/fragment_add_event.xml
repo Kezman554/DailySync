@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Add Event: which calendar (Young Family through the hub, or My calendar on this
+  phone), who it's for (family only), the title, the day, and all day or a start and
+  end. Reached from the Week screen's add button; Jess's Calendar tile will reuse it.
+  Nothing typed is lost when a send fails: the form stays as it was.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout style="@style/DailySync.ScreenColumn">
+
+        <include
+            android:id="@+id/title_bar"
+            layout="@layout/view_screen_title" />
+
+        <TextView
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/event_calendar_label" />
+
+        <!-- Young Family | My calendar (EventCalendar) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_segmented"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <TextView
+                android:id="@+id/seg_family"
+                style="@style/DailySync.Segment"
+                android:text="@string/event_calendar_family"
+                tools:selected="true" />
+
+            <TextView
+                android:id="@+id/seg_mine"
+                style="@style/DailySync.Segment"
+                android:layout_marginStart="6dp"
+                android:text="@string/event_calendar_mine" />
+        </LinearLayout>
+
+        <!-- Where it goes: the wall, or which phone calendar (tap to change) -->
+        <TextView
+            android:id="@+id/tv_calendar_hint"
+            style="@style/DailySync.RowHelp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:paddingHorizontal="4dp"
+            tools:text="Goes on the wall and in Google Calendar" />
+
+        <!-- Who: family events only -->
+        <LinearLayout
+            android:id="@+id/group_who"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/DailySync.GroupLabel"
+                android:text="@string/event_who_label" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_segmented"
+                android:orientation="horizontal"
+                android:padding="4dp">
+
+                <TextView
+                    android:id="@+id/seg_who_nick"
+                    style="@style/DailySync.Segment"
+                    android:text="@string/event_who_nick"
+                    tools:selected="true" />
+
+                <TextView
+                    android:id="@+id/seg_who_jess"
+                    style="@style/DailySync.Segment"
+                    android:layout_marginStart="4dp"
+                    android:text="@string/event_who_jess" />
+
+                <TextView
+                    android:id="@+id/seg_who_oliver"
+                    style="@style/DailySync.Segment"
+                    android:layout_marginStart="4dp"
+                    android:text="@string/event_who_oliver" />
+
+                <TextView
+                    android:id="@+id/seg_who_family"
+                    style="@style/DailySync.Segment"
+                    android:layout_marginStart="4dp"
+                    android:text="@string/event_who_family" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/event_title_label" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_title"
+            style="@style/DailySync.PillInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!-- saveEnabled off: the ViewModel holds what was typed -->
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_title"
+                style="@style/DailySync.PillInputField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/event_title_hint"
+                android:imeOptions="actionDone"
+                android:importantForAutofill="no"
+                android:inputType="textCapSentences"
+                android:maxLines="1"
+                android:saveEnabled="false" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            style="@style/DailySync.GroupLabel"
+            android:text="@string/event_when_label" />
+
+        <LinearLayout style="@style/DailySync.SettingsCard">
+
+            <LinearLayout
+                android:id="@+id/row_date"
+                style="@style/DailySync.CardRow">
+
+                <TextView
+                    style="@style/DailySync.RowLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/event_date" />
+
+                <TextView
+                    android:id="@+id/tv_date"
+                    style="@style/DailySync.RowValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="Thu 26 November" />
+            </LinearLayout>
+
+            <View style="@style/DailySync.Hairline" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switch_all_day"
+                style="@style/DailySync.SwitchRow"
+                android:text="@string/event_all_day" />
+
+            <LinearLayout
+                android:id="@+id/group_times"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <View style="@style/DailySync.Hairline" />
+
+                <LinearLayout
+                    android:id="@+id/row_start"
+                    style="@style/DailySync.CardRow">
+
+                    <TextView
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/event_start" />
+
+                    <TextView
+                        android:id="@+id/tv_start"
+                        style="@style/DailySync.RowValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="15:00" />
+                </LinearLayout>
+
+                <View style="@style/DailySync.Hairline" />
+
+                <LinearLayout
+                    android:id="@+id/row_end"
+                    style="@style/DailySync.CardRow">
+
+                    <TextView
+                        style="@style/DailySync.RowLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/event_end" />
+
+                    <TextView
+                        android:id="@+id/tv_end"
+                        style="@style/DailySync.RowValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="15:45" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Why it didn't save: a form problem, or the hub (red), kept until the next try -->
+        <TextView
+            android:id="@+id/tv_event_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:paddingHorizontal="4dp"
+            android:textColor="?attr/colorError"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="Alfred didn't answer. The event may have gone in: check the calendar before trying again."
+            tools:visibility="visible" />
+
+        <Button
+            android:id="@+id/btn_save_event"
+            style="@style/Widget.DailySync.Button"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="20dp"
+            android:text="@string/event_save" />
+
+    </LinearLayout>
+</ScrollView>

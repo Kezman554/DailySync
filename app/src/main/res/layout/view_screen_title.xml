@@ -35,4 +35,15 @@
         tools:text="4"
         tools:visibility="visible" />
 
+    <!-- Optional action on the right (Week's add); gone unless a screen sets it -->
+    <ImageButton
+        android:id="@+id/btn_screen_action"
+        style="@style/DailySync.IconButton"
+        android:layout_marginStart="8dp"
+        android:tint="?attr/colorPrimary"
+        android:visibility="gone"
+        tools:ignore="ContentDescription"
+        tools:src="@drawable/ic_add"
+        tools:visibility="visible" />
+
 </LinearLayout>

@@ -49,16 +49,18 @@ object AlfredClient {
     }
 
     /**
-     * An upload is never sent twice by the client. OkHttp quietly resends a request
-     * whose connection dropped after it went out; for an upload that makes a second
-     * (and third) shared list, since the hub names a repeat "-2" rather than refusing
-     * it. A one-shot body is never resent: a lost answer reaches ShoppingShare, which
-     * looks for the list it made instead.
+     * A write that isn't safe to repeat is never sent twice by the client. OkHttp
+     * quietly resends a request whose connection dropped after it went out; for an
+     * upload that makes a second (and third) shared list, since the hub names a
+     * repeat "-2" rather than refusing it, and a calendar event would simply go in
+     * twice. A one-shot body is never resent: a lost answer reaches the caller,
+     * which looks for what it made (ShoppingShare) or tells the person to check
+     * (the Add Event screen).
      */
     private val uploadSentOnce = Interceptor { chain ->
         val request = chain.request()
         val body = request.body()
-        if (request.method() != "POST" || body == null || request.url().pathSegments() != UPLOAD_PATH) {
+        if (request.method() != "POST" || body == null || request.url().pathSegments() !in SEND_ONCE_PATHS) {
             chain.proceed(request)
         } else {
             chain.proceed(request.newBuilder().method("POST", OneShotBody(body)).build())
@@ -73,7 +75,18 @@ object AlfredClient {
         override fun isOneShot(): Boolean = true
     }
 
-    private val UPLOAD_PATH = listOf("shopping", "upload")
+    private val SEND_ONCE_PATHS = setOf(listOf("shopping", "upload"), listOf("calendar", "events"))
+
+    /**
+     * Marks a request's [SendMarker] as it goes onto a connection. A network
+     * interceptor runs only once a connection is up, so a failure with the marker
+     * still clear never left the phone.
+     */
+    @VisibleForTesting
+    internal val markSent = Interceptor { chain ->
+        chain.request().tag(SendMarker::class.java)?.sent = true
+        chain.proceed(chain.request())
+    }
 
     @VisibleForTesting
     internal val http = OkHttpClient.Builder()
@@ -81,6 +94,7 @@ object AlfredClient {
         .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .addInterceptor(writeTimeout)
         .addInterceptor(uploadSentOnce)
+        .addNetworkInterceptor(markSent)
         .build()
 
     /**

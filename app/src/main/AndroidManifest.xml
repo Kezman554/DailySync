@@ -33,6 +33,10 @@
 
     <!-- NFC checkpoints -->
     <uses-permission android:name="android.permission.NFC" />
+
+    <!-- Add Event's "My calendar": asked for only when that choice is first used -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
 
     <!-- Show alarm activity over lock screen / turn screen on -->

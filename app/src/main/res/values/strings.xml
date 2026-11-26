@@ -619,4 +619,46 @@
     <string name="dashboard_host_dialog_title">Home Hub dashboard address</string>
     <string name="dashboard_host_help">Address of the Home Hub dashboard on your home network — used by Home Hub Sign-in. Port defaults to 8500.</string>
     <string name="dashboard_host_invalid">Enter an address like 192.168.1.100:8500</string>
+
+    <!-- Add Event (from the Week screen's add button) -->
+    <string name="event_title_screen">Add event</string>
+    <string name="week_add_event">Add event</string>
+    <string name="event_calendar_label">Calendar</string>
+    <string name="event_calendar_family">Young Family</string>
+    <string name="event_calendar_mine">My calendar</string>
+    <string name="event_hint_family">Goes on the wall and in the family’s Google Calendar. Needs the hub.</string>
+    <string name="event_hint_mine_unknown">Goes in a Google calendar on this phone. Nothing goes to the hub.</string>
+    <string name="event_hint_mine_chosen">Goes in %1$s on this phone</string>
+    <string name="event_hint_mine_change">Goes in %1$s on this phone · Change</string>
+    <string name="event_hint_mine_ask">Goes in a Google calendar on this phone: you’ll pick which when you save</string>
+    <string name="event_hint_mine_none">No Google calendar on this phone can take events</string>
+    <string name="event_who_label">Who</string>
+    <string name="event_who_nick">Nick</string>
+    <string name="event_who_jess">Jess</string>
+    <string name="event_who_oliver">Oliver</string>
+    <string name="event_who_family">Family</string>
+    <string name="event_title_label">Title</string>
+    <string name="event_title_hint">What’s happening?</string>
+    <string name="event_when_label">When</string>
+    <string name="event_date">Date</string>
+    <string name="event_all_day">All day</string>
+    <string name="event_start">Starts</string>
+    <string name="event_end">Ends</string>
+    <string name="event_save">Add event</string>
+    <string name="event_saving">Adding…</string>
+    <string name="event_pick_calendar">Which calendar?</string>
+    <string name="event_saved_family">Added to Young Family</string>
+    <string name="event_saved_mine">Added to your calendar</string>
+    <string name="event_problem_blank">Give the event a title</string>
+    <string name="event_problem_too_long">That title is too long: 120 characters at most</string>
+    <string name="event_problem_one_line">The title has to be one line</string>
+    <string name="event_problem_end">The end has to be after the start</string>
+    <string name="event_problem_skipped">The clocks go forward then, so that time doesn’t exist. Pick another</string>
+    <string name="event_not_sent">The hub can’t be reached, so the event wasn’t added. Nothing was sent: try again when you’re home.</string>
+    <string name="event_unconfirmed">The hub didn’t confirm it, so the event may or may not have gone in. Check the calendar before trying again, or it may end up there twice.</string>
+    <string name="event_refused">The hub wouldn’t add it: %1$s</string>
+    <string name="event_refused_plain">The hub wouldn’t add it. Check the details and try again.</string>
+    <string name="event_no_phone_calendar">There’s no Google calendar on this phone that can take events.</string>
+    <string name="event_phone_failed">The phone’s calendar wouldn’t take the event. Try again.</string>
+    <string name="event_needs_permission">My calendar needs access to the phone’s calendars. Allow it, or choose Young Family.</string>
 </resources>

@@ -80,7 +80,25 @@
         android:id="@+id/weekScheduleFragment"
         android:name="com.personalmorningalarm.ui.WeekScheduleFragment"
         android:label="@string/week_schedule_title"
-        tools:layout="@layout/fragment_week_schedule" />
+        tools:layout="@layout/fragment_week_schedule">
+        <action
+            android:id="@+id/action_week_to_addEvent"
+            app:destination="@id/addEventFragment" />
+    </fragment>
+
+    <!-- Add a calendar event: Young Family through the hub, or a calendar on this phone.
+         Opened from the Week screen; Jess's Calendar tile will open it too. -->
+    <fragment
+        android:id="@+id/addEventFragment"
+        android:name="com.personalmorningalarm.ui.AddEventFragment"
+        android:label="@string/event_title_screen"
+        tools:layout="@layout/fragment_add_event">
+        <!-- The day it starts on, as an ISO date; empty for today. -->
+        <argument
+            android:name="date"
+            android:defaultValue=""
+            app:argType="string" />
+    </fragment>
 
     <!-- The alarm screen: what used to be Home. -->
     <fragment
