@@ -38,6 +38,7 @@ import com.personalmorningalarm.challenge.ContentScreenManager
 import com.personalmorningalarm.challenge.NfcCheckpointManager
 import com.personalmorningalarm.challenge.ShakeChallenge
 import com.personalmorningalarm.challenge.Stage2Session
+import com.personalmorningalarm.challenge.WorkStep
 import com.personalmorningalarm.data.AlarmRepository
 import com.personalmorningalarm.data.AppDatabase
 import com.personalmorningalarm.data.entity.AlarmEvent
@@ -59,10 +60,15 @@ import com.personalmorningalarm.data.remote.ChalkboardSync
 import com.personalmorningalarm.databinding.ActivityAlarmDismissalBinding
 import com.personalmorningalarm.databinding.ItemAlarmStretchRowBinding
 import com.personalmorningalarm.databinding.ItemAlarmTodoRowBinding
+import com.personalmorningalarm.databinding.ItemAlarmWorkRowBinding
+import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.service.AlarmService
 import com.personalmorningalarm.service.CountdownService
 import com.personalmorningalarm.util.MarkdownRenderer
+import com.personalmorningalarm.util.VaultText
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -107,8 +113,13 @@ class AlarmDismissalActivity : AppCompatActivity() {
     private var contentScreenManager: ContentScreenManager? = null
     private var gapsShown = 0
     private var showingContent = false
-    /** The running timer of whichever content step is up (quote, stretch, schedule, to-do). */
+    /** The running timer of whichever content step is up (quote, stretch, schedule, to-do, work). */
     private var stepTimer: CountDownTimer? = null
+    /**
+     * While the rolling to-do step is up: whether the Work step follows it, worked
+     * out in the background ([WorkStep.load]) so the answer is in by Continue.
+     */
+    private var pendingWork: Deferred<WorkStep.Content?>? = null
     /** Which stretch the stretch list was last drawn for (-1: not drawn). */
     private var stretchRowsShown = -1
     private var showingUnlockHint = false
@@ -515,6 +526,9 @@ class AlarmDismissalActivity : AppCompatActivity() {
         binding.content.visibility = View.GONE
         binding.contentPanel.visibility = View.VISIBLE
         resetContentPanel()
+        // Only the to-do step is followed by Work; it sets this again itself.
+        pendingWork?.cancel()
+        pendingWork = null
 
         when (type) {
             ContentType.QUOTE -> showQuoteContent()
@@ -897,11 +911,17 @@ class AlarmDismissalActivity : AppCompatActivity() {
         binding.tvContentTitle.setText(R.string.content_todo_title)
         setBody(getString(R.string.chalkboard_loading))
         startTimedContinue(CONTENT_DISMISS_LOCK_MS)
+        // Whether Work follows, decided while this step's timer runs. A profile
+        // without the work list asks the hub nothing ([WorkStep.load]).
+        val profile = ProfileSettings(applicationContext).profile()
+        pendingWork = lifecycleScope.async { WorkStep.load(alfredRepository, profile, LocalDate.now()) }
 
         val gap = gapsShown
         lifecycleScope.launch {
             val result = alfredRepository.getChalkboard()
-            if (!showingContent || gapsShown != gap) {
+            // pendingWork is cleared by this step's Continue: with Work now up in
+            // the same gap, the to-do answer is as late as one for a gap gone by.
+            if (!showingContent || gapsShown != gap || pendingWork == null) {
                 Log.d(TAG, "Chalkboard arrived after the screen moved on — dropped")
                 return@launch
             }
@@ -985,6 +1005,60 @@ class AlarmDismissalActivity : AppCompatActivity() {
     private fun onContentContinue() {
         stepTimer?.cancel()
         stepTimer = null
+        val work = pendingWork
+        pendingWork = null
+        if (work != null) {
+            // Leaving the to-do step: on to Work if it has anything for today. The
+            // answer is almost always in already; if not, Continue waits on it.
+            binding.btnContinue.isEnabled = false
+            lifecycleScope.launch {
+                val content = try {
+                    work.await()
+                } catch (cancellation: CancellationException) {
+                    throw cancellation
+                } catch (e: Exception) {
+                    // The repository doesn't throw; this screen mustn't be the first place it matters.
+                    Log.w(TAG, "Work step failed to load — skipped", e)
+                    null
+                }
+                if (content != null) showWorkContent(content) else leaveContent()
+            }
+            return
+        }
+        leaveContent()
+    }
+
+    /**
+     * The Work step: Nick's open work items, read-only, straight after the rolling
+     * to-do step on a work day ([WorkStep]). It shares that step's gap, so the tags
+     * already tapped don't change, and it has the same timed Continue: the Stage 2
+     * countdown pauses here and runs again when Continue frees up.
+     */
+    private fun showWorkContent(content: WorkStep.Content) {
+        CountdownService.pause(this)
+        resetContentPanel()
+        binding.tvContentLabel.setText(R.string.content_work_heading)
+        binding.tvContentTitle.isVisible = true
+        binding.tvContentTitle.setText(R.string.content_work_title)
+        startTimedContinue(CONTENT_DISMISS_LOCK_MS)
+        val age = renderContentAge(content.list)
+
+        val list = binding.todoList
+        list.isVisible = true
+        content.items.forEachIndexed { i, item ->
+            if (i > 0) {
+                list.addView(
+                    View(this, null, 0, R.style.DailySync_Hairline),
+                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, resources.getDimensionPixelSize(R.dimen.hairline))
+                )
+            }
+            ItemAlarmWorkRowBinding.inflate(layoutInflater, list, true).tvItem.text = VaultText.render(this, item.task)
+        }
+        Log.d(TAG, "Content screen shown: WORK — ${content.items.size} open items (stale=${content.list is AlfredResult.Stale}, age=${age?.level})")
+    }
+
+    /** Off the content panel and back to the checkpoint. */
+    private fun leaveContent() {
         showingContent = false
         binding.contentPanel.visibility = View.GONE
         binding.content.visibility = View.VISIBLE

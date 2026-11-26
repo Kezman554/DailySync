@@ -60,6 +60,7 @@ class ShoppingSyncTest {
             object : AlfredApiService {
                 override suspend fun getDailySchedule(): List<ScheduleTaskDto> = throw IOException()
                 override suspend fun getWeekSchedule(): WeekScheduleDto = throw IOException()
+                override suspend fun getWorkDay(): com.personalmorningalarm.data.model.WorkDayDto = throw IOException()
                 override suspend fun createCalendarEvent(
                     body: com.personalmorningalarm.data.model.CalendarCreateRequest,
                     sent: com.personalmorningalarm.data.remote.SendMarker

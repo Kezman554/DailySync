@@ -81,6 +81,17 @@ class AlfredRepository(
         ) { it.getWeekSchedule() }
 
     /**
+     * Whether today is a work day, falling back to the last answer served. That
+     * answer names its own date, so a copy saved on another day says nothing about
+     * today: [com.personalmorningalarm.challenge.WorkStep] checks it.
+     */
+    suspend fun getWorkDay(): AlfredResult<com.personalmorningalarm.data.model.WorkDayDto> =
+        fetch(
+            endpoint = ENDPOINT_WORK_DAY,
+            type = com.personalmorningalarm.data.model.WorkDayDto::class.java
+        ) { it.getWorkDay() }
+
+    /**
      * The family calendar for the whole visible week — one call, bucketed by day
      * client-side. [endExclusive] follows the endpoint: pass the day after the last
      * day you want.
@@ -741,6 +752,7 @@ class AlfredRepository(
 
         const val ENDPOINT_DAILY_SCHEDULE = "daily-schedule"
         const val ENDPOINT_WEEK_SCHEDULE = "daily-schedule/week"
+        const val ENDPOINT_WORK_DAY = "daily-schedule/work-day"
 
         /** All hit GET /calendar/events; they cache apart because their ranges differ. */
         const val ENDPOINT_CALENDAR_WEEK = "calendar/events/week"

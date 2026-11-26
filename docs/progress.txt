@@ -2382,3 +2382,37 @@
     hash before and after
   - Left on the hub: "BH work offline test - delete me", ticked, so the 03:07 sweep
     takes it (a ticked line can't be dropped through the API)
+
+2026-11-26 Session BI: a Work step in the alarm sequence on work days (DONE)
+  - The work day comes from GET /daily-schedule/work-day ({date, work_day,
+    source}), a sibling endpoint: /daily-schedule stays a bare array. Fetched and
+    cached like every read (getWorkDay, cache key daily-schedule/work-day); a saved
+    answer counts only if its date is today, else Monday to Friday
+  - WorkStep (challenge/): load() asks nothing for a profile without the work list
+    (Jess, or none), fetches the list only on a work day, and skips the step when the
+    list can't be had or has nothing open. Items via RollingTodo.items (VaultText),
+    open only; the saved copy is used when the Pi is unreachable
+  - Alarm screen: the to-do step starts WorkStep.load as it opens; its Continue
+    shows the Work step (heading WORK, "On at work", read-only rows rendered with
+    VaultText.render) or goes on to the next tag. Work shares the to-do step's
+    gap, so it never costs a checkpoint and never falls off the end of a short
+    sequence; it follows the to-do step only, so with the to-do toggle off there's
+    no Work step. Same timed Continue (15s): the countdown pauses on it and resumes
+    when Continue frees up. A late to-do answer can't paint over Work
+  - Not as the card said: the rolling to-do step isn't read-only (it ticks, since
+    July); Work is read-only as asked
+  - Tests: WorkStepTest (13): plan yes/no incl. a Saturday shift, hub fallback,
+    no answer -> Mon-Fri, another day's saved answer ignored, open items only with
+    links resolved, empty/all-ticked/unavailable skip, against a MockWebServer hub:
+    Nick's requests, no list fetch on a day off, empty list skips, unreachable uses
+    the saved list, Jess and no profile request nothing. Removing the profile gate
+    turns the Jess test red. Full suite, --rerun-tasks: 748 tests, 0 failed
+  - A32 (DBs and prefs backed up first; update install, hash matches): Thursday,
+    work_day true from the plan. Shaking and tag taps can't be done remotely, so a
+    temporary debug hook (real startStage2 / onCheckpointTag, no history writes)
+    drove Stage 2 and was removed before commit, then the clean build reinstalled.
+    Content quote -> schedule -> to-do (9 open) -> WORK (5 open, after the to-do
+    Continue, same gap "3 OF 3"), then checkpoint 4. Countdown paused at 545s on
+    Work and resumed at 545s 15s later, as on the other three. Session stopped
+    there. Alarm configs, events, tags, toggles and settings identical to before;
+    no alarm scheduled, as found

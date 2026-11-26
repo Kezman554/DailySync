@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One open work item on the alarm's Work step: read-only text, the same weight
+     and size as a rolling to-do row, with no checkbox. Ticking stays on the
+     To-Do screen. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/tv_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:paddingVertical="8dp"
+    android:paddingStart="10dp"
+    android:textColor="?attr/colorOnSurface"
+    android:textFontWeight="600"
+    android:textSize="16sp"
+    tools:text="Send the release notes" />

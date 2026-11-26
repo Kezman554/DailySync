@@ -46,6 +46,14 @@ interface AlfredApiService {
     suspend fun getWeekSchedule(): WeekScheduleDto
 
     /**
+     * Whether today is a work day, from the week plan or (no word there) Monday to
+     * Friday: decides the alarm's Work step. A sibling of [getDailySchedule], whose
+     * bare array has nowhere to carry it.
+     */
+    @GET("daily-schedule/work-day")
+    suspend fun getWorkDay(): com.personalmorningalarm.data.model.WorkDayDto
+
+    /**
      * The family calendar between [start] (inclusive) and [end] (exclusive), both
      * plain ISO dates. One call covers a whole visible week — callers bucket the
      * events by day themselves rather than asking per day.

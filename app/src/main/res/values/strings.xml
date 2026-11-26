@@ -100,6 +100,9 @@
 
     <!-- Rolling To-Do List content screen (Alfred /chalkboard) -->
     <string name="content_chalkboard_heading">Rolling to-do</string>
+    <!-- The alarm's Work step, after the rolling to-do on a work day (Nick only) -->
+    <string name="content_work_heading">Work</string>
+    <string name="content_work_title">On at work</string>
     <string name="chalkboard_loading">Checking with Alfred…</string>
     <string name="chalkboard_unavailable">No to-do list on this phone yet — Alfred unreachable</string>
     <string name="chalkboard_empty">Nothing on the list — all clear</string>
