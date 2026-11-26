@@ -2265,8 +2265,21 @@
     Airplane mode with no copy: Today and Calendar each said the hub was out of
     reach (ConnectException in the log). No crashes. Emulator left as found: app
     uninstalled, airplane off, dark mode, shut down
-  - Not seen on a device: Today with events in it (nothing on the family calendar
-    today; no test event was added). No shopping list was created on the hub (the
-    hub doesn't yet record Jess as a list's owner, so one would appear in Nick's
-    lists); the hub's lists checked afterwards: Nick's five, unchanged. The A32
-    hasn't had this build
+  - No shopping list was created on the hub (the hub doesn't yet record Jess as a
+    list's owner, so one would appear in Nick's lists); the hub's lists checked
+    afterwards: Nick's five, unchanged
+  - Today stays calendar-only, as the card said ("no to-do items"). Raised before
+    pushing: a family chalkboard item's trailing date is the day it was added
+    (vault-api stamps it), not a due date, so "items dated today" would show what
+    was added today. Nick chose calendar-only; chalkboard items on Today wait for
+    due dates
+  - Today with content, emulator as Jess: an event for today added from Calendar's
+    + (Who on Jess) showed at once on the agenda and in Today, light and dark. One
+    copy on the hub and in Google (synced down to the A32's Young Family calendar).
+    Deleted there; the deletion synced to Google, and the hub (through Home
+    Assistant's refresh) and the wall's feed dropped it about 15 minutes later
+  - A32 as Nick (update install, hash checked, firstInstallTime unchanged): Home
+    before and after identical, every labelled element in the same place and the
+    screenshots pixel-identical below the status bar, top and scrolled. 9 NFC tags,
+    24 alarm events, 1 queued shopping write, 0 queued chalkboard writes, before and
+    after
