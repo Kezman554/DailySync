@@ -17,6 +17,7 @@ import com.personalmorningalarm.data.remote.AddKey
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
 import com.personalmorningalarm.data.remote.ShareFlagResult
+import com.personalmorningalarm.data.remote.ShoppingItemSource
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.data.remote.ShoppingWriteResult
 import com.personalmorningalarm.data.remote.dataOrNull
@@ -39,12 +40,23 @@ import kotlinx.coroutines.launch
  * Writes work anywhere: live they go straight to Alfred (optimistic update, refetch
  * to reconcile); offline — or a direct write that finds Alfred just gone — they're
  * captured into the shared [ShoppingSync] queue, tagged with [listId].
+ *
+ * Any list's items come through its [ShoppingItemSource]: the vault's lists through
+ * [alfred], Groceries through KitchenSync ([groceries]). A source whose writes can't
+ * be resent safely ([ShoppingItemSource.queuesWrites], Groceries) makes them live or
+ * not at all: unreachable, the screen says so ([ShoppingEvent.SOURCE_UNREACHABLE])
+ * and nothing is queued. The vault's own extras (owner and sharing, Keep ticked,
+ * Clear bought, untick) are only ever asked of a vault list.
  */
 class ShoppingListViewModel(
     private val alfred: AlfredRepository,
     private val sync: ShoppingSync,
-    private val listId: String
+    private val listId: String,
+    groceries: () -> ShoppingItemSource = { error("No Groceries source given") }
 ) : ViewModel() {
+
+    /** This list's source: KitchenSync for Groceries, Alfred for every vault list. */
+    private val source: ShoppingItemSource = ShoppingItemSource.forList(listId, alfred, groceries)
 
     data class ShoppingListState(
         val loading: Boolean = false,
@@ -68,7 +80,9 @@ class ShoppingListViewModel(
         /** Clear bought is done on the hub, and it can't be reached. */
         CLEAR_NEEDS_HUB,
         /** The list isn't on the hub any more. */
-        LIST_GONE
+        LIST_GONE,
+        /** A source that doesn't queue (Groceries) couldn't be reached: the change wasn't made. */
+        SOURCE_UNREACHABLE
     }
 
     private val _state = MutableStateFlow(ShoppingListState(loading = true))
@@ -101,10 +115,12 @@ class ShoppingListViewModel(
             if (!quiet) _state.value = _state.value.copy(loading = true)
             // Queued writes for every list go first, same as the rolling to-do's
             // refresh, so the refetch below sees their effect.
-            if (sync.hasPending()) sync.flush()
-            val result = alfred.getShoppingList(listId)
+            if (source.queuesWrites && sync.hasPending()) sync.flush()
+            val result = source.getShoppingList(listId)
             show(result)
             _state.value = _state.value.copy(loading = false)
+            // Groceries is no one's and never shared: there's no discovery to ask.
+            if (!source.queuesWrites) return@launch
             // Owner and shared come only from discovery; its saved copy will do if Alfred's away.
             val summary = alfred.getShoppingLists().dataOrNull()?.firstOrNull { it.id == listId }
             if (summary != null) {
@@ -136,7 +152,7 @@ class ShoppingListViewModel(
             onUnreachable = { queueWrite(ShoppingVerb.ADD, text = task, key = key) },
             onRefused = { sync.recordRefused(listId, task, key) }
         ) {
-            alfred.addShoppingItem(listId, task, key)
+            source.addShoppingItem(listId, task, key)
         }
     }
 
@@ -147,13 +163,18 @@ class ShoppingListViewModel(
             return
         }
         applyOptimistically { list ->
-            list.updateFirst({ it.line == line }) { it.copy(ticked = true, line = tickedLine(line)) }
+            if (source.queuesWrites) {
+                list.updateFirst({ it.line == line }) { it.copy(ticked = true, line = tickedLine(line)) }
+            } else {
+                // Groceries: a tick takes it off the list (into stock or the tray).
+                list.withoutFirst { it.line == line }
+            }
         }
         runWrite(
             "tick",
             reconcileOnSuccess = true,
             onUnreachable = { queueWrite(ShoppingVerb.TICK, text = text, line = line) }
-        ) { alfred.tickShoppingItem(listId, line) }
+        ) { source.tickShoppingItem(listId, line) }
     }
 
     /** A Keep ticked list's bought item, back to still to buy. Queued offline, keyed so it lands once. */
@@ -215,14 +236,22 @@ class ShoppingListViewModel(
         }
         applyOptimistically { list -> list.withoutFirst { it.line == line } }
         runWrite("drop", onUnreachable = { queueWrite(ShoppingVerb.DROP, text = text, line = line) }) {
-            alfred.dropShoppingItem(listId, line)
+            source.dropShoppingItem(listId, line)
         }
     }
 
     private fun isFresh(): Boolean = _state.value.result is AlfredResult.Fresh
 
+    /**
+     * Into the offline queue, where the source's writes can be resent safely. Where
+     * they can't (Groceries), nothing is kept and the screen says it wasn't made.
+     */
     private fun queueWrite(verb: ShoppingVerb, text: String, line: String? = null, key: String? = null) {
         viewModelScope.launch {
+            if (!source.queuesWrites) {
+                _events.emit(ShoppingEvent.SOURCE_UNREACHABLE)
+                return@launch
+            }
             sync.enqueue(listId, verb, text, line, key)
             _events.emit(ShoppingEvent.SAVED_OFFLINE)
         }
@@ -269,7 +298,7 @@ class ShoppingListViewModel(
     }
 
     private suspend fun reconcile() {
-        show(alfred.getShoppingList(listId))
+        show(source.getShoppingList(listId))
     }
 
     /** The list's items, and its Keep ticked when the read carries the list (a saved copy may not). */
@@ -291,9 +320,10 @@ class ShoppingListViewModel(
 class ShoppingListViewModelFactory(
     private val repository: AlfredRepository,
     private val sync: ShoppingSync,
-    private val listId: String
+    private val listId: String,
+    private val groceries: () -> ShoppingItemSource
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        ShoppingListViewModel(repository, sync, listId) as T
+        ShoppingListViewModel(repository, sync, listId, groceries) as T
 }

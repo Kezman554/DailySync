@@ -4,7 +4,6 @@ import com.personalmorningalarm.data.profile.Profile
 import com.personalmorningalarm.ui.HomeTile.CALENDAR
 import com.personalmorningalarm.ui.HomeTile.INBOX
 import com.personalmorningalarm.ui.HomeTile.KANBAN
-import com.personalmorningalarm.ui.HomeTile.KITCHEN_SYNC
 import com.personalmorningalarm.ui.HomeTile.MEALS
 import com.personalmorningalarm.ui.HomeTile.NOTES
 import com.personalmorningalarm.ui.HomeTile.SCHEDULE
@@ -22,9 +21,10 @@ import org.junit.Test
 class ProfileTilesTest {
 
     @Test
-    fun `Nick's Home is the one it always was, in its old order`() {
+    fun `Nick's Home is the one it always was, in its old order, less the KitchenSync placeholder`() {
+        // KitchenSync's coming-soon tile went in BK: Groceries is in Shopping now.
         assertEquals(
-            listOf(SCHEDULE, TODO, SHOPPING, NOTES, INBOX, SIGN_IN, KITCHEN_SYNC, KANBAN),
+            listOf(SCHEDULE, TODO, SHOPPING, NOTES, INBOX, SIGN_IN, KANBAN),
             ProfileTiles.tilesFor(Profile.NICK)
         )
     }
@@ -32,13 +32,13 @@ class ProfileTilesTest {
     @Test
     fun `Nick's tiles lay out as the old fixed layout did`() {
         // Schedule card; bento of To-Do over Notes beside Shopping over Inbox;
-        // the sign-in card; the two coming-soon tiles side by side.
+        // the sign-in card; Kanban, the one coming-soon tile left.
         assertEquals(
             listOf(
                 Row.Wide(SCHEDULE),
                 Row.Bento(left = listOf(TODO, NOTES), right = listOf(SHOPPING, INBOX)),
                 Row.Wide(SIGN_IN),
-                Row.ComingSoon(listOf(KITCHEN_SYNC, KANBAN))
+                Row.ComingSoon(listOf(KANBAN))
             ),
             ProfileTiles.rows(ProfileTiles.tilesFor(Profile.NICK), ProfileTiles.tallFor(Profile.NICK))
         )
@@ -55,7 +55,7 @@ class ProfileTilesTest {
     fun `Jess has no Inbox, no Home Hub Sign-in, no Daily Schedule card and no Kanban`() {
         val jess = ProfileTiles.tilesFor(Profile.JESS)
 
-        listOf(INBOX, SIGN_IN, SCHEDULE, KANBAN, KITCHEN_SYNC).forEach { assertFalse("$it shown to Jess", it in jess) }
+        listOf(INBOX, SIGN_IN, SCHEDULE, KANBAN).forEach { assertFalse("$it shown to Jess", it in jess) }
     }
 
     @Test
@@ -118,8 +118,8 @@ class ProfileTilesTest {
     @Test
     fun `coming-soon tiles go two to a row`() {
         assertEquals(
-            listOf(Row.ComingSoon(listOf(KITCHEN_SYNC, KANBAN)), Row.ComingSoon(listOf(KITCHEN_SYNC))),
-            ProfileTiles.rows(listOf(KITCHEN_SYNC, KANBAN, KITCHEN_SYNC))
+            listOf(Row.ComingSoon(listOf(MEALS, KANBAN)), Row.ComingSoon(listOf(MEALS))),
+            ProfileTiles.rows(listOf(MEALS, KANBAN, MEALS))
         )
     }
 }

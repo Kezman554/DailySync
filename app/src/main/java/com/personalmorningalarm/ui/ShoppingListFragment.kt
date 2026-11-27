@@ -20,6 +20,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.divider.MaterialDividerItemDecoration
 import com.google.android.material.snackbar.Snackbar
 import com.personalmorningalarm.R
+import com.personalmorningalarm.data.model.Groceries
 import com.personalmorningalarm.data.model.ShoppingItem
 import com.personalmorningalarm.data.model.ShoppingItemDto
 import com.personalmorningalarm.data.model.ShoppingList
@@ -29,6 +30,8 @@ import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.GroceriesRepository
+import com.personalmorningalarm.data.remote.KitchenSyncReachability
 import com.personalmorningalarm.data.remote.ShoppingCopy
 import com.personalmorningalarm.data.remote.ShoppingShare
 import com.personalmorningalarm.data.remote.ShoppingSync
@@ -46,6 +49,10 @@ import java.time.ZoneId
  * The settings card holds sharing, Keep ticked (bought items stay at the bottom,
  * under Bought, each one untickable, until Clear bought) and, on a list someone has
  * shared with you, Copy into….
+ *
+ * Groceries (KitchenSync's list) is shown here too, the same way, through its own
+ * source: a family list, so no settings card, and its changes are made live or not
+ * at all (see [ShoppingListViewModel]).
  */
 class ShoppingListFragment : Fragment() {
 
@@ -55,11 +62,15 @@ class ShoppingListFragment : Fragment() {
     private val listId: String by lazy { requireArguments().getString(ARG_LIST_ID).orEmpty() }
     private val listTitle: String by lazy { requireArguments().getString(ARG_LIST_TITLE).orEmpty() }
 
+    /** KitchenSync's list: the family's, with only what every list has. */
+    private val isGroceries: Boolean by lazy { Groceries.isGroceries(listId) }
+
     private val viewModel: ShoppingListViewModel by viewModels {
         ShoppingListViewModelFactory(
             AlfredRepository(requireContext()),
             ShoppingSync.getInstance(requireContext()),
-            listId
+            listId,
+            requireContext().applicationContext.let { app -> { GroceriesRepository(app) } }
         )
     }
 
@@ -162,7 +173,14 @@ class ShoppingListFragment : Fragment() {
         Freshness.of(state.result, System.currentTimeMillis(), ZoneId.systemDefault())
 
     private fun renderFreshness(state: ShoppingListViewModel.ShoppingListState) {
-        FreshnessView.render(binding.freshness, age(state), AlfredReachability.state.value)
+        if (isGroceries) {
+            FreshnessView.render(
+                binding.freshness, age(state), KitchenSyncReachability.state.value,
+                service = FreshnessView.Service.KITCHENSYNC
+            )
+        } else {
+            FreshnessView.render(binding.freshness, age(state), AlfredReachability.state.value)
+        }
     }
 
     /**
@@ -197,7 +215,8 @@ class ShoppingListFragment : Fragment() {
         val list = state.summary
         val profile = me
         val working = shareViewModel.working.value
-        binding.rowShare.isVisible = state.result != null && state.result !is AlfredResult.Unavailable
+        // Owner, sharing, Keep ticked and Copy into are the vault's: Groceries has none.
+        binding.rowShare.isVisible = !isGroceries && state.result != null && state.result !is AlfredResult.Unavailable
         binding.switchKeepTicked.isChecked = state.keepTicked
         binding.switchKeepTicked.isEnabled = !state.keepWorking && !working
         binding.tvKeepTickedNote.setText(
@@ -269,6 +288,7 @@ class ShoppingListFragment : Fragment() {
             ShoppingListViewModel.ShoppingEvent.KEEP_NEEDS_HUB -> R.string.shopping_keep_ticked_needs_hub
             ShoppingListViewModel.ShoppingEvent.CLEAR_NEEDS_HUB -> R.string.shopping_clear_bought_needs_hub
             ShoppingListViewModel.ShoppingEvent.LIST_GONE -> R.string.shopping_copy_gone
+            ShoppingListViewModel.ShoppingEvent.SOURCE_UNREACHABLE -> R.string.shopping_groceries_not_saved
         }
         Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
     }
@@ -297,11 +317,12 @@ class ShoppingListFragment : Fragment() {
             ) + failed.joinToString(separator = "") { "\n• ${it.text}" }
         }
 
+        val offline = state.result is AlfredResult.Stale || state.result is AlfredResult.Unavailable
         binding.etShoppingAdd.hint = getString(
-            if (state.result is AlfredResult.Stale || state.result is AlfredResult.Unavailable) {
-                R.string.shopping_offline_hint
-            } else {
-                R.string.shopping_add_hint
+            when {
+                !offline -> R.string.shopping_add_hint
+                isGroceries -> R.string.shopping_groceries_offline_hint
+                else -> R.string.shopping_offline_hint
             }
         )
 
@@ -316,8 +337,13 @@ class ShoppingListFragment : Fragment() {
         if (base == null && queued.isEmpty()) {
             binding.tvShoppingBody.isVisible = true
             binding.rvShoppingItems.isVisible = false
-            binding.tvShoppingBody.text =
-                getString(if (state.result == null) R.string.shopping_menu_loading else R.string.shopping_list_unavailable)
+            binding.tvShoppingBody.text = getString(
+                when {
+                    state.result == null -> R.string.shopping_menu_loading
+                    isGroceries -> R.string.shopping_groceries_unavailable
+                    else -> R.string.shopping_list_unavailable
+                }
+            )
             binding.titleBar.tvScreenMeta.isVisible = false
             itemAdapter.submitList(emptyList())
             boughtAdapter.submitList(emptyList())

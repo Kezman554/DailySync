@@ -75,7 +75,7 @@ object HomeTiles {
 
     /**
      * The first list with anything left on it, the hub's lists as Alfred orders them
-     * and then the phone's [phoneLists]; null if none.
+     * and then [phoneLists] (Groceries, then the phone's own); null if none.
      */
     fun activeShoppingList(
         lists: List<ShoppingListSummaryDto>,

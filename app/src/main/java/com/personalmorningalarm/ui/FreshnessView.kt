@@ -39,7 +39,8 @@ object FreshnessView {
         age: Freshness.Age?,
         reachability: AlfredReachability.State,
         compact: Boolean = false,
-        card: MaterialCardView? = null
+        card: MaterialCardView? = null,
+        service: Service = Service.ALFRED
     ) {
         val root = binding.root
         val context = root.context
@@ -73,15 +74,20 @@ object FreshnessView {
                 else -> 13f
             }
         )
-        headline.text = headlineText(context.resources, age, reachability)
+        headline.text = headlineText(context.resources, age, reachability, service)
 
-        val detail = detailText(context.resources, age, reachability, compact)
+        val detail = detailText(context.resources, age, reachability, compact, service)
         binding.tvFreshnessDetail.isVisible = detail != null
         binding.tvFreshnessDetail.text = detail
         binding.tvFreshnessDetail.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (compact) 13f else 14f)
     }
 
-    private fun headlineText(res: Resources, age: Freshness.Age, reachability: AlfredReachability.State): String {
+    private fun headlineText(
+        res: Resources,
+        age: Freshness.Age,
+        reachability: AlfredReachability.State,
+        service: Service
+    ): String {
         val span = spanText(res, Freshness.span(age))
         val line = when (age.level) {
             Freshness.Level.LOUD ->
@@ -99,22 +105,23 @@ object FreshnessView {
         }
         // The loud notice gives the reason a line of its own; the lighter levels inline it.
         if (age.level == Freshness.Level.LOUD || !age.saved) return line
-        return res.getString(R.string.freshness_with_reason, line, reasonText(res, reachability))
+        return res.getString(R.string.freshness_with_reason, line, reasonText(res, reachability, service))
     }
 
     private fun detailText(
         res: Resources,
         age: Freshness.Age,
         reachability: AlfredReachability.State,
-        compact: Boolean
+        compact: Boolean,
+        service: Service
     ): String? {
         if (age.level != Freshness.Level.LOUD) return null
         return when {
             // A tile has no room for the full sentence: the reason alone.
-            compact && age.saved -> reasonText(res, reachability)
+            compact && age.saved -> reasonText(res, reachability, service)
             age.saved && reachability == AlfredReachability.State.REACHABLE ->
-                res.getString(R.string.freshness_reason_back)
-            age.saved -> res.getString(R.string.freshness_loud_saved_detail)
+                res.getString(service.back)
+            age.saved -> res.getString(service.savedDetail)
             else -> res.getString(R.string.freshness_loud_live_detail)
         }
     }
@@ -123,10 +130,22 @@ object FreshnessView {
      * Why it's a saved copy. Alfred having answered some other call since means a
      * retry is on its way (FreshnessWatch), so the line says that instead.
      */
-    private fun reasonText(res: Resources, reachability: AlfredReachability.State): String = res.getString(
-        if (reachability == AlfredReachability.State.REACHABLE) R.string.freshness_reason_back
-        else R.string.freshness_reason_unreachable
-    )
+    private fun reasonText(res: Resources, reachability: AlfredReachability.State, service: Service): String =
+        res.getString(if (reachability == AlfredReachability.State.REACHABLE) service.back else service.unreachable)
+
+    /** Whose copy it is, for the lines that name the service: Alfred's, or KitchenSync's for Groceries. */
+    enum class Service(val unreachable: Int, val back: Int, val savedDetail: Int) {
+        ALFRED(
+            R.string.freshness_reason_unreachable,
+            R.string.freshness_reason_back,
+            R.string.freshness_loud_saved_detail
+        ),
+        KITCHENSYNC(
+            R.string.freshness_reason_unreachable_kitchensync,
+            R.string.freshness_reason_back_kitchensync,
+            R.string.freshness_loud_saved_detail_kitchensync
+        )
+    }
 
     private fun spanText(res: Resources, span: Freshness.Span): String = when (span) {
         Freshness.Span.UnderAMinute -> res.getString(R.string.freshness_under_minute)

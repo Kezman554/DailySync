@@ -15,7 +15,6 @@ enum class HomeTile(val shape: Shape, val growsInColumn: Boolean = true) {
     SIGN_IN(Shape.WIDE),
     /** Opens the Young Family agenda for the weeks ahead. */
     CALENDAR(Shape.WIDE),
-    KITCHEN_SYNC(Shape.COMING_SOON),
     KANBAN(Shape.COMING_SOON),
     MEALS(Shape.COMING_SOON);
 
@@ -40,7 +39,7 @@ object ProfileTiles {
             HomeTile.TODO, HomeTile.SHOPPING,
             HomeTile.NOTES, HomeTile.INBOX,
             HomeTile.SIGN_IN,
-            HomeTile.KITCHEN_SYNC, HomeTile.KANBAN
+            HomeTile.KANBAN
         )
         Profile.JESS -> listOf(
             HomeTile.TODAY,

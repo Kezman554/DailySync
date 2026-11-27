@@ -54,7 +54,7 @@ class AlfredRepository(
      * ([Profile.mayUse]): such a list is never asked for, whoever calls.
      */
     private val profile: () -> Profile? = { Profile.NICK }
-) {
+) : ShoppingItemSource {
 
     /** The real client, naming this phone's profile on every shopping request. */
     constructor(context: Context) : this(
@@ -220,7 +220,7 @@ class AlfredRepository(
         ) { it.getShoppingLists() }
 
     /** One shopping list's items from Alfred, falling back to the last copy served for [listId]. */
-    suspend fun getShoppingList(listId: String): AlfredResult<ShoppingListDetailDto> =
+    override suspend fun getShoppingList(listId: String): AlfredResult<ShoppingListDetailDto> =
         fetch(
             endpoint = shoppingListEndpoint(listId),
             type = ShoppingListDetailDto::class.java
@@ -314,7 +314,7 @@ class AlfredRepository(
     }
 
     /** Adds an item to the shopping list [listId], keyed by [key] as [addChalkboardItem] is. */
-    suspend fun addShoppingItem(listId: String, text: String, key: String): ShoppingWriteResult =
+    override suspend fun addShoppingItem(listId: String, text: String, key: String): ShoppingWriteResult =
         writeShopping(listId, "add", keyed = true) { service ->
             sendKeyed { sent -> service.addShoppingItem(listId, ShoppingAddRequest(text), key, sent) }
         }
@@ -323,7 +323,7 @@ class AlfredRepository(
      * Ticks the item whose raw vault line is [line] in list [listId]. Stays listed until
      * the sweep. With a [key] a resend after a lost answer lands once, on the same row.
      */
-    suspend fun tickShoppingItem(listId: String, line: String, key: String? = null): ShoppingWriteResult =
+    override suspend fun tickShoppingItem(listId: String, line: String, key: String?): ShoppingWriteResult =
         writeShopping(listId, "tick", keyed = key != null) {
             it.tickShoppingItem(listId, ShoppingLineRequest(line), key)
         }
@@ -353,7 +353,7 @@ class AlfredRepository(
         } ?: ShareFlagResult.Unreachable
 
     /** Drops the item whose raw vault line is [line] in list [listId] — no longer wanted. */
-    suspend fun dropShoppingItem(listId: String, line: String): ShoppingWriteResult =
+    override suspend fun dropShoppingItem(listId: String, line: String): ShoppingWriteResult =
         writeShopping(listId, "drop") { it.dropShoppingItem(listId, ShoppingLineRequest(line)) }
 
     // Sharing (Session BB). Each answers with what the hub holds now — never a saved

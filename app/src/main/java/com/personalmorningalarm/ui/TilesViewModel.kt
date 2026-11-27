@@ -69,7 +69,9 @@ class TilesViewModel(
     private val mineHome: () -> ListHome = { ListHome.HUB },
     private val profile: () -> Profile? = { Profile.NICK },
     private val savedFilter: () -> TodoFilter? = { null },
-    private val today: () -> LocalDate = LocalDate::now
+    private val today: () -> LocalDate = LocalDate::now,
+    /** KitchenSync's Groceries for the Shopping tile; null leaves it out. */
+    private val groceries: com.personalmorningalarm.data.remote.GroceriesRepository? = null
 ) : ViewModel() {
 
     data class TilesState(
@@ -94,7 +96,9 @@ class TilesViewModel(
         val mineHome: ListHome = ListHome.HUB,
         val phoneTodos: List<RollingTodoItem>? = null,
         /** The phone's own shopping lists, after the hub's in every listing. */
-        val phoneShopping: List<ShoppingListSummaryDto> = emptyList()
+        val phoneShopping: List<ShoppingListSummaryDto> = emptyList(),
+        /** KitchenSync's Groceries, counted (its saved copy if it can't be reached); null if unknown. */
+        val groceries: ShoppingListSummaryDto? = null
     ) {
         /** Mine's items wherever it lives; null until known. */
         val mineItems: List<RollingTodoItem>?
@@ -145,6 +149,7 @@ class TilesViewModel(
             todoFilter = choice.filter,
             todoSources = choice.sources,
             shopping = f.shopping,
+            groceries = f.groceries,
             presence = f.presence,
             mineHome = f.mineHome,
             phoneTodos = PhoneLists.todoItems(phoneTodos),
@@ -182,6 +187,7 @@ class TilesViewModel(
                     if (withTodo && TodoSource.WORK in todoSources) alfred.getChalkboard(ChalkboardList.WORK) else null
                 }
                 val shopping = async { if (HomeTile.SHOPPING in shows) alfred.getShoppingLists() else null }
+                val kitchen = async { if (HomeTile.SHOPPING in shows) groceries?.getSummary()?.dataOrNull() else null }
                 val signIn = async { if (HomeTile.SIGN_IN in shows) presence.status() else null }
 
                 val calendarResult = calendar.await()
@@ -196,6 +202,7 @@ class TilesViewModel(
                     mine = mine.await(),
                     work = work.await(),
                     shopping = shopping.await(),
+                    groceries = kitchen.await(),
                     presence = signIn.await(),
                     mineHome = home
                 )
@@ -212,6 +219,7 @@ class TilesViewModel(
         val mine: AlfredResult<List<ChalkboardTaskDto>>? = null,
         val work: AlfredResult<List<ChalkboardTaskDto>>? = null,
         val shopping: AlfredResult<List<ShoppingListSummaryDto>>? = null,
+        val groceries: ShoppingListSummaryDto? = null,
         val presence: PresenceResult? = null,
         val mineHome: ListHome = ListHome.HUB
     )

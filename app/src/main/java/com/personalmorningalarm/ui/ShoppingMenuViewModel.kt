@@ -11,11 +11,13 @@ import com.personalmorningalarm.data.phone.PhoneListStore
 import com.personalmorningalarm.data.phone.PhoneListSummary
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.GroceriesRepository
 import com.personalmorningalarm.data.remote.ShoppingCreateResult
 import com.personalmorningalarm.data.remote.ShoppingDeleteResult
 import com.personalmorningalarm.data.remote.ShoppingSync
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -35,11 +37,15 @@ import kotlinx.coroutines.withContext
  * list it removes. [sync] is here only so a hub delete can clear what was queued for
  * that list. A phone list is made and deleted in [phone], offline or not, and never
  * reaches Alfred or the queue.
+ *
+ * Groceries comes from KitchenSync ([groceries]), read beside the hub's lists on
+ * every refresh. Null leaves it out (tests that are about the vault's lists).
  */
 class ShoppingMenuViewModel(
     private val alfred: AlfredRepository,
     private val sync: ShoppingSync,
-    private val phone: PhoneListStore
+    private val phone: PhoneListStore,
+    private val groceries: GroceriesRepository? = null
 ) : ViewModel() {
 
     data class MenuState(
@@ -48,7 +54,9 @@ class ShoppingMenuViewModel(
         /** A delete is with Alfred. One at a time, and the spinner shows the wait. */
         val deleting: Boolean = false,
         /** The phone's own lists, oldest first. Null until the first read. */
-        val phoneLists: List<PhoneListSummary>? = null
+        val phoneLists: List<PhoneListSummary>? = null,
+        /** KitchenSync's Groceries, counted; null until read, or with no Groceries source. */
+        val groceries: AlfredResult<ShoppingListSummaryDto>? = null
     )
 
     /** One-shot outcomes of a create or delete attempt the user should hear about. */
@@ -85,8 +93,9 @@ class ShoppingMenuViewModel(
         inFlight = viewModelScope.launch {
             // A quiet refresh is FreshnessWatch retrying a saved copy: no spinner every minute.
             if (!quiet) _state.value = _state.value.copy(loading = true)
+            val kitchen = async { groceries?.getSummary() }
             val result = alfred.getShoppingLists()
-            _state.value = _state.value.copy(loading = false, lists = result)
+            _state.value = _state.value.copy(loading = false, lists = result, groceries = kitchen.await())
         }
     }
 
@@ -171,9 +180,10 @@ class ShoppingMenuViewModel(
 class ShoppingMenuViewModelFactory(
     private val repository: AlfredRepository,
     private val sync: ShoppingSync,
-    private val phone: PhoneListStore
+    private val phone: PhoneListStore,
+    private val groceries: GroceriesRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        ShoppingMenuViewModel(repository, sync, phone) as T
+        ShoppingMenuViewModel(repository, sync, phone, groceries) as T
 }

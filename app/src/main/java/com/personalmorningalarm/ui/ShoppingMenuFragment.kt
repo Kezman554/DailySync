@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.personalmorningalarm.R
+import com.personalmorningalarm.data.model.Groceries
 import com.personalmorningalarm.data.model.PhoneLists
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
@@ -33,6 +34,7 @@ import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.GroceriesRepository
 import com.personalmorningalarm.data.remote.ShoppingCopy
 import com.personalmorningalarm.data.remote.ShoppingShare
 import com.personalmorningalarm.data.remote.ShoppingSync
@@ -61,7 +63,8 @@ class ShoppingMenuFragment : Fragment() {
         ShoppingMenuViewModelFactory(
             AlfredRepository(requireContext()),
             ShoppingSync.getInstance(requireContext()),
-            PhoneListStore.getInstance(requireContext())
+            PhoneListStore.getInstance(requireContext()),
+            GroceriesRepository(requireContext().applicationContext)
         )
     }
 
@@ -209,6 +212,8 @@ class ShoppingMenuFragment : Fragment() {
      */
     private fun showListActions(tile: ShoppingListSummaryAdapter.Tile.ListTile) {
         val summary = tile.summary
+        // Groceries is the family's, and KitchenSync's: nothing to share, delete or copy.
+        if (Groceries.isGroceries(summary.id)) return
         val profile = me
         val title = summary.title ?: summary.id.orEmpty()
         if (tile.home == ListHome.HUB && profile != null && !ShoppingSharing.isMine(summary, profile)) {
@@ -322,11 +327,12 @@ class ShoppingMenuFragment : Fragment() {
         val canCreate = !hubOnly || state.lists is AlfredResult.Fresh
         if (!canCreate && binding.rowShoppingNewList.isVisible) closeCreate()
         val phoneLists = state.phoneLists.orEmpty()
+        val groceries = groceriesTile(state.groceries)
         val body = when {
             lists == null && state.lists == null -> R.string.shopping_menu_loading
-            lists == null && phoneLists.isEmpty() -> R.string.shopping_menu_unavailable
+            lists == null && phoneLists.isEmpty() && groceries == null -> R.string.shopping_menu_unavailable
             lists == null -> R.string.shopping_menu_hub_unavailable
-            lists.isEmpty() && phoneLists.isEmpty() -> R.string.shopping_menu_empty
+            lists.isEmpty() && phoneLists.isEmpty() && groceries == null -> R.string.shopping_menu_empty
             else -> null
         }
         binding.tvShoppingMenuBody.isVisible = body != null
@@ -334,9 +340,25 @@ class ShoppingMenuFragment : Fragment() {
         listAdapter.submit(
             lists,
             phoneLists.map(PhoneLists::summary),
-            ShoppingListSummaryAdapter.Tile.NewList(hubOnly = hubOnly, canCreate = canCreate)
+            ShoppingListSummaryAdapter.Tile.NewList(hubOnly = hubOnly, canCreate = canCreate),
+            groceries
         )
     }
+
+    /**
+     * Groceries' tile once KitchenSync has been asked: counted from its answer or its
+     * saved copy, or saying it can't be reached when there's neither.
+     */
+    private fun groceriesTile(result: AlfredResult<ShoppingListSummaryDto>?): ShoppingListSummaryAdapter.Tile.ListTile? =
+        when (result) {
+            null -> null
+            is AlfredResult.Fresh -> ShoppingListSummaryAdapter.Tile.ListTile(result.data)
+            is AlfredResult.Stale -> ShoppingListSummaryAdapter.Tile.ListTile(result.data)
+            AlfredResult.Unavailable -> ShoppingListSummaryAdapter.Tile.ListTile(
+                ShoppingListSummaryDto(id = Groceries.LIST_ID, title = Groceries.TITLE, total = null, unticked = null),
+                counted = false
+            )
+        }
 
     private fun newListRule(): NewListHome? = ProfileSettings(requireContext()).profile()?.newListHome
 

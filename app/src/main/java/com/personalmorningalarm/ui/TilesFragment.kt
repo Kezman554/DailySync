@@ -81,7 +81,8 @@ class TilesFragment : Fragment() {
                     tiles = { profileTiles(context) },
                     mineHome = { (profiles.profile() ?: Profile.NICK).mineTodoHome(lists.todoHome()) },
                     profile = profiles::profile,
-                    savedFilter = lists::todoFilter
+                    savedFilter = lists::todoFilter,
+                    groceries = com.personalmorningalarm.data.remote.GroceriesRepository(context)
                 )
             }
         }
@@ -137,7 +138,7 @@ class TilesFragment : Fragment() {
         // The coming-soon tiles are inert: no click listener at all rather than a
         // disabled one, so there's no tap to swallow and nothing to wire up by
         // accident later.
-        listOf(binding.tileKitchenSync, binding.tileKanban, binding.tileMeals).forEach {
+        listOf(binding.tileKanban, binding.tileMeals).forEach {
             it.isClickable = false
             it.isFocusable = false
         }
@@ -148,7 +149,7 @@ class TilesFragment : Fragment() {
                     renderToday(state)
                     renderSchedule(state.schedule)
                     renderTodos(state)
-                    renderShopping(state.shopping, state.phoneShopping)
+                    renderShopping(state.shopping, listOfNotNull(state.groceries) + state.phoneShopping)
                     renderSignIn(state.presence)
                     renderFreshness(state)
                 }
@@ -183,7 +184,6 @@ class TilesFragment : Fragment() {
             HomeTile.NOTES to binding.cardNotes,
             HomeTile.INBOX to binding.cardInbox,
             HomeTile.SIGN_IN to binding.cardSignIn,
-            HomeTile.KITCHEN_SYNC to binding.tileKitchenSync,
             HomeTile.KANBAN to binding.tileKanban,
             HomeTile.CALENDAR to binding.cardCalendar,
             HomeTile.MEALS to binding.tileMeals

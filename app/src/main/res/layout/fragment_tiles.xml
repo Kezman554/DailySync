@@ -504,20 +504,6 @@
 
         <!-- Coming soon: dashed outline, inert (no click listener at all) -->
         <LinearLayout
-            android:id="@+id/tile_kitchen_sync"
-            style="@style/DailySync.ComingSoonTile"
-            android:layout_width="wrap_content">
-
-            <TextView
-                style="@style/DailySync.ComingSoonTitle"
-                android:text="@string/tile_kitchen_sync" />
-
-            <TextView
-                style="@style/DailySync.ComingSoonNote"
-                android:text="@string/tile_coming_soon" />
-        </LinearLayout>
-
-        <LinearLayout
             android:id="@+id/tile_kanban"
             style="@style/DailySync.ComingSoonTile"
             android:layout_width="wrap_content">

@@ -2478,3 +2478,57 @@
     unshared, tick carried), Keep ticked on that copy (keep_ticked true on the
     hub, BOUGHT shown). No crashes; no alarm scheduled, as found. Scratch lists
     deleted. Not seen on a device: a Pi merge cut off part-way (unit-tested)
+
+2026-11-27 Session BK: Groceries from KitchenSync in the Shopping tile (DONE)
+  - Groceries is one more source, not a special screen. ShoppingItemSource
+    (data/remote) is what every list does: read, add, tick, drop. AlfredRepository
+    is the vault's (unchanged calls, now declared as the interface);
+    GroceriesRepository is KitchenSync's (/api/shopping-list on the Pi, port 8400,
+    beside Alfred's host unless kitchensync_host is saved). The list screen and its
+    ViewModel pick the source by list id (Groceries.LIST_ID "kitchensync/groceries");
+    an item is targeted by "kitchensync:item/<id>" where a vault item uses its line
+  - Shown as any list: "Milk — 2 l" (name, then how much unless it's one), in the
+    menu after the hub's lists as "Groceries · Family · n left", and offered to the
+    Home tile after the hub's lists. A family list: no settings card (owner, share,
+    Keep ticked, Copy into), no long press. A tick asks nothing: KitchenSync takes it
+    off and puts it in stock or the "to put away" tray, so the row just goes
+  - Offline, as the Alfred API: reads are saved and the saved copy shown with its
+    freshness line, naming KitchenSync (FreshnessView.Service, KitchenSyncReachability);
+    nothing saved, the tile says "KitchenSync unreachable" and the list says so
+  - GROCERY WRITES DO NOT JOIN THE QUEUE. KitchenSync takes no Idempotency-Key and
+    every add is a new row (deliberately), so an add replayed after a lost answer
+    would be a second one; a tick moves stock. So Groceries' add, tick and remove
+    are live or not at all (ShoppingItemSource.queuesWrites = false): unreachable,
+    the screen says "KitchenSync didn't answer, so that wasn't changed. Check the
+    list before trying again", and nothing is kept. KitchenSyncClient has retries
+    off and no pooling, as DashboardClient, so OkHttp never resends one either
+  - Removed Nick's "KitchenSync coming soon" tile outright (enum, layout view,
+    string, ProfileTiles). Jess's "Meals coming soon" tile kept, by Nick's call: it
+    is her planned meals tile, and she has no schedule card showing today's meal.
+    The menu's note now reads "Groceries comes from KitchenSync: food shopping goes
+    there"
+  - Tests: GroceriesRepositoryTest (13, fake KitchenSync over real HTTP, after
+    app/routes/shopping.py): read in order with ids, summary, quantity text, add,
+    tick (off the list, put away), remove (not bought), a tick of a gone item,
+    a non-KitchenSync line never sent, saved copy when unreachable, nothing saved,
+    writes unreachable and never queued, the address. GroceriesListViewModelTest (3):
+    the same screen ViewModel on Groceries, add/tick/remove live, offline refused
+    and not queued. ProfileTilesTest updated. Making queuesWrites true turns 2 red.
+    Full suite, --rerun-tasks: 802, 1 failed: TodoViewModelTest "it opens on All,
+    adding to Mine, and the filter moves the picker" (addTarget FAMILY after
+    setAddTarget(MINE): a late load overwriting it, it looks like). Not BK's; it
+    passed 3 of 3 alone. Logged here, not fixed
+  - Found, not fixed: FakeShoppingHub's `down` returns DISCONNECT_AT_START from
+    dispatch, which MockWebServer sends as a plain 200, so "down" only fails calls
+    whose 200 body can't be parsed. FakeKitchenSync uses DISCONNECT_AFTER_REQUEST
+  - A32 (update install, firstInstallTime unchanged, APK hash matches; no schema
+    change, every table identical by row hash after): Home has no KitchenSync tile,
+    Kanban alone in the coming-soon row. Shopping shows Groceries "Family · All
+    done". Added "BK test item": one row on KitchenSync and through the wall's
+    proxy (:8500/api/kitchen/api/shopping-list, the wall's way to KitchenSync; the
+    wall has no grocery tile, by design). Ticked it: off the list on the phone,
+    KitchenSync and the proxy alike, into KitchenSync's tray. No crashes; alarm
+    off, as found. Cleared: tray item answered not_food, its remembered answer
+    deleted; KitchenSync's list, tray, remembered and pantry empty as before
+  - Worth a look: the vault still has its own "Grocery" list (6-life/shopping/
+    grocery.md, 3 left), which now sits beside KitchenSync's Groceries in the menu

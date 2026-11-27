@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.MaterialColors
 import com.personalmorningalarm.R
+import com.personalmorningalarm.data.model.Groceries
 import com.personalmorningalarm.data.model.ShoppingList
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
 import com.personalmorningalarm.data.model.ShoppingSharing
@@ -24,6 +25,10 @@ import com.personalmorningalarm.databinding.ItemShoppingListBinding
  * while he can't be reached. A hub list says "Shared" when it is, and the owner's
  * name when it's the other person's. A list tile opens on a tap and offers sharing
  * and deletion on a long press; the New list tile has no long press.
+ *
+ * Groceries (KitchenSync's) is one more list tile, after the hub's: "Family" where
+ * the others name an owner, "KitchenSync unreachable" with no copy to count, and no
+ * long press, since it has nothing to share, delete or copy.
  */
 class ShoppingListSummaryAdapter(
     /** Whose phone this is: a hub list that's someone else's says so, and one shared says that. */
@@ -34,18 +39,28 @@ class ShoppingListSummaryAdapter(
 ) : ListAdapter<ShoppingListSummaryAdapter.Tile, ShoppingListSummaryAdapter.Holder>(DIFF) {
 
     sealed interface Tile {
-        data class ListTile(val summary: ShoppingListSummaryDto, val home: ListHome = ListHome.HUB) : Tile
+        data class ListTile(
+            val summary: ShoppingListSummaryDto,
+            val home: ListHome = ListHome.HUB,
+            /** False when the list's service can't be reached and there's no copy to count. */
+            val counted: Boolean = true
+        ) : Tile
         data class NewList(val hubOnly: Boolean = false, val canCreate: Boolean = true) : Tile
     }
 
-    /** Shows the hub's [lists] (null: none to show), then the phone's, then the New list tile. */
+    /**
+     * Shows the hub's [lists] (null: none to show), then [groceries] if given, then the
+     * phone's, then the New list tile.
+     */
     fun submit(
         lists: List<ShoppingListSummaryDto>?,
         phoneLists: List<ShoppingListSummaryDto> = emptyList(),
-        newList: Tile.NewList = Tile.NewList()
+        newList: Tile.NewList = Tile.NewList(),
+        groceries: Tile.ListTile? = null
     ) {
         submitList(
             lists.orEmpty().map { Tile.ListTile(it) } +
+                listOfNotNull(groceries) +
                 phoneLists.map { Tile.ListTile(it, ListHome.PHONE) } +
                 newList
         )
@@ -84,7 +99,10 @@ class ShoppingListSummaryAdapter(
             } else {
                 resources.getString(R.string.shopping_all_done)
             }
+            val groceries = Groceries.isGroceries(summary.id)
             binding.tvShoppingListCount.text = when {
+                groceries && !tile.counted -> resources.getString(R.string.shopping_groceries_tile_unreachable)
+                groceries -> resources.getString(R.string.shopping_tile_family, count)
                 tile.home == ListHome.PHONE -> resources.getString(R.string.shopping_tile_on_phone, count)
                 me != null && !ShoppingSharing.isMine(summary, me) -> resources.getString(
                     R.string.shopping_tile_from,
@@ -94,11 +112,16 @@ class ShoppingListSummaryAdapter(
                 ShoppingSharing.isShared(summary) -> resources.getString(R.string.shopping_tile_shared, count)
                 else -> count
             }
-            binding.tvShoppingListCount.setTextColor(if (left > 0) secondary else positive)
+            binding.tvShoppingListCount.setTextColor(if (left > 0 || !tile.counted) secondary else positive)
 
             binding.root.isEnabled = true
             binding.root.setOnClickListener { onClick(tile) }
-            binding.root.setOnLongClickListener { onLongPress(tile); true }
+            if (groceries) {
+                binding.root.setOnLongClickListener(null)
+                binding.root.isLongClickable = false
+            } else {
+                binding.root.setOnLongClickListener { onLongPress(tile); true }
+            }
         }
 
         fun bindNewList(tile: Tile.NewList) {

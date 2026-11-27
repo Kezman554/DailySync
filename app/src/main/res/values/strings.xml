@@ -96,6 +96,9 @@
     <string name="freshness_reason_unreachable">Alfred unreachable</string>
     <string name="freshness_reason_back">Alfred is back — refreshing…</string>
     <string name="freshness_loud_saved_detail">Alfred unreachable — this is a saved copy, not today\'s.</string>
+    <string name="freshness_reason_unreachable_kitchensync">KitchenSync unreachable</string>
+    <string name="freshness_reason_back_kitchensync">KitchenSync is back — refreshing…</string>
+    <string name="freshness_loud_saved_detail_kitchensync">KitchenSync unreachable — this is a saved copy, not today\'s.</string>
     <string name="freshness_loud_live_detail">Not refreshed since — this isn\'t today\'s.</string>
 
     <!-- Rolling To-Do List content screen (Alfred /chalkboard) -->
@@ -164,7 +167,7 @@
         <item quantity="one">This deletes “%2$s” from this phone, with %1$d item still open.</item>
         <item quantity="other">This deletes “%2$s” from this phone, with %1$d items still open.</item>
     </plurals>
-    <string name="shopping_food_note">Food lists live in KitchenSync.</string>
+    <string name="shopping_food_note">Groceries comes from KitchenSync: food shopping goes there.</string>
 
     <!-- Sharing a list (ShoppingShare). %1$s / %2$s are people's names -->
     <string name="shopping_tile_shared">Shared · %1$s</string>
@@ -205,6 +208,13 @@
     <string name="shopping_offline_hint">Add offline — syncs later</string>
     <string name="shopping_drop_title">Drop this item?</string>
     <string name="shopping_drop_message">“%1$s” will be removed as no longer wanted. To mark it bought instead, tap it.</string>
+
+    <!-- Groceries: KitchenSync's grocery list as one more list (GroceriesRepository) -->
+    <string name="shopping_tile_family">Family · %1$s</string>
+    <string name="shopping_groceries_tile_unreachable">KitchenSync unreachable</string>
+    <string name="shopping_groceries_unavailable">Groceries isn\'t on this phone yet — KitchenSync unreachable</string>
+    <string name="shopping_groceries_offline_hint">Needs KitchenSync — can\'t be reached</string>
+    <string name="shopping_groceries_not_saved">KitchenSync didn’t answer, so that wasn’t changed. Check the list before trying again.</string>
 
     <!-- Copy into… (ShoppingCopy): a list shared with you, copied into one of your own -->
     <string name="shopping_copy_into">Copy into…</string>
@@ -339,7 +349,6 @@
 
     <string name="tile_inbox">Inbox</string>
     <string name="tile_notes">Notes</string>
-    <string name="tile_kitchen_sync">KitchenSync</string>
     <string name="tile_kanban">Kanban</string>
     <string name="tile_kitchen_sign_in">Home Hub Sign-in</string>
     <string name="tile_coming_soon">Coming soon</string>
