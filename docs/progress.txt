@@ -2417,7 +2417,7 @@
     there. Alarm configs, events, tags, toggles and settings identical to before;
     no alarm scheduled, as found
 
-2026-11-27 Session BJ: Copy into... and Keep ticked (DONE, A32 run owed)
+2026-11-27 Session BJ: Copy into... and Keep ticked (DONE)
   - The merge rule, once: ListMerge.plan (data/model). Matched on the name (before
     " — ", links resolved, case and spaces ignored); adds only what's missing, theirs
     ticked arrives ticked, an unticked match of yours is ticked; nothing is unticked,
@@ -2469,6 +2469,12 @@
     the usual records for a vault session to discard: "Socks" DROPPED and "Lego
     set" BOUGHT (from BJ test ... (mine)) in the completed log, plus Clear
     bought's inbox capture
-  - Owed: the A32 (not connected this session): update install, phone DB 2 -> 3
-    with NFC tags, alarm history and lists unchanged, then a copy and Keep ticked
-    as Nick. Not seen on a device: a Pi merge cut off part-way (unit-tested)
+  - A32 (same day; DBs and prefs backed up first, app stopped; update install,
+    firstInstallTime 16 Jul unchanged, installed APK hash matches the build): phone
+    DB 2 -> 3, its 1 list unchanged with keepTicked 0; alarm DB still v12. Every
+    table identical by row hash, incl. 9 NFC tags, 24 alarm events, 46 alarm
+    configs; queues empty before and after. As Nick: Copy into a new list from a
+    scratch list Jess shared ("Added 2, 1 already bought by Jess"; on the Pi, his,
+    unshared, tick carried), Keep ticked on that copy (keep_ticked true on the
+    hub, BOUGHT shown). No crashes; no alarm scheduled, as found. Scratch lists
+    deleted. Not seen on a device: a Pi merge cut off part-way (unit-tested)
