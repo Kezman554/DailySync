@@ -33,6 +33,7 @@ import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.ShoppingCopy
 import com.personalmorningalarm.data.remote.ShoppingShare
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.databinding.FragmentShoppingMenuBinding
@@ -66,6 +67,10 @@ class ShoppingMenuFragment : Fragment() {
 
     private val shareViewModel: ShoppingShareViewModel by viewModels {
         viewModelFactory { initializer { ShoppingShareViewModel(ShoppingShare.getInstance(requireContext())) } }
+    }
+
+    private val copyViewModel: ShoppingCopyViewModel by viewModels {
+        viewModelFactory { initializer { ShoppingCopyViewModel(ShoppingCopy.getInstance(requireContext())) } }
     }
 
     private val me: Profile? by lazy { ProfileSettings(requireContext()).profile() }
@@ -107,6 +112,12 @@ class ShoppingMenuFragment : Fragment() {
                 launch {
                     shareViewModel.results.collect {
                         showShareResult(binding.root, it)
+                        viewModel.refresh(quiet = true)
+                    }
+                }
+                launch {
+                    copyViewModel.results.collect {
+                        showCopyResult(binding.root, it, me)
                         viewModel.refresh(quiet = true)
                     }
                 }
@@ -193,8 +204,8 @@ class ShoppingMenuFragment : Fragment() {
 
     /**
      * The long press: Share (or Stop sharing) and Delete. The other person's list
-     * offers neither, only who it belongs to: only its owner changes its sharing or
-     * deletes it.
+     * offers neither, only who it belongs to (only its owner changes its sharing or
+     * deletes it) and Copy into…, for a copy of your own.
      */
     private fun showListActions(tile: ShoppingListSummaryAdapter.Tile.ListTile) {
         val summary = tile.summary
@@ -204,7 +215,8 @@ class ShoppingMenuFragment : Fragment() {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle(ShoppingList.shortTitle(title))
                 .setMessage(getString(R.string.shopping_owner_only, ownerName(summary, profile)))
-                .setPositiveButton(android.R.string.ok, null)
+                .setPositiveButton(R.string.shopping_copy_into) { _, _ -> startCopyInto(summary, profile, copyViewModel) }
+                .setNegativeButton(android.R.string.cancel, null)
                 .show()
             return
         }

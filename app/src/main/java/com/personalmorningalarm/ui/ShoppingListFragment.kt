@@ -29,6 +29,7 @@ import com.personalmorningalarm.data.profile.ProfileSettings
 import com.personalmorningalarm.data.remote.AlfredReachability
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.ShoppingCopy
 import com.personalmorningalarm.data.remote.ShoppingShare
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.databinding.FragmentShoppingListBinding
@@ -41,6 +42,10 @@ import java.time.ZoneId
  * the rolling to-do's [RollingTodoFragment] editing, just scoped to one list instead of
  * one chalkboard. Writes are accepted anywhere; offline they queue through the
  * shared [ShoppingSync] outbox and show as snapshot + pending edits.
+ *
+ * The settings card holds sharing, Keep ticked (bought items stay at the bottom,
+ * under Bought, each one untickable, until Clear bought) and, on a list someone has
+ * shared with you, Copy into….
  */
 class ShoppingListFragment : Fragment() {
 
@@ -62,12 +67,25 @@ class ShoppingListFragment : Fragment() {
         viewModelFactory { initializer { ShoppingShareViewModel(ShoppingShare.getInstance(requireContext())) } }
     }
 
+    private val copyViewModel: ShoppingCopyViewModel by viewModels {
+        viewModelFactory { initializer { ShoppingCopyViewModel(ShoppingCopy.getInstance(requireContext())) } }
+    }
+
     private val me: Profile? by lazy { ProfileSettings(requireContext()).profile() }
 
     private val itemAdapter by lazy {
         ShoppingItemAdapter(
             onTick = { item -> item.line?.let(viewModel::tickItem) },
             onDrop = ::confirmDrop
+        )
+    }
+
+    /** Keep ticked's Bought rows: a tap puts one back. */
+    private val boughtAdapter by lazy {
+        ShoppingItemAdapter(
+            onTick = { item -> item.line?.let(viewModel::tickItem) },
+            onDrop = ::confirmDrop,
+            onUntick = { item -> item.line?.let(viewModel::untickItem) }
         )
     }
 
@@ -89,15 +107,29 @@ class ShoppingListFragment : Fragment() {
         binding.swipeRefresh.setOnRefreshListener { viewModel.refresh() }
         binding.rvShoppingItems.layoutManager = LinearLayoutManager(requireContext())
         binding.rvShoppingItems.adapter = itemAdapter
-        binding.rvShoppingItems.addItemDecoration(
-            MaterialDividerItemDecoration(requireContext(), LinearLayoutManager.VERTICAL).apply {
-                dividerColor = MaterialColors.getColor(binding.root, R.attr.colorSurface2)
-                isLastItemDecorated = false
-            }
-        )
+        binding.rvShoppingBought.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvShoppingBought.adapter = boughtAdapter
+        listOf(binding.rvShoppingItems, binding.rvShoppingBought).forEach { list ->
+            list.addItemDecoration(
+                MaterialDividerItemDecoration(requireContext(), LinearLayoutManager.VERTICAL).apply {
+                    dividerColor = MaterialColors.getColor(binding.root, R.attr.colorSurface2)
+                    isLastItemDecorated = false
+                }
+            )
+        }
 
         binding.btnShoppingConflictDismiss.setOnClickListener { viewModel.dismissFailed() }
         binding.switchShare.setOnClickListener { onShareToggled() }
+        binding.switchKeepTicked.setOnClickListener {
+            // Asks only: put back at once, and shown as the hub has it.
+            val wanted = binding.switchKeepTicked.isChecked
+            binding.switchKeepTicked.isChecked = !wanted
+            viewModel.setKeepTicked(wanted)
+        }
+        binding.btnClearBought.setOnClickListener { confirmClearBought() }
+        binding.btnCopyInto.setOnClickListener {
+            viewModel.state.value.summary?.let { startCopyInto(it, me, copyViewModel) }
+        }
         binding.btnShoppingAdd.setOnClickListener { submitAdd() }
         binding.etShoppingAdd.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -114,6 +146,8 @@ class ShoppingListFragment : Fragment() {
                 launch { viewModel.events.collect(::showEvent) }
                 launch { shareViewModel.working.collect { renderShare(viewModel.state.value) } }
                 launch { shareViewModel.results.collect(::onShareResult) }
+                launch { copyViewModel.working.collect { renderShare(viewModel.state.value) } }
+                launch { copyViewModel.results.collect { showCopyResult(binding.root, it, me) } }
             }
         }
         FreshnessWatch.start(
@@ -155,15 +189,27 @@ class ShoppingListFragment : Fragment() {
     }
 
     /**
-     * The share row: for the owner, a toggle; for the other person's list, its name
-     * and a toggle that can't be changed. Hidden until the list's summary is known.
+     * The settings card. Sharing: for the owner, a toggle; for the other person's list,
+     * its name, a toggle that can't be changed, and Copy into…. Keep ticked for anyone.
+     * The sharing rows wait for the list's summary; the card waits for the list.
      */
     private fun renderShare(state: ShoppingListViewModel.ShoppingListState) {
         val list = state.summary
         val profile = me
-        binding.rowShare.isVisible = list != null && profile != null
-        if (list == null || profile == null) return
         val working = shareViewModel.working.value
+        binding.rowShare.isVisible = state.result != null && state.result !is AlfredResult.Unavailable
+        binding.switchKeepTicked.isChecked = state.keepTicked
+        binding.switchKeepTicked.isEnabled = !state.keepWorking && !working
+        binding.tvKeepTickedNote.setText(
+            if (state.keepTicked) R.string.shopping_keep_ticked_note_on else R.string.shopping_keep_ticked_note_off
+        )
+        val copying = copyViewModel.working.value
+        binding.switchShare.isVisible = list != null && profile != null
+        binding.tvShareNote.isVisible = list != null && profile != null
+        binding.rowCopyInto.isVisible = list != null && profile != null && !ShoppingSharing.isMine(list, profile)
+        binding.btnCopyInto.isEnabled = !copying
+        binding.btnCopyInto.setText(if (copying) R.string.shopping_copy_working else R.string.shopping_copy_into)
+        if (list == null || profile == null) return
         val shared = ShoppingSharing.isShared(list)
         val mine = ShoppingSharing.isMine(list, profile)
         binding.switchShare.isChecked = shared
@@ -200,10 +246,29 @@ class ShoppingListFragment : Fragment() {
             .show()
     }
 
+    /** Clear bought, asked first: it takes them off for good (logged as bought on the hub). */
+    private fun confirmClearBought() {
+        val bought = boughtAdapter.itemCount
+        if (bought == 0) return
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.shopping_clear_bought_title)
+            .setMessage(
+                resources.getQuantityString(
+                    R.plurals.shopping_clear_bought_message, bought, bought, ShoppingList.shortTitle(listTitle)
+                )
+            )
+            .setPositiveButton(R.string.shopping_clear_bought) { _, _ -> viewModel.clearBought() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     private fun showEvent(event: ShoppingListViewModel.ShoppingEvent) {
         val message = when (event) {
             ShoppingListViewModel.ShoppingEvent.LIST_REFRESHED -> R.string.chalkboard_list_refreshed
             ShoppingListViewModel.ShoppingEvent.SAVED_OFFLINE -> R.string.chalkboard_saved_offline
+            ShoppingListViewModel.ShoppingEvent.KEEP_NEEDS_HUB -> R.string.shopping_keep_ticked_needs_hub
+            ShoppingListViewModel.ShoppingEvent.CLEAR_NEEDS_HUB -> R.string.shopping_clear_bought_needs_hub
+            ShoppingListViewModel.ShoppingEvent.LIST_GONE -> R.string.shopping_copy_gone
         }
         Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).show()
     }
@@ -255,23 +320,22 @@ class ShoppingListFragment : Fragment() {
                 getString(if (state.result == null) R.string.shopping_menu_loading else R.string.shopping_list_unavailable)
             binding.titleBar.tvScreenMeta.isVisible = false
             itemAdapter.submitList(emptyList())
+            boughtAdapter.submitList(emptyList())
+            binding.rowBought.isVisible = false
+            binding.rvShoppingBought.isVisible = false
             return
         }
 
         val items = ShoppingList.merged(base.orEmpty(), state.pending)
         binding.titleBar.tvScreenMeta.isVisible = true
         binding.titleBar.tvScreenMeta.text = getString(R.string.shopping_left, items.count { !it.done })
-        binding.rvShoppingItems.isVisible = items.isNotEmpty()
-        binding.tvShoppingBody.isVisible = items.isEmpty()
-        if (items.isEmpty()) {
-            binding.tvShoppingBody.text = getString(R.string.shopping_list_empty)
-        }
-        itemAdapter.submitList(items)
+        showItems(binding, itemAdapter, boughtAdapter, items, state.keepTicked)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         binding.rvShoppingItems.adapter = null
+        binding.rvShoppingBought.adapter = null
         _binding = null
     }
 
@@ -279,4 +343,27 @@ class ShoppingListFragment : Fragment() {
         const val ARG_LIST_ID = "listId"
         const val ARG_LIST_TITLE = "listTitle"
     }
+}
+
+/**
+ * Both list screens' rows. With [keepTicked]: what's still to buy, then Bought, the
+ * ticked items struck through at the bottom, with Clear bought. Without it, every row
+ * in the order it was added, as before.
+ */
+internal fun showItems(
+    binding: FragmentShoppingListBinding,
+    toBuy: ShoppingItemAdapter,
+    boughtList: ShoppingItemAdapter,
+    items: List<ShoppingItem>,
+    keepTicked: Boolean
+) {
+    val bought = if (keepTicked) items.filter { it.done } else emptyList()
+    val rest = if (keepTicked) items.filterNot { it.done } else items
+    binding.rvShoppingItems.isVisible = rest.isNotEmpty()
+    binding.rowBought.isVisible = bought.isNotEmpty()
+    binding.rvShoppingBought.isVisible = bought.isNotEmpty()
+    binding.tvShoppingBody.isVisible = items.isEmpty()
+    if (items.isEmpty()) binding.tvShoppingBody.setText(R.string.shopping_list_empty)
+    toBuy.submitList(rest)
+    boughtList.submitList(bought)
 }

@@ -2,6 +2,7 @@ package com.personalmorningalarm.data.phone
 
 import android.content.Context
 import android.util.Log
+import com.personalmorningalarm.data.model.ListMerge
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -10,6 +11,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -98,10 +100,54 @@ class PhoneListStore(
         dao.insertItem(PhoneListItem(listId = listId, text = task, addedOnEpochDay = todayDay()))
     }
 
-    /** Bought, or done: struck through until the next overnight clear ([SWEEP_TIME]). */
+    /**
+     * Bought, or done: struck through until the next overnight clear ([SWEEP_TIME]),
+     * or on a Keep ticked list until Clear bought.
+     */
     fun tick(itemId: Long): Job = write("tick") {
         if (itemMoving(itemId)) return@write
         dao.tick(itemId, sweepDay())
+    }
+
+    /** Back to still to buy: a Keep ticked list's bought item, put back. */
+    fun untick(itemId: Long): Job = write("untick") {
+        if (itemMoving(itemId)) return@write
+        dao.untick(itemId)
+    }
+
+    // Keep ticked (BJ): a setting on the list itself.
+
+    /** Whether [listId] keeps its ticked items; false for a list that isn't there. */
+    fun keepTicked(listId: String): Flow<Boolean> = dao.observeKeepTicked(listId).map { it == true }
+
+    /**
+     * Turns Keep ticked on or off. Off clears nothing at once: what was kept goes at
+     * the next 03:07, as a hub list's does after its next sweep.
+     */
+    fun setKeepTicked(listId: String, keep: Boolean): Job = write("keep ticked") {
+        if (moving(listId)) return@write
+        dao.setKeepTicked(listId, keep, sweepDay())
+    }
+
+    /** "Clear bought": every ticked item on [listId] goes now. */
+    fun clearBought(listId: String): Job = write("clear bought") {
+        if (moving(listId)) return@write
+        dao.deleteTickedOf(listId)
+    }
+
+    /**
+     * "Copy into…" one of this phone's lists: [ListMerge]'s rule against what's on
+     * [listId] now, its adds and ticks in one transaction, so it lands whole or not at
+     * all. Null if the list isn't here, or is moving to or from the hub (it takes no
+     * edits then). Runs in [scope] and throws a database failure to the caller.
+     */
+    suspend fun mergeInto(listId: String, theirs: List<ListMerge.Theirs>): ListMerge.Counts? = step {
+        if (dao.list(listId) == null || dao.move(listId) != null) return@step null
+        val today = sweepDay()
+        val mine = dao.visibleItems(listId, today).map { ListMerge.Mine(it.id, it.text, it.ticked) }
+        val plan = ListMerge.plan(theirs, mine)
+        dao.applyMerge(rowsFor(listId, plan.adds.map { MovingItem(it.text, it.ticked) }), plan.ticks, today)
+        plan.counts
     }
 
     /** No longer wanted: gone now. */
@@ -111,7 +157,8 @@ class PhoneListStore(
     }
 
     /**
-     * The daily local clear: deletes items ticked before the last [SWEEP_TIME]. The
+     * The daily local clear: deletes items ticked before the last [SWEEP_TIME], on
+     * every list but those with Keep ticked on. The
      * lists already hide them on read, from that moment; this is only the tidying,
      * so a screen calls it on opening and it never has to run on time. No job is
      * scheduled for it: there's nothing for a sleeping or killed phone to miss.
@@ -154,9 +201,12 @@ class PhoneListStore(
         val list = dao.list(listId) ?: return@step null
         ShoppingMoveStore.Snapshot(
             title = list.title,
-            items = dao.visibleItems(listId, sweepDay()).map { MovingItem(it.text, it.ticked) }
+            items = dao.visibleItems(listId, sweepDay()).map { MovingItem(it.text, it.ticked) },
+            keepTicked = list.keepTicked
         )
     }
+
+    override suspend fun keepsTicked(listId: String): Boolean = step { dao.list(listId)?.keepTicked == true }
 
     override suspend fun move(phoneListId: String): ListMove? = step { dao.move(phoneListId) }
 
@@ -190,12 +240,18 @@ class PhoneListStore(
         Unit
     }
 
-    override suspend fun beginPullBack(title: String, hubId: String, items: List<MovingItem>): String = step {
+    override suspend fun beginPullBack(
+        title: String,
+        hubId: String,
+        items: List<MovingItem>,
+        keepTicked: Boolean
+    ): String = step {
         val list = PhoneList(
             id = UUID.randomUUID().toString(),
             kind = PhoneListKind.SHOPPING.name,
             title = title,
-            createdAt = clock()
+            createdAt = clock(),
+            keepTicked = keepTicked
         )
         dao.beginPullBack(
             list,

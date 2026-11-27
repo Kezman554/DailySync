@@ -11,6 +11,16 @@ import kotlinx.coroutines.flow.Flow
 private const val HIDDEN_BY_MOVE =
     "SELECT phoneListId FROM list_moves WHERE direction = 'PULL_BACK' OR hubId IS NOT NULL"
 
+/** Lists with Keep ticked on: the overnight clear never reaches their ticked items. */
+private const val KEEPS_TICKED = "SELECT id FROM phone_lists WHERE keepTicked = 1"
+
+/**
+ * An item still showing: to do, ticked since the last 03:07 ([PhoneListStore.sweepDayOf]),
+ * or ticked on a list that keeps its ticked items.
+ */
+private const val SHOWING =
+    "(tickedOn IS NULL OR tickedOn >= :today OR listId IN ($KEEPS_TICKED))"
+
 /** Everything kept in [PhoneListDatabase]. Only [PhoneListStore] uses it. */
 @Dao
 interface PhoneListDao {
@@ -44,7 +54,8 @@ interface PhoneListDao {
             "COUNT(i.id) AS total, " +
             "COALESCE(SUM(CASE WHEN i.id IS NOT NULL AND i.tickedOn IS NULL THEN 1 ELSE 0 END), 0) AS `left` " +
             "FROM phone_lists l " +
-            "LEFT JOIN phone_list_items i ON i.listId = l.id AND (i.tickedOn IS NULL OR i.tickedOn >= :today) " +
+            "LEFT JOIN phone_list_items i ON i.listId = l.id " +
+            "AND (i.tickedOn IS NULL OR i.tickedOn >= :today OR l.keepTicked = 1) " +
             "WHERE l.kind = :kind AND l.id NOT IN ($HIDDEN_BY_MOVE) " +
             "GROUP BY l.id ORDER BY l.createdAt ASC, l.id ASC"
     )
@@ -56,10 +67,7 @@ interface PhoneListDao {
     suspend fun insertItem(item: PhoneListItem): Long
 
     /** Items still showing on [listId], in the order they were added. */
-    @Query(
-        "SELECT * FROM phone_list_items WHERE listId = :listId " +
-            "AND (tickedOn IS NULL OR tickedOn >= :today) ORDER BY id ASC"
-    )
+    @Query("SELECT * FROM phone_list_items WHERE listId = :listId AND $SHOWING ORDER BY id ASC")
     fun observeItems(listId: String, today: Long): Flow<List<PhoneListItem>>
 
     @Query("SELECT * FROM phone_list_items WHERE listId = :listId ORDER BY id ASC")
@@ -75,16 +83,51 @@ interface PhoneListDao {
     @Query("SELECT listId FROM phone_list_items WHERE id = :id")
     suspend fun listOfItem(id: Long): String?
 
-    /** The overnight sweep: items ticked on an earlier day than [today]. */
-    @Query("DELETE FROM phone_list_items WHERE tickedOn IS NOT NULL AND tickedOn < :today")
+    /** The overnight sweep: items ticked on an earlier day than [today], except on Keep ticked lists. */
+    @Query(
+        "DELETE FROM phone_list_items WHERE tickedOn IS NOT NULL AND tickedOn < :today " +
+            "AND listId NOT IN ($KEEPS_TICKED)"
+    )
     suspend fun deleteTickedBefore(today: Long): Int
 
-    /** Items still showing on [listId], in order: what a share uploads. */
-    @Query(
-        "SELECT * FROM phone_list_items WHERE listId = :listId " +
-            "AND (tickedOn IS NULL OR tickedOn >= :today) ORDER BY id ASC"
-    )
+    /** Items still showing on [listId], in order: what a share uploads, and what a merge adds to. */
+    @Query("SELECT * FROM phone_list_items WHERE listId = :listId AND $SHOWING ORDER BY id ASC")
     suspend fun visibleItems(listId: String, today: Long): List<PhoneListItem>
+
+    /** Back to still to buy. */
+    @Query("UPDATE phone_list_items SET tickedOn = NULL WHERE id = :id")
+    suspend fun untick(id: Long): Int
+
+    /** "Clear bought": every ticked item on [listId] goes, whenever it was ticked. */
+    @Query("DELETE FROM phone_list_items WHERE listId = :listId AND tickedOn IS NOT NULL")
+    suspend fun deleteTickedOf(listId: String): Int
+
+    @Query("SELECT keepTicked FROM phone_lists WHERE id = :listId")
+    fun observeKeepTicked(listId: String): Flow<Boolean?>
+
+    @Query("UPDATE phone_lists SET keepTicked = :keep WHERE id = :listId")
+    suspend fun updateKeepTicked(listId: String, keep: Boolean): Int
+
+    /** Ticked items from before [today] count as ticked [today]: they clear at the next 03:07, not at once. */
+    @Query("UPDATE phone_list_items SET tickedOn = :today WHERE listId = :listId AND tickedOn < :today")
+    suspend fun restampTicked(listId: String, today: Long): Int
+
+    /**
+     * Keep ticked on or off. Turning it off clears nothing by itself, as on the hub:
+     * what was kept is re-dated to [today], so it goes at the next 03:07.
+     */
+    @Transaction
+    suspend fun setKeepTicked(listId: String, keep: Boolean, today: Long) {
+        if (!keep) restampTicked(listId, today)
+        updateKeepTicked(listId, keep)
+    }
+
+    /** A merge ([com.personalmorningalarm.data.model.ListMerge]): its adds and ticks, all or none. */
+    @Transaction
+    suspend fun applyMerge(adds: List<PhoneListItem>, ticks: List<Long>, today: Long) {
+        insertItems(adds)
+        ticks.forEach { tick(it, today) }
+    }
 
     @Insert
     suspend fun insertItems(items: List<PhoneListItem>)

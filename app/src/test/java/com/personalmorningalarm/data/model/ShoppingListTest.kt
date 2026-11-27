@@ -137,6 +137,31 @@ class ShoppingListTest {
     }
 
     @Test
+    fun `a queued untick puts a bought item back, marked pending, its line unticked for a later tick`() {
+        val bought = listOf(item("Lantern", line = "- [X] Lantern", ticked = true), item("Rope", line = "- [ ] Rope"))
+
+        val items = ShoppingList.merged(bought, listOf(pending(verb = ShoppingVerb.UNTICK, text = "Lantern", line = "- [X] Lantern")))
+
+        val back = items.single { it.task == "Lantern" }
+        assertEquals(false, back.done)
+        assertTrue(back.pending)
+        assertEquals("- [ ] Lantern", back.line)
+    }
+
+    @Test
+    fun `a queued tick then untick of the same item leaves it to buy`() {
+        val items = ShoppingList.merged(
+            snapshot,
+            listOf(
+                pending(verb = ShoppingVerb.TICK, text = "Hedge shears", line = shearsLine),
+                pending(verb = ShoppingVerb.UNTICK, text = "Hedge shears", line = tickedLine(shearsLine))
+            )
+        )
+
+        assertEquals(false, items.single { it.task == "Hedge shears" }.done)
+    }
+
+    @Test
     fun `a queued drop removes its item`() {
         val items = ShoppingList.merged(
             snapshot, listOf(pending(verb = ShoppingVerb.DROP, text = "Hedge shears", line = shearsLine))

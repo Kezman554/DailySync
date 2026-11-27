@@ -263,4 +263,118 @@ class PhoneListStoreTest {
         assertEquals(1, results.count { it is PhoneListStore.CreateResult.Created })
         assertEquals(1, lists().size)
     }
+
+    // Keep ticked (BJ)
+
+    private fun keep(listId: String) = runBlocking { store.keepTicked(listId).first() }
+
+    @Test
+    fun `a new list doesn't keep ticked items, and Keep ticked is kept on the list`() {
+        val list = created("Christmas")
+        assertFalse(keep(list.id))
+
+        store.setKeepTicked(list.id, true).done()
+
+        assertTrue(keep(list.id))
+        assertTrue(runBlocking { db.dao().list(list.id) }!!.keepTicked)
+    }
+
+    @Test
+    fun `with Keep ticked a bought item outlasts the overnight clear and the sweep`() {
+        val list = created("Christmas")
+        store.setKeepTicked(list.id, true).done()
+        store.add(list.id, "Lego set").done()
+        store.add(list.id, "Book").done()
+        store.tick(items(list.id)[0].id).done()
+
+        today = today.plusDays(5)
+        store.sweep().done()
+
+        assertEquals(listOf(true, false), items(list.id).map { it.ticked })
+        assertEquals(PhoneListSummary(list.id, "Christmas", total = 2, left = 1), lists().single())
+    }
+
+    @Test
+    fun `the sweep still clears other lists while one keeps its ticks`() {
+        val kept = created("Christmas")
+        val plain = created("Groceries")
+        store.setKeepTicked(kept.id, true).done()
+        store.add(kept.id, "Lego set").done()
+        store.add(plain.id, "Milk").done()
+        store.tick(items(kept.id).single().id).done()
+        store.tick(items(plain.id).single().id).done()
+
+        today = today.plusDays(1)
+        store.sweep().done()
+
+        assertEquals(1, runBlocking { db.dao().allItems(kept.id) }.size)
+        assertTrue(runBlocking { db.dao().allItems(plain.id) }.isEmpty())
+    }
+
+    @Test
+    fun `a bought item can be unticked, and Clear bought takes only the bought ones`() {
+        val list = created("Christmas")
+        store.setKeepTicked(list.id, true).done()
+        listOf("Lego set", "Book", "Socks").forEach { store.add(list.id, it).done() }
+        items(list.id).take(2).forEach { store.tick(it.id).done() }
+        today = today.plusDays(2)
+
+        store.untick(items(list.id)[1].id).done()
+        assertEquals(listOf(true, false, false), items(list.id).map { it.ticked })
+
+        store.clearBought(list.id).done()
+        assertEquals(listOf("Book", "Socks"), items(list.id).map { it.text })
+    }
+
+    @Test
+    fun `turning Keep ticked off clears nothing at once, what was kept goes at the next 0307`() {
+        val list = created("Christmas")
+        store.setKeepTicked(list.id, true).done()
+        store.add(list.id, "Lego set").done()
+        store.tick(items(list.id).single().id).done()
+        today = today.plusDays(3)
+
+        store.setKeepTicked(list.id, false).done()
+        assertTrue(items(list.id).single().ticked)
+
+        today = today.plusDays(1)
+        assertTrue(items(list.id).isEmpty())
+    }
+
+    // Copy into a phone list (BJ): the merge rule's own cases are ListMergeTest's.
+
+    @Test
+    fun `a merge adds and ticks in one go, and never unticks or removes anything`() {
+        val list = created("Gifts")
+        listOf("Pen", "Book", "Card").forEach { store.add(list.id, it).done() }
+        store.tick(items(list.id)[2].id).done()
+
+        val counts = runBlocking {
+            store.mergeInto(
+                list.id,
+                listOf(
+                    com.personalmorningalarm.data.model.ListMerge.Theirs("book", true),
+                    com.personalmorningalarm.data.model.ListMerge.Theirs("Card", false),
+                    com.personalmorningalarm.data.model.ListMerge.Theirs("Torch", true)
+                )
+            )
+        }
+
+        assertEquals(com.personalmorningalarm.data.model.ListMerge.Counts(added = 0, alreadyThere = 1, alreadyBought = 2), counts)
+        assertEquals(
+            listOf("Pen" to false, "Book" to true, "Card" to true, "Torch" to true),
+            items(list.id).map { it.text to it.ticked }
+        )
+    }
+
+    @Test
+    fun `a merge into a list that's moving to the hub, or isn't there, changes nothing`() {
+        val list = created("Gifts")
+        runBlocking { store.beginShare(list.id, "Gifts", emptyList()) }
+        val theirs = listOf(com.personalmorningalarm.data.model.ListMerge.Theirs("Torch", false))
+
+        assertNull(runBlocking { store.mergeInto(list.id, theirs) })
+        assertNull(runBlocking { store.mergeInto("no-such-list", theirs) })
+        assertTrue(items(list.id).isEmpty())
+    }
 }

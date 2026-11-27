@@ -22,7 +22,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 @Database(
     entities = [PhoneList::class, PhoneListItem::class, PhoneNote::class, ListMove::class],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class PhoneListDatabase : RoomDatabase() {
@@ -46,8 +46,16 @@ abstract class PhoneListDatabase : RoomDatabase() {
             }
         }
 
+        // v3: phone_lists.keepTicked, a list's Keep ticked switch (BJ). Every
+        // existing list is false, so it behaves as before.
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `phone_lists` ADD COLUMN `keepTicked` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         /** Every migration, in order. */
-        internal val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+        internal val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 
         @Volatile
         private var INSTANCE: PhoneListDatabase? = null

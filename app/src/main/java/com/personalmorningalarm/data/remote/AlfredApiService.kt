@@ -141,12 +141,36 @@ interface AlfredApiService {
         @Tag sent: SendMarker
     ): Response<Unit>
 
-    /** Flips the targeted item to bought. It stays listed, ticked, until the sweep. */
+    /**
+     * Flips the targeted item to bought. It stays listed, ticked, until the sweep (or,
+     * on a Keep ticked list, until Clear bought). With a [key] (Session CP) a repeat
+     * changes nothing; null sends none, and a resend is the 404 it always was.
+     */
     @POST("shopping/{listId}/tick")
     suspend fun tickShoppingItem(
         @Path("listId") listId: String,
-        @Body body: ShoppingLineRequest
+        @Body body: ShoppingLineRequest,
+        @Header(AddKey.HEADER) key: String? = null
     ): Response<Unit>
+
+    /** Puts a ticked item back, the box only (Session CP). Keyed as the tick is. */
+    @POST("shopping/{listId}/untick")
+    suspend fun untickShoppingItem(
+        @Path("listId") listId: String,
+        @Body body: ShoppingLineRequest,
+        @Header(AddKey.HEADER) key: String?
+    ): Response<Unit>
+
+    /** Sets a list's Keep ticked. Already so is no change. 404 (via [Response]) if it's gone. */
+    @POST("shopping/{listId}/keep-ticked")
+    suspend fun setShoppingKeepTicked(
+        @Path("listId") listId: String,
+        @Body body: ShoppingKeepTickedRequest
+    ): Response<Unit>
+
+    /** Clears this list's ticked items, each logged BOUGHT. Nothing ticked is a no-op, so a resend is safe. */
+    @POST("shopping/{listId}/clear-bought")
+    suspend fun clearShoppingBought(@Path("listId") listId: String): Response<Unit>
 
     /** Removes the targeted item as no longer wanted (the API archives it as dropped). */
     @POST("shopping/{listId}/drop")
@@ -232,6 +256,9 @@ data class ShoppingLineRequest(val line: String)
 
 /** Body for POST /shopping/{listId}/share. */
 data class ShoppingShareRequest(val shared: Boolean)
+
+/** Body for POST /shopping/{listId}/keep-ticked. */
+data class ShoppingKeepTickedRequest(@com.google.gson.annotations.SerializedName("keep_ticked") val keepTicked: Boolean)
 
 /** Body for POST /shopping/upload: the list's title, whose it is, and every item with its tick. */
 data class ShoppingUploadRequest(val title: String, val owner: String, val items: List<ShoppingUploadItem>)

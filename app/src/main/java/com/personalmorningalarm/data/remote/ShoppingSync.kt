@@ -38,8 +38,8 @@ class ShoppingSync(
     }
 
     /**
-     * Queues a write. An ADD keeps [key], the [AddKey] it was made with (and maybe
-     * already sent under), or gets a new one if it has none yet.
+     * Queues a write. An ADD or UNTICK keeps [key], the [AddKey] it was made with (and
+     * maybe already sent under), or gets a new one if it has none yet.
      */
     suspend fun enqueue(listId: String, verb: ShoppingVerb, text: String, line: String? = null, key: String? = null) {
         dao.insert(entry(listId, verb, text, line, key))
@@ -58,7 +58,7 @@ class ShoppingSync(
             text = text,
             line = line,
             createdAt = System.currentTimeMillis(),
-            idempotencyKey = if (verb == ShoppingVerb.ADD) key ?: AddKey.new() else null
+            idempotencyKey = if (verb in KEYED) key ?: AddKey.new() else null
         )
 
     /** Cheap guard for the app-foreground trigger: don't touch the network for an empty queue. */
@@ -145,6 +145,8 @@ class ShoppingSync(
             ShoppingVerb.ADD -> alfred.addShoppingItem(entry.listId, entry.text, keyOf(entry))
             ShoppingVerb.TICK -> alfred.tickShoppingItem(entry.listId, entry.line ?: return failEntry(entry))
             ShoppingVerb.DROP -> alfred.dropShoppingItem(entry.listId, entry.line ?: return failEntry(entry))
+            ShoppingVerb.UNTICK ->
+                alfred.untickShoppingItem(entry.listId, entry.line ?: return failEntry(entry), keyOf(entry))
             // A verb this build doesn't know (downgrade after a newer build queued
             // it): failing it keeps the notice honest and the queue moving.
             null -> failEntry(entry)
@@ -163,6 +165,9 @@ class ShoppingSync(
 
     companion object {
         private const val TAG = "PMA"
+
+        /** The verbs sent with an Idempotency-Key, so a resend lands once. */
+        private val KEYED = setOf(ShoppingVerb.ADD, ShoppingVerb.UNTICK)
 
         // One mutex per process, held by the one instance.
         private val mutex = Mutex()

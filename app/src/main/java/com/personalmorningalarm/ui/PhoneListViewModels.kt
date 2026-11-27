@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * One shopping list kept on the phone: add, tick, drop. Only [PhoneListStore] is
+ * One shopping list kept on the phone: add, tick, drop, and on a Keep ticked list
+ * untick and Clear bought. Only [PhoneListStore] is
  * here, so nothing this screen does can reach Alfred or the offline queue. Writes
  * run in the store's own scope and land even if the screen is left at once.
  */
@@ -25,8 +26,24 @@ class PhoneShoppingListViewModel(
         .map(PhoneLists::shoppingItems)
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    /** Whether the list keeps its ticked items, under Bought, until Clear bought. */
+    val keepTicked: StateFlow<Boolean> = store.keepTicked(listId)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     init {
         store.sweep()
+    }
+
+    fun setKeepTicked(keep: Boolean) {
+        store.setKeepTicked(listId, keep)
+    }
+
+    fun untickItem(item: ShoppingItem) {
+        item.localId?.let(store::untick)
+    }
+
+    fun clearBought() {
+        store.clearBought(listId)
     }
 
     fun addItem(text: String) {

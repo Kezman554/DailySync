@@ -206,6 +206,42 @@
     <string name="shopping_drop_title">Drop this item?</string>
     <string name="shopping_drop_message">“%1$s” will be removed as no longer wanted. To mark it bought instead, tap it.</string>
 
+    <!-- Copy into… (ShoppingCopy): a list shared with you, copied into one of your own -->
+    <string name="shopping_copy_into">Copy into…</string>
+    <string name="shopping_copy_pick_title">Copy “%1$s” into</string>
+    <string name="shopping_copy_new_list">A new list…</string>
+    <string name="shopping_copy_new_title">New list</string>
+    <string name="shopping_copy_new_message_hub">A list of your own on the hub, shared with nobody.</string>
+    <string name="shopping_copy_new_message_phone">A list of your own on this phone, shared with nobody.</string>
+    <string name="shopping_copy_new_default">%1$s (mine)</string>
+    <string name="shopping_copy_confirm">Copy</string>
+    <string name="shopping_copy_working">Copying…</string>
+    <string name="shopping_copy_note">Copy it into a list of your own to keep your own ticks.</string>
+    <!-- The one line after a copy: "Added 3, 5 already there, 2 already bought by Jess" -->
+    <string name="shopping_copy_added">Added %1$d</string>
+    <string name="shopping_copy_already_there">%1$d already there</string>
+    <string name="shopping_copy_already_bought">%1$d already bought by %2$s</string>
+    <string name="shopping_copy_open">Open</string>
+    <string name="shopping_copy_unfinished">The hub stopped answering part-way. Copy into “%1$s” again to finish: nothing will be doubled.</string>
+    <string name="shopping_copy_unreachable">Copying needs the hub, and it can’t be reached. Nothing was copied.</string>
+    <string name="shopping_copy_name_taken">You already have a list called that</string>
+    <string name="shopping_copy_gone">That list isn’t there any more.</string>
+    <string name="shopping_copy_no_profile">Choose whose phone this is in Settings first.</string>
+
+    <!-- Keep ticked: a setting on each list -->
+    <string name="shopping_keep_ticked">Keep ticked</string>
+    <string name="shopping_keep_ticked_note_on">Bought items stay at the bottom until you clear them.</string>
+    <string name="shopping_keep_ticked_note_off">Bought items clear overnight.</string>
+    <string name="shopping_keep_ticked_needs_hub">Changing this needs the hub — try again on home WiFi</string>
+    <string name="shopping_bought">Bought</string>
+    <string name="shopping_clear_bought">Clear bought</string>
+    <string name="shopping_clear_bought_title">Clear bought?</string>
+    <plurals name="shopping_clear_bought_message">
+        <item quantity="one">%1$d bought item comes off “%2$s”.</item>
+        <item quantity="other">%1$d bought items come off “%2$s”.</item>
+    </plurals>
+    <string name="shopping_clear_bought_needs_hub">Clearing needs the hub — try again on home WiFi</string>
+
     <!-- Notes tile (Alfred /notes) — free text, saved on leaving, through a queue -->
     <string name="notes_title">Notes</string>
     <string name="notes_new">New note</string>

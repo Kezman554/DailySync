@@ -113,7 +113,7 @@ class ShoppingShare(
                 ShareFlagResult.Gone -> Outcome.Gone
                 ShareFlagResult.Unreachable -> Outcome.Unreachable
             }
-            ShoppingSharing.Toggle.PULL_BACK -> pullBack(hubId, list.title ?: hubId)
+            ShoppingSharing.Toggle.PULL_BACK -> pullBack(hubId, list.title ?: hubId, list.keepTicked == true)
         }
     }
 
@@ -141,7 +141,7 @@ class ShoppingShare(
         }
     }
 
-    private suspend fun pullBack(hubId: String, title: String): Outcome {
+    private suspend fun pullBack(hubId: String, title: String, keepTicked: Boolean): Outcome {
         if (store.pullBackFrom(hubId) != null) return Outcome.Busy
         // Whatever is queued for the list goes first; anything still queued after that
         // would be stranded, so the move waits for it.
@@ -154,7 +154,7 @@ class ShoppingShare(
                 LiveListResult.Unreachable -> return@holding Outcome.Unreachable
             }
             // Saved here first: the pull-back deletes the hub's copy as it answers.
-            val phoneListId = store.beginPullBack(title, hubId, items.toMoving())
+            val phoneListId = store.beginPullBack(title, hubId, items.toMoving(), keepTicked)
             val outcome = when (val result = alfred.pullBackShoppingList(hubId)) {
                 is PullBackResult.PulledBack -> {
                     store.finishPullBack(phoneListId, result.items.toMoving())
@@ -176,9 +176,17 @@ class ShoppingShare(
         }
     }
 
-    /** The upload is in: record it, then delete the phone copy. Each step survives the next failing. */
+    /**
+     * The upload is in: record it, carry Keep ticked across, then delete the phone copy.
+     * Each step survives the next failing. Keep ticked goes before the delete, while the
+     * phone copy still says what it was, so a resume tries it again; with no answer the
+     * list is shared without it, and its owner can turn it on there.
+     */
     private suspend fun completeShare(phoneListId: String, hubId: String, title: String): Outcome {
         store.recordUpload(phoneListId, hubId)
+        if (store.keepsTicked(phoneListId) && alfred.setShoppingKeepTicked(hubId, true) != ShareFlagResult.Done) {
+            Log.w(TAG, "Shared, but Keep ticked didn't reach the hub")
+        }
         try {
             store.finishShare(phoneListId)
         } catch (e: Exception) {

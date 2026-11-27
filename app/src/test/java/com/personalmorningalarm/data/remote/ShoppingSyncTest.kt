@@ -84,8 +84,14 @@ class ShoppingSyncTest {
                 override suspend fun addShoppingItem(listId: String, body: ShoppingAddRequest, key: String, sent: com.personalmorningalarm.data.remote.SendMarker): Response<Unit> =
                     write("$listId:ADD:${body.text}")
 
-                override suspend fun tickShoppingItem(listId: String, body: ShoppingLineRequest): Response<Unit> =
+                override suspend fun tickShoppingItem(listId: String, body: ShoppingLineRequest, key: String?): Response<Unit> =
                     write("$listId:TICK:${body.line}")
+                override suspend fun untickShoppingItem(listId: String, body: ShoppingLineRequest, key: String?): Response<Unit> =
+                    write("$listId:UNTICK:${body.line}")
+                override suspend fun setShoppingKeepTicked(listId: String, body: com.personalmorningalarm.data.remote.ShoppingKeepTickedRequest): Response<Unit> =
+                    throw java.io.IOException()
+                override suspend fun clearShoppingBought(listId: String): Response<Unit> =
+                    throw java.io.IOException()
 
                 override suspend fun dropShoppingItem(listId: String, body: ShoppingLineRequest): Response<Unit> =
                     write("$listId:DROP:${body.line}")

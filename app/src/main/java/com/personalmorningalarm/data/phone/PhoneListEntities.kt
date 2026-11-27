@@ -34,7 +34,13 @@ data class PhoneList(
     /** A [PhoneListKind] name. */
     val kind: String,
     val title: String,
-    val createdAt: Long
+    val createdAt: Long,
+    /**
+     * Ticked items stay, under Bought, until "Clear bought": the overnight clear
+     * passes this list by (BJ). Kept on the list itself, as vault-api keeps a hub
+     * list's `keep_ticked`. Added in v3; every list before is false.
+     */
+    @ColumnInfo(defaultValue = "0") val keepTicked: Boolean = false
 )
 
 /**

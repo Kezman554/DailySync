@@ -31,7 +31,8 @@ import kotlinx.coroutines.launch
 /**
  * One shopping list kept on the phone. The same screen as [ShoppingListFragment] —
  * add at the bottom, tap ticks, long press drops — less everything about Alfred:
- * no saved-copy age, no sync line, no conflict notice, no pull to refresh.
+ * no saved-copy age, no sync line, no conflict notice, no pull to refresh. Keep
+ * ticked is kept on the list here, and works offline.
  */
 class PhoneShoppingListFragment : Fragment() {
 
@@ -59,6 +60,11 @@ class PhoneShoppingListFragment : Fragment() {
 
     private val itemAdapter by lazy { ShoppingItemAdapter(onTick = viewModel::tickItem, onDrop = ::confirmDrop) }
 
+    /** Keep ticked's Bought rows: a tap puts one back. */
+    private val boughtAdapter by lazy {
+        ShoppingItemAdapter(onTick = viewModel::tickItem, onDrop = ::confirmDrop, onUntick = viewModel::untickItem)
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -81,14 +87,20 @@ class PhoneShoppingListFragment : Fragment() {
 
         binding.rvShoppingItems.layoutManager = LinearLayoutManager(requireContext())
         binding.rvShoppingItems.adapter = itemAdapter
-        binding.rvShoppingItems.addItemDecoration(
-            MaterialDividerItemDecoration(requireContext(), LinearLayoutManager.VERTICAL).apply {
-                dividerColor = MaterialColors.getColor(binding.root, R.attr.colorSurface2)
-                isLastItemDecorated = false
-            }
-        )
+        binding.rvShoppingBought.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvShoppingBought.adapter = boughtAdapter
+        listOf(binding.rvShoppingItems, binding.rvShoppingBought).forEach { list ->
+            list.addItemDecoration(
+                MaterialDividerItemDecoration(requireContext(), LinearLayoutManager.VERTICAL).apply {
+                    dividerColor = MaterialColors.getColor(binding.root, R.attr.colorSurface2)
+                    isLastItemDecorated = false
+                }
+            )
+        }
 
         binding.switchShare.setOnClickListener { onShareToggled() }
+        binding.switchKeepTicked.setOnClickListener { viewModel.setKeepTicked(binding.switchKeepTicked.isChecked) }
+        binding.btnClearBought.setOnClickListener { confirmClearBought() }
 
         binding.etShoppingAdd.setHint(R.string.shopping_add_hint)
         binding.btnShoppingAdd.setOnClickListener { submitAdd() }
@@ -103,7 +115,13 @@ class PhoneShoppingListFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { viewModel.items.collect(::render) }
+                launch { viewModel.items.collect { render(it, viewModel.keepTicked.value) } }
+                launch {
+                    viewModel.keepTicked.collect { keep ->
+                        renderKeepTicked(keep)
+                        render(viewModel.items.value, keep)
+                    }
+                }
                 launch { shareViewModel.working.collect { renderShare() } }
                 launch { shareViewModel.results.collect(::onShareResult) }
             }
@@ -124,9 +142,13 @@ class PhoneShoppingListFragment : Fragment() {
     /** A phone list is never shared: the toggle offers the move, and says where it would go. */
     private fun renderShare() {
         val profile = me
-        binding.rowShare.isVisible = profile != null
-        if (profile == null) return
         val working = shareViewModel.working.value
+        // The card holds Keep ticked too, so it shows whoever's phone this is.
+        binding.rowShare.isVisible = true
+        binding.switchShare.isVisible = profile != null
+        binding.tvShareNote.isVisible = profile != null
+        binding.switchKeepTicked.isEnabled = !working
+        if (profile == null) return
         binding.switchShare.isChecked = false
         binding.switchShare.isEnabled = !working
         binding.switchShare.text = getString(R.string.shopping_share_with, otherName(profile))
@@ -156,18 +178,44 @@ class PhoneShoppingListFragment : Fragment() {
             .show()
     }
 
-    private fun render(items: List<ShoppingItem>?) {
+    private fun renderKeepTicked(keep: Boolean) {
+        binding.switchKeepTicked.isChecked = keep
+        binding.tvKeepTickedNote.setText(
+            if (keep) R.string.shopping_keep_ticked_note_on else R.string.shopping_keep_ticked_note_off
+        )
+    }
+
+    /** Clear bought, asked first: they're gone for good. */
+    private fun confirmClearBought() {
+        val bought = boughtAdapter.itemCount
+        if (bought == 0) return
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.shopping_clear_bought_title)
+            .setMessage(
+                resources.getQuantityString(
+                    R.plurals.shopping_clear_bought_message, bought, bought, ShoppingList.shortTitle(listTitle)
+                )
+            )
+            .setPositiveButton(R.string.shopping_clear_bought) { _, _ -> viewModel.clearBought() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun render(items: List<ShoppingItem>?, keepTicked: Boolean) {
         binding.titleBar.tvScreenMeta.isVisible = items != null
         binding.titleBar.tvScreenMeta.text = getString(R.string.shopping_left, items.orEmpty().count { !it.done })
-        binding.rvShoppingItems.isVisible = !items.isNullOrEmpty()
-        binding.tvShoppingBody.isVisible = items != null && items.isEmpty()
-        binding.tvShoppingBody.setText(R.string.shopping_list_empty)
-        itemAdapter.submitList(items.orEmpty())
+        if (items == null) {
+            binding.rvShoppingItems.isVisible = false
+            binding.tvShoppingBody.isVisible = false
+            return
+        }
+        showItems(binding, itemAdapter, boughtAdapter, items, keepTicked)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         binding.rvShoppingItems.adapter = null
+        binding.rvShoppingBought.adapter = null
         _binding = null
     }
 }

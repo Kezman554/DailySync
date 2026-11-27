@@ -22,15 +22,23 @@ data class PendingShoppingWrite(
     val line: String?,
     val createdAt: Long,
     val failed: Boolean = false,
-    /** An ADD's Idempotency-Key, as [PendingChalkboardWrite.idempotencyKey]. Null for TICK and DROP. */
+    /**
+     * An ADD's or UNTICK's Idempotency-Key, as [PendingChalkboardWrite.idempotencyKey].
+     * Null for TICK and DROP.
+     */
     val idempotencyKey: String? = null
 )
 
-/** The three shopping-list writes the queue can hold. Create-list is never queued — it's online-only. */
+/**
+ * The shopping-list writes the queue can hold. Create-list is never queued — it's
+ * online-only — and nor are Keep ticked and Clear bought.
+ */
 enum class ShoppingVerb {
     ADD,
     TICK,
-    DROP;
+    DROP,
+    /** Puts a bought item back on a Keep ticked list (BJ). Stored by name, so no migration. */
+    UNTICK;
 
     companion object {
         /** Null for a name this build doesn't know — the flush fails that entry rather than crash. */

@@ -319,9 +319,38 @@ class AlfredRepository(
             sendKeyed { sent -> service.addShoppingItem(listId, ShoppingAddRequest(text), key, sent) }
         }
 
-    /** Ticks the item whose raw vault line is [line] in list [listId]. Stays listed until the sweep. */
-    suspend fun tickShoppingItem(listId: String, line: String): ShoppingWriteResult =
-        writeShopping(listId, "tick") { it.tickShoppingItem(listId, ShoppingLineRequest(line)) }
+    /**
+     * Ticks the item whose raw vault line is [line] in list [listId]. Stays listed until
+     * the sweep. With a [key] a resend after a lost answer lands once, on the same row.
+     */
+    suspend fun tickShoppingItem(listId: String, line: String, key: String? = null): ShoppingWriteResult =
+        writeShopping(listId, "tick", keyed = key != null) {
+            it.tickShoppingItem(listId, ShoppingLineRequest(line), key)
+        }
+
+    /** Unticks the bought item whose raw (ticked) vault line is [line], keyed as [tickShoppingItem]. */
+    suspend fun untickShoppingItem(listId: String, line: String, key: String): ShoppingWriteResult =
+        writeShopping(listId, "untick", keyed = true) {
+            it.untickShoppingItem(listId, ShoppingLineRequest(line), key)
+        }
+
+    /**
+     * Clears [listId]'s bought items. Online-only, as delete is. A resend is safe: once
+     * cleared there's nothing ticked, and the hub makes no change.
+     */
+    suspend fun clearShoppingBought(listId: String): ShoppingWriteResult =
+        writeShopping(listId, "clear-bought") { it.clearShoppingBought(listId) }
+
+    /** Sets [listId]'s Keep ticked on the hub. Online-only: the answer is the hub's now. */
+    suspend fun setShoppingKeepTicked(listId: String, keep: Boolean): ShareFlagResult =
+        shareCall("keep-ticked") {
+            val response = it.setShoppingKeepTicked(listId, ShoppingKeepTickedRequest(keep))
+            when {
+                response.isSuccessful -> ShareFlagResult.Done
+                response.code() == 404 -> ShareFlagResult.Gone
+                else -> null
+            }
+        } ?: ShareFlagResult.Unreachable
 
     /** Drops the item whose raw vault line is [line] in list [listId] — no longer wanted. */
     suspend fun dropShoppingItem(listId: String, line: String): ShoppingWriteResult =

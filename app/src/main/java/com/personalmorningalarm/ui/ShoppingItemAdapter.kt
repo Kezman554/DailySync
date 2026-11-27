@@ -2,6 +2,7 @@ package com.personalmorningalarm.ui
 
 import android.graphics.Paint
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
@@ -15,10 +16,14 @@ import com.personalmorningalarm.util.VaultText
  * One shopping list's editable rows. Mirrors [RollingTodoAdapter] — tap ticks
  * (bought), long-press drops (no longer wanted) — minus the date, since shopping
  * items aren't dated. Each row splits the vault line into a bold name and a note.
+ *
+ * With [onUntick] (a Keep ticked list's Bought rows), a tap on a ticked row puts it
+ * back. Without it, a ticked row has had its verb, as before.
  */
 class ShoppingItemAdapter(
     private val onTick: (ShoppingItem) -> Unit,
-    private val onDrop: (ShoppingItem) -> Unit
+    private val onDrop: (ShoppingItem) -> Unit,
+    private val onUntick: ((ShoppingItem) -> Unit)? = null
 ) : ListAdapter<ShoppingItem, ShoppingItemAdapter.Holder>(DIFF) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder =
@@ -45,14 +50,17 @@ class ShoppingItemAdapter(
             binding.tvShoppingPending.isVisible = item.pending
             binding.root.alpha = if (item.done) DONE_ALPHA else 1f
 
-            // A ticked item has had its verb — only drop remains for it.
-            // A hub row by its vault line, a phone row by its id.
+            // A ticked item has had its verb — only drop remains for it, unless
+            // the list keeps it to untick. A hub row by its vault line, a phone row by its id.
             val targetable = item.line != null || item.localId != null
-            binding.root.isClickable = targetable && !item.done
+            val tap: ((ShoppingItem) -> Unit)? = when {
+                !targetable -> null
+                !item.done -> onTick
+                else -> onUntick
+            }
+            binding.root.isClickable = tap != null
             binding.root.isLongClickable = targetable
-            binding.root.setOnClickListener(
-                if (targetable && !item.done) { _ -> onTick(item) } else null
-            )
+            binding.root.setOnClickListener(tap?.let { action -> View.OnClickListener { action(item) } })
             binding.root.setOnLongClickListener(
                 if (targetable) { _ -> onDrop(item); true } else null
             )

@@ -2416,3 +2416,59 @@
     Work and resumed at 545s 15s later, as on the other three. Session stopped
     there. Alarm configs, events, tags, toggles and settings identical to before;
     no alarm scheduled, as found
+
+2026-11-27 Session BJ: Copy into... and Keep ticked (DONE, A32 run owed)
+  - The merge rule, once: ListMerge.plan (data/model). Matched on the name (before
+    " — ", links resolved, case and spaces ignored); adds only what's missing, theirs
+    ticked arrives ticked, an unticked match of yours is ticked; nothing is unticked,
+    deleted or renamed. Their repeats are one item (bought only if every copy is).
+    Counts are exclusive, so they sum to their list: "Added 3, 5 already there, 2
+    already bought by Jess" (added = to buy; bought = arrived ticked or ticked yours)
+  - ShoppingCopy (data/remote): their list read live; into a phone list it's one
+    Room transaction (PhoneListStore.mergeInto); into a Pi list it's read, keyed
+    adds, read again, keyed ticks. A merge cut off part-way says so (Unfinished),
+    and copying into the same list again finishes it: replanned from both lists
+    as they are, keys from a per-run id kept in memory (key = run|verb|text or
+    line, so never a 409), and the first attempt's counts reported. A new list
+    lives where the person's unshared lists do (Nick: Pi via POST ?for=, owned and
+    unshared; Jess: phone). Targets: every list of yours but the source, Pi and
+    phone (so Jess is offered her own shared hub lists too)
+  - UI: menu long press on a list shared with you has Copy into...; the list
+    screen's settings card has a Copy into... row. Picker: A new list... (named
+    "<title> (mine)") or one of yours; result in a snackbar with Open
+  - Keep ticked: Pi lists via POST .../keep-ticked (summary keep_ticked, absent =
+    false); phone lists in phone_lists.keepTicked (phone DB v3, ALTER ADD COLUMN
+    DEFAULT 0, 3.json). On: to-buy rows, then BOUGHT with Clear bought, each
+    bought row taps to untick; the phone sweep and read pass the list by. Off: as
+    before; turning it off on the phone re-dates kept ticks so they go at the next
+    03:07, as the hub's next sweep does. Untick on a Pi list queues offline (verb
+    UNTICK, keyed); Clear bought and the switch are online-only on the Pi. Share
+    and pull-back carry the setting across (set after the upload, before the
+    phone copy is deleted, so a resume retries it)
+  - Tests: ListMergeTest (13), ShoppingCopyTest (13, fake hub over real HTTP: Pi
+    merge, new Pi list owned and unshared, name taken, second merge with their
+    deletions kept, cut off after 2 adds then finished with nothing doubled and a
+    third run a no-op, lost add answer resent under one key and landed once, no
+    hub, targets; Jess: new phone list with no hub writes, second merge, targets),
+    PhoneListStoreTest +7 (keep ticked through the sweep, other lists still swept,
+    untick, clear bought, off re-dates, merge, merge into a moving list), phone DB
+    2 -> 3 seeded, ShoppingListTest +2 (UNTICK overlay), ShoppingShareTest +2
+    (setting carried both ways). FakeShoppingHub gained CP's routes and keys.
+    Dropping tick-carrying turns 4 red. Full suite, --rerun-tasks: 787, 0 failed
+  - Emulator (API 36, fresh install, real hub 0.19.0), as Nick then as Jess:
+    Nick copied Jess's shared list to a new list ("Added 2, 1 already bought by
+    Jess"), on the Pi, his, unshared; after Jess ticked one, dropped one and added
+    one, a second merge from the list screen said "Added 1, 1 already there, 1
+    already bought by Jess": Book ticked on his copy, Socks and his own item kept.
+    Keep ticked on that Pi list: keep_ticked true on the hub, BOUGHT section, an
+    untick landed as [ ], Clear bought took only the bought one. Jess copied
+    Nick's shared list to a new phone list (no hub list made), then a second merge
+    ("Added 1, 2 already there, 1 already bought by Nick"); Keep ticked on it:
+    BOUGHT, untick, Clear bought, and still on after a force-stop. No crashes
+  - Hub left as found: the three "BJ test" lists deleted. Their test writes left
+    the usual records for a vault session to discard: "Socks" DROPPED and "Lego
+    set" BOUGHT (from BJ test ... (mine)) in the completed log, plus Clear
+    bought's inbox capture
+  - Owed: the A32 (not connected this session): update install, phone DB 2 -> 3
+    with NFC tags, alarm history and lists unchanged, then a copy and Keep ticked
+    as Nick. Not seen on a device: a Pi merge cut off part-way (unit-tested)

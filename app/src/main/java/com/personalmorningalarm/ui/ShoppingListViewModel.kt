@@ -8,12 +8,15 @@ import com.personalmorningalarm.data.entity.PendingShoppingWrite
 import com.personalmorningalarm.data.entity.ShoppingVerb
 import com.personalmorningalarm.data.model.ShoppingItemDto
 import com.personalmorningalarm.data.model.ShoppingListSummaryDto
+import com.personalmorningalarm.data.model.ShoppingListDetailDto
 import com.personalmorningalarm.data.model.tickedLine
+import com.personalmorningalarm.data.model.untickedLine
 import com.personalmorningalarm.data.model.updateFirst
 import com.personalmorningalarm.data.model.withoutFirst
 import com.personalmorningalarm.data.remote.AddKey
 import com.personalmorningalarm.data.remote.AlfredRepository
 import com.personalmorningalarm.data.remote.AlfredResult
+import com.personalmorningalarm.data.remote.ShareFlagResult
 import com.personalmorningalarm.data.remote.ShoppingSync
 import com.personalmorningalarm.data.remote.ShoppingWriteResult
 import com.personalmorningalarm.data.remote.dataOrNull
@@ -48,14 +51,24 @@ class ShoppingListViewModel(
         val result: AlfredResult<List<ShoppingItemDto>>? = null,
         val pending: List<PendingShoppingWrite> = emptyList(),
         /** This list as discovery describes it: whose it is and whether it's shared. Null until known. */
-        val summary: ShoppingListSummaryDto? = null
+        val summary: ShoppingListSummaryDto? = null,
+        /** Keep ticked, as the list's own read says (or discovery's, until it has). */
+        val keepTicked: Boolean = false,
+        /** A Keep ticked change is with the hub. */
+        val keepWorking: Boolean = false
     )
 
     enum class ShoppingEvent {
         /** A tick/drop hit a stale line; the list on screen was replaced with Alfred's. */
         LIST_REFRESHED,
         /** Alfred was unreachable, so the write was queued instead of lost. */
-        SAVED_OFFLINE
+        SAVED_OFFLINE,
+        /** Keep ticked is set on the hub, and it can't be reached. */
+        KEEP_NEEDS_HUB,
+        /** Clear bought is done on the hub, and it can't be reached. */
+        CLEAR_NEEDS_HUB,
+        /** The list isn't on the hub any more. */
+        LIST_GONE
     }
 
     private val _state = MutableStateFlow(ShoppingListState(loading = true))
@@ -90,10 +103,17 @@ class ShoppingListViewModel(
             // refresh, so the refetch below sees their effect.
             if (sync.hasPending()) sync.flush()
             val result = alfred.getShoppingList(listId)
-            _state.value = _state.value.copy(loading = false, result = result.map { it.items.orEmpty() })
+            show(result)
+            _state.value = _state.value.copy(loading = false)
             // Owner and shared come only from discovery; its saved copy will do if Alfred's away.
             val summary = alfred.getShoppingLists().dataOrNull()?.firstOrNull { it.id == listId }
-            if (summary != null) _state.value = _state.value.copy(summary = summary)
+            if (summary != null) {
+                _state.value = _state.value.copy(
+                    summary = summary,
+                    // The list's own read is the newer word; discovery's only until there is one.
+                    keepTicked = result.dataOrNull()?.list?.let { it.keepTicked == true } ?: (summary.keepTicked == true)
+                )
+            }
         }
     }
 
@@ -134,6 +154,57 @@ class ShoppingListViewModel(
             reconcileOnSuccess = true,
             onUnreachable = { queueWrite(ShoppingVerb.TICK, text = text, line = line) }
         ) { alfred.tickShoppingItem(listId, line) }
+    }
+
+    /** A Keep ticked list's bought item, back to still to buy. Queued offline, keyed so it lands once. */
+    fun untickItem(line: String) {
+        val text = displayTextFor(line)
+        val key = AddKey.new()
+        if (!isFresh()) {
+            queueWrite(ShoppingVerb.UNTICK, text = text, line = line, key = key)
+            return
+        }
+        applyOptimistically { list ->
+            list.updateFirst({ it.line == line && it.ticked == true }) { it.copy(ticked = false, line = untickedLine(line)) }
+        }
+        runWrite("untick", onUnreachable = { queueWrite(ShoppingVerb.UNTICK, text = text, line = line, key = key) }) {
+            alfred.untickShoppingItem(listId, line, key)
+        }
+    }
+
+    /** Keep ticked on the hub. Needs it there and then: the switch shows the hub's answer. */
+    fun setKeepTicked(keep: Boolean) {
+        if (_state.value.keepWorking) return
+        _state.value = _state.value.copy(keepWorking = true)
+        viewModelScope.launch {
+            val result = alfred.setShoppingKeepTicked(listId, keep)
+            _state.value = _state.value.copy(keepWorking = false)
+            when (result) {
+                ShareFlagResult.Done -> {
+                    _state.value = _state.value.copy(keepTicked = keep)
+                    reconcile()
+                }
+                ShareFlagResult.Gone -> _events.emit(ShoppingEvent.LIST_GONE)
+                ShareFlagResult.Unreachable -> _events.emit(ShoppingEvent.KEEP_NEEDS_HUB)
+            }
+        }
+    }
+
+    /**
+     * Clears the bought items, on the hub. Online-only, as delete is; queued writes go
+     * first, so a tick waiting to sync isn't left behind. Safe to resend.
+     */
+    fun clearBought() {
+        if (!isFresh()) {
+            _events.tryEmit(ShoppingEvent.CLEAR_NEEDS_HUB)
+            return
+        }
+        viewModelScope.launch {
+            if (sync.hasPending()) sync.flush()
+            applyOptimistically { list -> list.filterNot { it.ticked == true } }
+            if (alfred.clearShoppingBought(listId) != ShoppingWriteResult.Done) _events.emit(ShoppingEvent.CLEAR_NEEDS_HUB)
+            reconcile()
+        }
     }
 
     fun dropItem(line: String) {
@@ -198,8 +269,16 @@ class ShoppingListViewModel(
     }
 
     private suspend fun reconcile() {
-        val result = alfred.getShoppingList(listId)
-        _state.value = _state.value.copy(result = result.map { it.items.orEmpty() })
+        show(alfred.getShoppingList(listId))
+    }
+
+    /** The list's items, and its Keep ticked when the read carries the list (a saved copy may not). */
+    private fun show(result: AlfredResult<ShoppingListDetailDto>) {
+        val keep = result.dataOrNull()?.list?.let { it.keepTicked == true }
+        _state.value = _state.value.copy(
+            result = result.map { it.items.orEmpty() },
+            keepTicked = keep ?: _state.value.keepTicked
+        )
     }
 
     private companion object {

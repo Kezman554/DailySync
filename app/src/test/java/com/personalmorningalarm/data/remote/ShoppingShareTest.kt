@@ -354,4 +354,29 @@ class ShoppingShareTest {
         assertTrue(hub.lists.values.all { it.shared })
         assertTrue(hub.requests.none { it.endsWith("/share") || it.endsWith("/pull-back") })
     }
+
+    // --- Keep ticked goes with the list (BJ) ---
+
+    @Test
+    fun `sharing a Keep ticked phone list keeps its ticks on the hub, and the setting with them`() = runBlocking {
+        val id = phoneList("Christmas", "Lego set", "Book", ticked = 1)
+        store.setKeepTicked(id, true).join()
+
+        val moved = share.sharePhoneList(id) as ShoppingShare.Outcome.MovedToHub
+
+        val list = hub.lists.getValue(moved.hubId)
+        assertTrue(list.keepTicked)
+        assertEquals(mapOf("Christmas" to listOf("[x] Lego set", "Book")), onHub())
+    }
+
+    @Test
+    fun `pulling back a Keep ticked hub list makes a phone list that keeps them too`() = runBlocking {
+        val list = hub.add("Christmas", "jess", shared = true, Item("Lego set", true), Item("Book", false))
+        list.keepTicked = true
+
+        val moved = share.setShared(summaryOf(list).copy(keepTicked = true), shared = false) as ShoppingShare.Outcome.MovedToPhone
+
+        assertTrue(store.keepTicked(moved.phoneListId).first())
+        assertEquals(mapOf("Christmas" to listOf("[x] Lego set", "Book")), shownOnPhone())
+    }
 }

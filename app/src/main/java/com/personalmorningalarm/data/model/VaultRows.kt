@@ -14,6 +14,11 @@ package com.personalmorningalarm.data.model
 /** "[ ]" → "[x]", as Alfred rewrites a ticked line. */
 fun tickedLine(line: String): String = line.replaceFirst("[ ]", "[x]")
 
+/** "[x]" (or "[X]") → "[ ]", as vault-api's untick rewrites the box and nothing else. */
+fun untickedLine(line: String): String = line.replaceFirst(TICKED_BOX, "[ ]")
+
+private val TICKED_BOX = Regex("""\[[xX]]""")
+
 /** This list with [change] applied to its first row matching [matches], and to no other. */
 inline fun <T> List<T>.updateFirst(matches: (T) -> Boolean, change: (T) -> T): List<T> {
     val index = indexOfFirst(matches)

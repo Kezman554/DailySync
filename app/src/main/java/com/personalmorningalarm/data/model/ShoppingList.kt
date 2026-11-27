@@ -77,6 +77,9 @@ object ShoppingList {
                     it.copy(done = true, pending = true, line = write.line?.let(::tickedLine))
                 }
                 ShoppingVerb.DROP -> result.withoutFirst { it.line == write.line }
+                ShoppingVerb.UNTICK -> result.updateFirst({ it.line == write.line && it.done }) {
+                    it.copy(done = false, pending = true, line = write.line?.let(::untickedLine))
+                }
                 null -> result
             }
         }

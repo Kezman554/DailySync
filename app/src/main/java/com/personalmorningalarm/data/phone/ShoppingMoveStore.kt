@@ -13,13 +13,16 @@ data class MovingItem(val text: String, val ticked: Boolean)
  */
 interface ShoppingMoveStore {
 
-    /** A phone shopping list as a share would upload it. */
-    data class Snapshot(val title: String, val items: List<MovingItem>)
+    /** A phone shopping list as a share would upload it, and whether it keeps its ticked items. */
+    data class Snapshot(val title: String, val items: List<MovingItem>, val keepTicked: Boolean = false)
 
     /** [listId]'s title and the items still showing, or null if there's no such list. */
     suspend fun shareSnapshot(listId: String): Snapshot?
 
     suspend fun move(phoneListId: String): ListMove?
+
+    /** Whether the phone list [listId] has Keep ticked on: a share carries it to the hub. */
+    suspend fun keepsTicked(listId: String): Boolean
 
     /** The pull-back under way from hub list [hubId], if any. */
     suspend fun pullBackFrom(hubId: String): ListMove?
@@ -41,9 +44,10 @@ interface ShoppingMoveStore {
 
     /**
      * Makes a hidden phone list called [title] holding [items] (the hub list as last
-     * read), recorded as being pulled back from [hubId]. Returns the new list's id.
+     * read), recorded as being pulled back from [hubId], keeping the hub list's Keep
+     * ticked. Returns the new list's id.
      */
-    suspend fun beginPullBack(title: String, hubId: String, items: List<MovingItem>): String
+    suspend fun beginPullBack(title: String, hubId: String, items: List<MovingItem>, keepTicked: Boolean = false): String
 
     /** The hub's copy is gone: keep [items] (the hub's answer), or the snapshot if null, and show the list. */
     suspend fun finishPullBack(listId: String, items: List<MovingItem>?)

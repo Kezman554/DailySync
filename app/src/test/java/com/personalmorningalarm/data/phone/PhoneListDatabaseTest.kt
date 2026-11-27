@@ -18,9 +18,10 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * The phone-list database as a phone will have it: built from the committed 1.json,
- * seeded, then opened the way the app opens it, so the migrations run and Room's
- * schema check compares the result with 2.json, as on the device. The way
+ * The phone-list database as a phone will have it: built from a committed schema
+ * (1.json, or 2.json for the v3 upgrade), seeded, then opened the way the app opens
+ * it, so the migrations run and Room's schema check compares the result with the
+ * latest, as on the device. The way
  * [com.personalmorningalarm.data.MigrationTest] works for AppDatabase.
  * On the JVM, because instrumented tests never run against the A32 (see CLAUDE.md).
  */
@@ -86,11 +87,20 @@ class PhoneListDatabaseTest {
             .build()
             .also { opened = it }
 
+    /** Starts again from [version]'s schema, seeded, in place of setUp's v1. */
+    private fun startFrom(version: Int) {
+        context.deleteDatabase(PhoneListDatabase.DB_NAME)
+        val old = SQLiteDatabase.openOrCreateDatabase(dbFile, null)
+        createFromSchema(old, version)
+        seed(old)
+        old.close()
+    }
+
     @Test
-    fun `upgrading to 2 passes Room's schema check, and what was kept is still there`() = runBlocking {
+    fun `upgrading from 1 passes Room's schema check, and what was kept is still there`() = runBlocking {
         val db = open()
 
-        assertEquals(2, db.openHelper.writableDatabase.version)
+        assertEquals(3, db.openHelper.writableDatabase.version)
         assertEquals(listOf("Tent pegs"), db.dao().observeItems("invented-list", today = 0).first().map { it.text })
         assertEquals("Boiler questions", db.dao().note("invented-note")?.text)
     }
@@ -117,5 +127,39 @@ class PhoneListDatabaseTest {
         db.dao().finishShare("invented-list")
         assertEquals(emptyList<ListMove>(), db.dao().moves())
         assertEquals(emptyList<PhoneListItem>(), db.dao().allItems("invented-list"))
+    }
+
+    @Test
+    fun `upgrading from 2 keeps every list as it was, with Keep ticked off`() = runBlocking {
+        startFrom(2)
+        val old = SQLiteDatabase.openDatabase(dbFile.path, null, SQLiteDatabase.OPEN_READWRITE)
+        // A ticked item from long ago: still cleared as before, since Keep ticked is off.
+        old.insert("phone_list_items", null, ContentValues().apply {
+            put("listId", "invented-list"); put("text", "Old rope"); put("addedOn", 19_000L); put("tickedOn", 19_000L)
+        })
+        old.close()
+
+        val db = open()
+
+        assertEquals(3, db.openHelper.writableDatabase.version)
+        assertEquals(false, db.dao().list("invented-list")?.keepTicked)
+        assertEquals(listOf("Tent pegs"), db.dao().observeItems("invented-list", today = 20_000).first().map { it.text })
+        assertEquals("Boiler questions", db.dao().note("invented-note")?.text)
+    }
+
+    @Test
+    fun `after the upgrade a list can keep its ticked items`() = runBlocking {
+        startFrom(2)
+        val db = open()
+        db.dao().insertItem(PhoneListItem(listId = "invented-list", text = "Lantern", addedOnEpochDay = 20_000, tickedOnEpochDay = 20_000))
+
+        db.dao().updateKeepTicked("invented-list", true)
+
+        assertEquals(true, db.dao().observeKeepTicked("invented-list").first())
+        assertEquals(
+            listOf("Tent pegs", "Lantern"),
+            db.dao().observeItems("invented-list", today = 25_000).first().map { it.text }
+        )
+        assertEquals(0, db.dao().deleteTickedBefore(25_000))
     }
 }

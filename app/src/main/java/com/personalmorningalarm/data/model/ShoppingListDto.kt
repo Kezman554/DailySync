@@ -1,5 +1,7 @@
 package com.personalmorningalarm.data.model
 
+import com.google.gson.annotations.SerializedName
+
 /**
  * One shopping list as Alfred's discovery endpoint (`GET /shopping`) describes it —
  * enough to render the list-picker menu without fetching every list's items.
@@ -17,7 +19,12 @@ data class ShoppingListSummaryDto(
      */
     val owner: String? = null,
     /** Whether the other person sees it too. Absent means not shared. */
-    val shared: Boolean? = null
+    val shared: Boolean? = null,
+    /**
+     * The list keeps its ticked (bought) items until "Clear bought": no overnight
+     * sweep takes them (vault-api Session CP). Sent only when true; absent is false.
+     */
+    @SerializedName("keep_ticked") val keepTicked: Boolean? = null
 )
 
 /** `GET /shopping/{listId}` — one list's items, ticked included, each with its raw vault line. */
